@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import {
   recipeWithRelations,
   toRecipe,
@@ -63,7 +64,13 @@ export async function listRecipes({
 }: ListRecipesOptions = {}): Promise<ListRecipesResult> {
   const take = Math.min(Math.max(limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
 
-  const query: Parameters<typeof prisma.recipe.findMany>[0] = {
+  const query: {
+    include: typeof recipeWithRelations;
+    orderBy: ({ updatedAt: "desc" } | { id: "desc" })[];
+    take: number;
+    cursor?: { id: string };
+    skip?: number;
+  } = {
     include: recipeWithRelations,
     orderBy: [{ updatedAt: "desc" as const }, { id: "desc" as const }],
     take: take + 1,
@@ -101,7 +108,7 @@ export interface CreateRecipeInput {
 }
 
 export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
-  const recipeId = await prisma.$transaction(async (tx) => {
+  const recipeId = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const recipe = await tx.recipe.create({
       data: {
         name: input.name.trim(),
@@ -141,7 +148,12 @@ export async function updateRecipeDetails(
   recipeId: string,
   data: Partial<Pick<Recipe, "name" | "description" | "category" | "tags">>,
 ): Promise<Recipe | null> {
-  const payload: Parameters<typeof prisma.recipe.update>[0]["data"] = {};
+  const payload: {
+    name?: string;
+    description?: string | null;
+    category?: RecipeCategory;
+    tags?: string[];
+  } = {};
 
   if (data.name !== undefined) {
     const trimmed = data.name.trim();
@@ -205,7 +217,7 @@ type CreateVersionIngredientInput = NonNullable<
 >[number];
 
 export async function createVersion(input: CreateVersionInput): Promise<Recipe> {
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const createdVersion = await tx.recipeVersion.create({
       data: {
         recipeId: input.recipeId,
@@ -275,14 +287,16 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
       ? `${baseVersion.title}${factor !== 1 ? ` x${factor}` : " copy"}`
       : "New version";
 
-  const ingredients = (baseVersion?.ingredients ?? []).map((ingredient, index) => ({
-    name: ingredient.name,
-    quantity: Number(ingredient.quantity) * factor,
-    unit: ingredient.unit,
-    role: ingredient.role as IngredientRole,
-    notes: ingredient.notes ?? null,
-    sortOrder: ingredient.sortOrder ?? index,
-  }));
+  const ingredients = (baseVersion?.ingredients ?? []).map(
+    (ingredient: any, index: number) => ({
+      name: ingredient.name,
+      quantity: Number(ingredient.quantity) * factor,
+      unit: ingredient.unit,
+      role: ingredient.role as IngredientRole,
+      notes: ingredient.notes ?? null,
+      sortOrder: ingredient.sortOrder ?? index,
+    }),
+  );
 
   const baseMetadata = baseVersion ? parseStoredMetadata(baseVersion.metadata) : {};
   const metadata =
@@ -308,12 +322,19 @@ export async function updateVersionDetails(
     photoUrl?: string | null;
   },
 ): Promise<Recipe | null> {
-  const updatePayload = {
+  const updatePayload: {
+    title?: string;
+    notes?: string;
+    tastingNotes?: string;
+    nextSteps?: string;
+    photoUrl?: string | null;
+    metadata?: RecipeVersionMetadata | null;
+  } = {
     ...data,
     ...(data.metadata !== undefined
       ? { metadata: data.metadata ? sanitizeMetadata(data.metadata) : {} }
       : {}),
-  } as Parameters<typeof prisma.recipeVersion.update>[0]["data"];
+  };
 
   await prisma.recipeVersion.update({
     where: { id: versionId },
