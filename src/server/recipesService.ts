@@ -322,15 +322,9 @@ export async function updateVersionDetails(
     photoUrl?: string | null;
   },
 ): Promise<Recipe | null> {
-  const updatePayload: {
-    title?: string;
-    notes?: string;
-    tastingNotes?: string;
-    nextSteps?: string;
-    photoUrl?: string | null;
-    metadata?: RecipeVersionMetadata | null;
-  } = {
-    ...data,
+  const { metadata: _, ...restData } = data;
+  const updatePayload = {
+    ...restData,
     ...(data.metadata !== undefined
       ? { metadata: data.metadata ? sanitizeMetadata(data.metadata) : {} }
       : {}),
