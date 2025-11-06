@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 import { CATEGORY_CONFIGS, type RecipeCategory } from "@/types/recipes";
 import {
@@ -6,16 +6,23 @@ import {
   listRecipes,
   type ListRecipesOptions,
 } from "@/server/recipesService";
+import { requireAuth } from "@/lib/auth-utils";
 
 const allowedCategories = Object.keys(CATEGORY_CONFIGS) as RecipeCategory[];
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const { userId, error, status } = await requireAuth(request);
+  if (!userId) {
+    return NextResponse.json({ error }, { status });
+  }
+
   const { searchParams } = new URL(request.url);
   const cursor = searchParams.get("cursor");
   const limitParam = searchParams.get("limit");
 
   const parsedLimit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
   const options: ListRecipesOptions = {
+    userId,
     cursor: cursor || null,
     limit: Number.isFinite(parsedLimit ?? NaN) ? parsedLimit : undefined,
   };
@@ -25,7 +32,12 @@ export async function GET(request: Request) {
   return NextResponse.json({ data: recipes, nextCursor });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const { userId, error, status } = await requireAuth(request);
+  if (!userId) {
+    return NextResponse.json({ error }, { status });
+  }
+
   const payload = (await request.json().catch(() => ({}))) as {
     name?: string;
     category?: RecipeCategory;
@@ -42,6 +54,7 @@ export async function POST(request: Request) {
   }
 
   const created = await createRecipe({
+    userId,
     name: payload.name.trim(),
     category: payload.category,
     description: payload.description ?? null,

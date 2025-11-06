@@ -1,12 +1,19 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(tsc:*)",
-      "Bash(npx tsc:*)",
-      "Bash(npx prisma generate:*)",
-      "Bash(npm run build:*)"
-    ],
+    "allow": ["WebFetch(domain:docs.stack-auth.com)"],
     "deny": [],
     "ask": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "command": "bash .claude/scripts/validate-bash.sh"
+          }
+        ]
+      }
+    ]
   }
 }

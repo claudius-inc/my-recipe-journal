@@ -49,6 +49,7 @@ const parseStoredMetadata = (metadata: unknown): RecipeVersionMetadata => {
 };
 
 export interface ListRecipesOptions {
+  userId: string;
   cursor?: string | null;
   limit?: number;
 }
@@ -59,18 +60,21 @@ export interface ListRecipesResult {
 }
 
 export async function listRecipes({
+  userId,
   cursor,
   limit,
-}: ListRecipesOptions = {}): Promise<ListRecipesResult> {
+}: ListRecipesOptions): Promise<ListRecipesResult> {
   const take = Math.min(Math.max(limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
 
   const query: {
+    where: { userId: string };
     include: typeof recipeWithRelations;
     orderBy: ({ updatedAt: "desc" } | { id: "desc" })[];
     take: number;
     cursor?: { id: string };
     skip?: number;
   } = {
+    where: { userId },
     include: recipeWithRelations,
     orderBy: [{ updatedAt: "desc" as const }, { id: "desc" as const }],
     take: take + 1,
@@ -92,15 +96,25 @@ export async function listRecipes({
   };
 }
 
-export async function getRecipe(recipeId: string): Promise<Recipe | null> {
+export async function getRecipe(
+  recipeId: string,
+  userId?: string,
+): Promise<Recipe | null> {
   const record = await prisma.recipe.findUnique({
     where: { id: recipeId },
     include: recipeWithRelations,
   });
+
+  // If userId is provided, verify the recipe belongs to the user
+  if (userId && record && record.userId !== userId) {
+    return null;
+  }
+
   return record ? toRecipe(record as RecipeWithRelations) : null;
 }
 
 export interface CreateRecipeInput {
+  userId: string;
   name: string;
   category: RecipeCategory;
   description?: string | null;
@@ -111,6 +125,7 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
   const recipeId = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const recipe = await tx.recipe.create({
       data: {
+        userId: input.userId,
         name: input.name.trim(),
         category: input.category,
         description: input.description?.trim() || null,

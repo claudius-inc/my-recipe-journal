@@ -7,7 +7,7 @@
 - **RecipeStore (React Query)** performs paginated fetching via `/api/recipes`, exposes mutations for CRUD operations, and keeps selection state in local React state.
 - **REST API Routes** under `src/app/api` map to specific resources and delegate to the service layer.
 - **Service Layer (`src/server/recipesService.ts`)** encapsulates Prisma calls, validation, pagination, metadata sanitization, and mutation side-effects.
-- **Database** uses Prisma ORM with SQLite in development; schema defines `Recipe`, `RecipeVersion`, `Ingredient`, and supporting enums.
+- **Database** uses Prisma ORM with Postgresql, connected to Neon; schema defines `Recipe`, `RecipeVersion`, `Ingredient`, and supporting enums.
 
 ### Providers & Shared Context
 

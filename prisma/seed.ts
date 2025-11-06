@@ -2,9 +2,23 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function createBreadRecipe() {
+async function createDemoUser() {
+  const user = await prisma.user.create({
+    data: {
+      email: "demo@example.com",
+      name: "Demo User",
+      emailVerified: true,
+    },
+  });
+
+  console.log(`Created demo user: ${user.email} (${user.id})`);
+  return user.id;
+}
+
+async function createBreadRecipe(userId: string) {
   const recipe = await prisma.recipe.create({
     data: {
+      userId,
       name: "Country Sourdough",
       category: "bread",
       description: "Open-crumb sourdough with mild tang and caramelized crust.",
@@ -131,9 +145,10 @@ async function createBreadRecipe() {
   });
 }
 
-async function createDrinkRecipe() {
+async function createDrinkRecipe(userId: string) {
   const recipe = await prisma.recipe.create({
     data: {
+      userId,
       name: "Citrus Tonic",
       category: "drink",
       description: "Zero-proof tonic with layered citrus bitters and ginger heat.",
@@ -201,9 +216,10 @@ async function createDrinkRecipe() {
   });
 }
 
-async function createWeeknightRecipe() {
+async function createWeeknightRecipe(userId: string) {
   const recipe = await prisma.recipe.create({
     data: {
+      userId,
       name: "Crispy Gochujang Tofu",
       category: "main",
       description: "Sheet-pan tofu with sweet heat glaze and blistered vegetables.",
@@ -279,15 +295,23 @@ async function createWeeknightRecipe() {
 }
 
 async function main() {
+  // Clean up existing data
   await prisma.ingredient.deleteMany();
   await prisma.recipeVersion.deleteMany();
   await prisma.recipe.deleteMany();
+  await prisma.user.deleteMany();
 
-  await createBreadRecipe();
-  await createDrinkRecipe();
-  await createWeeknightRecipe();
+  // Create demo user
+  const userId = await createDemoUser();
 
-  console.log("Seed data applied ✔");
+  // Create seed recipes for the demo user
+  await createBreadRecipe(userId);
+  await createDrinkRecipe(userId);
+  await createWeeknightRecipe(userId);
+
+  console.log("\n✔ Seed data applied successfully!");
+  console.log(`Demo user credentials: demo@example.com`);
+  console.log(`You can sign in with a magic link sent to this email.\n`);
 }
 
 main()
