@@ -68,9 +68,28 @@ Mobile-first recipe journaling app for bakers and beverage creatives. Track iter
 - [API Reference](docs/api.md)
 - [Data Model](docs/data-model.md)
 - [Photo Extraction Guide](docs/photo-extraction.md)
+- [Deployment Guide](docs/deployment.md)
 
 ## Deployment Notes
 
-- Set `DATABASE_URL` to your production database before running `next build`.
-- Run `npx prisma migrate deploy` and `npx prisma generate` during deployment workflows.
-- Seed production cautiously; the provided script overwrites existing data.
+### Critical Environment Variables for Production
+
+**MUST SET IN VERCEL:**
+
+- `BETTER_AUTH_URL=https://your-app.vercel.app` (replace with your actual domain)
+- `NEXT_PUBLIC_BETTER_AUTH_URL=https://your-app.vercel.app`
+- Without these, magic link authentication will NOT work in production!
+
+### Database Setup
+
+- Set `DATABASE_URL` to your production PostgreSQL database
+- Run `npx prisma migrate deploy` and `npx prisma generate` during deployment
+- Seed production cautiously; the provided script overwrites existing data
+
+### Additional Configuration
+
+- `RESEND_API_KEY` - Required for magic link emails
+- `FROM_EMAIL` - Email sender address (must be verified in Resend)
+- `GEMINI_API_KEY` - Optional, enables photo-to-recipe feature
+
+See [Deployment Guide](docs/deployment.md) for detailed instructions and troubleshooting.

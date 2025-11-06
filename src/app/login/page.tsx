@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { client } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 import { Box, Button, TextField, Text, Heading } from "@radix-ui/themes";
 
 export default function LoginPage() {
@@ -17,7 +17,7 @@ export default function LoginPage() {
 
     try {
       // Send magic link using Better Auth client
-      const { data, error: authError } = await client.signIn.magicLink({
+      const { data, error: authError } = await authClient.signIn.magicLink({
         email,
         callbackURL: "/",
       });
