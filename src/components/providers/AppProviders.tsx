@@ -27,7 +27,7 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Theme accentColor="grass" grayColor="olive" radius="large" scaling="95%">
+      <Theme accentColor="gray" grayColor="olive" radius="large" scaling="95%">
         {children}
       </Theme>
       <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />

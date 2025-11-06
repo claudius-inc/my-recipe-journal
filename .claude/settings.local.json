@@ -1,6 +1,8 @@
 {
   "permissions": {
-    "allow": ["WebFetch(domain:docs.stack-auth.com)"],
+    "allow": [
+      "WebFetch(domain:www.better-auth.com)"
+    ],
     "deny": [],
     "ask": []
   },

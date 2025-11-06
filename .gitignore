@@ -38,3 +38,5 @@ next-env.d.ts
 
 /src/generated/prisma
 /prisma/dev.db
+
+.claude/settings.local.json

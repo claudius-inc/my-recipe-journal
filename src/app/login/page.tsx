@@ -16,15 +16,14 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Send magic link - Better Auth will automatically send the email
-      const response = await fetch("/api/auth/magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      // Send magic link using Better Auth client
+      const { data, error: authError } = await client.signIn.magicLink({
+        email,
+        callbackURL: "/",
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to send magic link");
+      if (authError) {
+        throw new Error(authError.message || "Failed to send magic link");
       }
 
       setIsEmailSent(true);
