@@ -11,7 +11,7 @@ export function RecipeWorkspace() {
 
   return (
     <RecipeStoreProvider>
-      <div className="flex h-dvh w-full bg-surface text-foreground">
+      <div className="flex h-[calc(100dvh-64px)] w-full bg-surface text-foreground">
         <RecipeSidebar
           isOpen={isSidebarOpen}
           onClose={() => setSidebarOpen(false)}
