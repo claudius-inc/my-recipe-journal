@@ -5,6 +5,7 @@ Mobile-first recipe journaling app for bakers and beverage creatives. Track iter
 ## Feature Highlights
 
 - **Unified recipe workspace** with sidebar navigation, responsive Radix UI components, and version tabs.
+- **Photo-to-recipe extraction** powered by Gemini Vision AI to scan recipe photos and auto-populate ingredients, instructions, and metadata.
 - **Version history & cloning** to duplicate formulas with scaling, baker's percentage tooling, and rich metadata per category.
 - **Ingredient intelligence** including role tagging, autocomplete suggestions, and ordering controls.
 - **Real persistence** via Prisma + SQLite with seed data for bread, drink, and main course examples.
@@ -26,6 +27,9 @@ Mobile-first recipe journaling app for bakers and beverage creatives. Track iter
    ```
 2. **Environment**
    - Copy `.env` from `.env.example` if provided (default points to `file:./dev.db`).
+   - **Optional:** Add `GEMINI_API_KEY` to enable photo-to-recipe extraction feature.
+     - Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+     - Add to `.env`: `GEMINI_API_KEY=your_api_key_here`
 3. **Database migration & seed**
    ```bash
    npx prisma migrate dev
@@ -63,6 +67,7 @@ Mobile-first recipe journaling app for bakers and beverage creatives. Track iter
 - [Architecture](docs/architecture.md)
 - [API Reference](docs/api.md)
 - [Data Model](docs/data-model.md)
+- [Photo Extraction Guide](docs/photo-extraction.md)
 
 ## Deployment Notes
 

@@ -4,12 +4,13 @@ All routes are served from the Next.js App Router under `/api`. Responses follow
 
 ### Recipes
 
-| Method | Path                                 | Description                                                                                                                                |
-| ------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/recipes?limit={n}&cursor={id}` | Returns paginated recipes ordered by `updatedAt desc`. Response includes `data` array and `nextCursor`.                                    |
-| POST   | `/api/recipes`                       | Creates a recipe with an initial empty version. Body: `{ name: string, category: RecipeCategory, description?: string, tags?: string[] }`. |
-| GET    | `/api/recipes/:recipeId`             | Fetches a single recipe with versions and ingredients.                                                                                     |
-| PATCH  | `/api/recipes/:recipeId`             | Updates recipe fields or switches `activeVersionId`. Body accepts partial `{ name, description, category, tags, activeVersionId }`.        |
+| Method | Path                                 | Description                                                                                                                                                                                          |
+| ------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/recipes?limit={n}&cursor={id}` | Returns paginated recipes ordered by `updatedAt desc`. Response includes `data` array and `nextCursor`.                                                                                              |
+| POST   | `/api/recipes`                       | Creates a recipe with an initial empty version. Body: `{ name: string, category: RecipeCategory, description?: string, tags?: string[] }`.                                                           |
+| POST   | `/api/recipes/from-photo`            | **AI-powered photo extraction.** Uploads a recipe photo (JPEG/PNG/WebP, max 5MB) and returns structured recipe data extracted via Gemini Vision API. Requires `GEMINI_API_KEY` environment variable. |
+| GET    | `/api/recipes/:recipeId`             | Fetches a single recipe with versions and ingredients.                                                                                                                                               |
+| PATCH  | `/api/recipes/:recipeId`             | Updates recipe fields or switches `activeVersionId`. Body accepts partial `{ name, description, category, tags, activeVersionId }`.                                                                  |
 
 ### Versions
 

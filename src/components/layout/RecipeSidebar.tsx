@@ -46,6 +46,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
     selectedRecipeId,
     selectRecipe,
     createRecipe,
+    createRecipeWithData,
     loading,
     error,
     hasMore,
@@ -58,6 +59,8 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [draftCategory, setDraftCategory] = useState<RecipeCategory>("bread");
   const [creationError, setCreationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -77,7 +80,27 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
     setCreationError(null);
     setIsSaving(true);
     try {
-      await createRecipe({ name: draftName.trim(), category: draftCategory });
+      // Check if we have extracted recipe data from photo scan
+      const extractedData = (window as any).__extractedRecipeData;
+
+      if (extractedData) {
+        // Use the rich data from photo extraction
+        await createRecipeWithData({
+          name: draftName.trim(),
+          category: draftCategory,
+          description: extractedData.description,
+          ingredients: extractedData.ingredients,
+          instructions: extractedData.instructions,
+          metadata: extractedData.metadata,
+        });
+
+        // Clean up stored data
+        delete (window as any).__extractedRecipeData;
+      } else {
+        // Regular recipe creation
+        await createRecipe({ name: draftName.trim(), category: draftCategory });
+      }
+
       setDraftName("");
       setDraftCategory("bread");
       setIsCreating(false);
@@ -86,6 +109,49 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
       setCreationError(err instanceof Error ? err.message : "Failed to create recipe");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handlePhotoScan = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setIsScanning(true);
+    setScanError(null);
+    setCreationError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const response = await fetch("/api/recipes/from-photo", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to scan recipe");
+      }
+
+      const extractedData = await response.json();
+
+      // Populate form with extracted data
+      setDraftName(extractedData.name || "");
+      setDraftCategory(extractedData.category || "bread");
+      setIsCreating(true);
+      onOpen();
+
+      // Store extracted data for later use when creating
+      (window as any).__extractedRecipeData = extractedData;
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : "Failed to scan photo");
+    } finally {
+      setIsScanning(false);
+      // Reset the file input
+      event.target.value = "";
     }
   };
 
@@ -136,16 +202,38 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
             />
           </div>
           <div>
-            <button
-              type="button"
-              onClick={() => {
-                setIsCreating(true);
-                onOpen();
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
-            >
-              + New recipe
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreating(true);
+                  onOpen();
+                }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+              >
+                + New recipe
+              </button>
+              <label
+                className={cn(
+                  "flex cursor-pointer items-center justify-center rounded-xl border-2 border-neutral-900 px-4 py-2 text-sm font-medium text-neutral-900 transition hover:bg-neutral-900 hover:text-white dark:border-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-900",
+                  isScanning && "cursor-not-allowed opacity-60",
+                )}
+              >
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg,image/webp"
+                  onChange={handlePhotoScan}
+                  disabled={isScanning}
+                  className="hidden"
+                />
+                {isScanning ? "📸 Scanning…" : "📸 Scan"}
+              </label>
+            </div>
+            {scanError && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+                {scanError}
+              </div>
+            )}
             {isCreating && (
               <div className="mt-4 space-y-3 rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900">
                 <div className="space-y-1">

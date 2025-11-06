@@ -42,6 +42,20 @@ interface RecipeStoreValue {
     category: RecipeCategory;
     description?: string;
   }) => Promise<void>;
+  createRecipeWithData: (payload: {
+    name: string;
+    category: RecipeCategory;
+    description?: string;
+    ingredients?: Array<{
+      name: string;
+      quantity: number;
+      unit: string;
+      role: IngredientRole;
+      notes?: string;
+    }>;
+    instructions?: string;
+    metadata?: RecipeVersionMetadata;
+  }) => Promise<void>;
   updateRecipe: (
     recipeId: string,
     payload: Partial<{
@@ -298,6 +312,63 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  const createRecipeWithData = useCallback<RecipeStoreValue["createRecipeWithData"]>(
+    async ({ name, category, description, ingredients, instructions, metadata }) => {
+      if (!name.trim()) {
+        throw new Error("Recipe name is required");
+      }
+      if (!RECIPE_CATEGORIES.includes(category)) {
+        throw new Error("Invalid recipe category");
+      }
+
+      const recipe = await requestJson<Recipe>("/api/recipes", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          category,
+          description: description ?? null,
+        }),
+      });
+
+      const versionId = recipe.activeVersionId ?? recipe.versions[0]?.id;
+      if (!versionId) {
+        throw new Error("Failed to create initial version");
+      }
+
+      // Add ingredients if provided
+      if (ingredients && ingredients.length > 0) {
+        for (const ingredient of ingredients) {
+          await requestJson(
+            `/api/recipes/${recipe.id}/versions/${versionId}/ingredients`,
+            {
+              method: "POST",
+              body: JSON.stringify(ingredient),
+            },
+          );
+        }
+      }
+
+      // Update version with instructions and metadata if provided
+      if (instructions || metadata) {
+        await requestJson(`/api/recipes/${recipe.id}/versions/${versionId}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            notes: instructions,
+            metadata: metadata ?? null,
+          }),
+        });
+      }
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      await queryClient.invalidateQueries({
+        queryKey: [INGREDIENT_SUGGESTIONS_KEY],
+      });
+      setSelectedRecipeId(recipe.id);
+      setSelectedVersionId(versionId);
+    },
+    [queryClient],
+  );
+
   const updateRecipe = useCallback<RecipeStoreValue["updateRecipe"]>(
     async (recipeId, payload) => {
       await requestJson<Recipe>(`/api/recipes/${recipeId}`, {
@@ -456,6 +527,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       selectRecipe,
       selectVersion,
       createRecipe,
+      createRecipeWithData,
       updateRecipe,
       createVersion,
       updateVersion,
@@ -480,6 +552,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       selectRecipe,
       selectVersion,
       createRecipe,
+      createRecipeWithData,
       updateRecipe,
       createVersion,
       updateVersion,
