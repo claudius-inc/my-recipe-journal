@@ -1,8 +1,15 @@
-import type { IngredientRole } from "@/types/recipes";
+import type { IngredientRole, RecipeCategory } from "@/types/recipes";
 
 interface IngredientDefaults {
   role: IngredientRole;
   unit: string;
+}
+
+interface IngredientDefinition {
+  name: string;
+  role: IngredientRole;
+  unit: string;
+  categories?: RecipeCategory[]; // If specified, only show for these categories
 }
 
 // Common ingredient name patterns mapped to their defaults
@@ -93,102 +100,223 @@ export function getDefaultUnitForRole(role: IngredientRole): string {
   return "g";
 }
 
-// Common ingredients database for autocomplete
-export const COMMON_INGREDIENTS = [
+// Structured ingredient database with metadata
+const INGREDIENT_DATABASE: IngredientDefinition[] = [
   // Flours
-  "All-purpose flour",
-  "Bread flour",
-  "Whole wheat flour",
-  "Rye flour",
-  "Spelt flour",
-  "Cake flour",
-  "Pastry flour",
+  {
+    name: "All-purpose flour",
+    role: "flour",
+    unit: "g",
+    categories: ["bread", "dessert"],
+  },
+  { name: "Bread flour", role: "flour", unit: "g", categories: ["bread"] },
+  { name: "Whole wheat flour", role: "flour", unit: "g", categories: ["bread"] },
+  { name: "Rye flour", role: "flour", unit: "g", categories: ["bread"] },
+  { name: "Spelt flour", role: "flour", unit: "g", categories: ["bread"] },
+  { name: "Cake flour", role: "flour", unit: "g", categories: ["dessert"] },
+  { name: "Pastry flour", role: "flour", unit: "g", categories: ["dessert"] },
 
   // Liquids
-  "Water",
-  "Milk",
-  "Whole milk",
-  "Buttermilk",
-  "Heavy cream",
-  "Sour cream",
+  { name: "Water", role: "liquid", unit: "g" },
+  { name: "Milk", role: "liquid", unit: "g" },
+  { name: "Whole milk", role: "liquid", unit: "g" },
+  { name: "Buttermilk", role: "liquid", unit: "g", categories: ["bread", "dessert"] },
+  { name: "Heavy cream", role: "liquid", unit: "g", categories: ["dessert", "sauce"] },
+  { name: "Sour cream", role: "liquid", unit: "g", categories: ["dessert"] },
+  { name: "Vegetable stock", role: "liquid", unit: "ml", categories: ["main", "sauce"] },
+  { name: "Chicken stock", role: "liquid", unit: "ml", categories: ["main", "sauce"] },
 
   // Preferments
-  "Sourdough starter",
-  "Levain",
-  "Poolish",
-  "Biga",
+  { name: "Sourdough starter", role: "preferment", unit: "g", categories: ["bread"] },
+  { name: "Levain", role: "preferment", unit: "g", categories: ["bread"] },
+  { name: "Poolish", role: "preferment", unit: "g", categories: ["bread"] },
+  { name: "Biga", role: "preferment", unit: "g", categories: ["bread"] },
 
   // Fats
-  "Butter",
-  "Unsalted butter",
-  "Olive oil",
-  "Vegetable oil",
-  "Coconut oil",
-  "Canola oil",
+  { name: "Butter", role: "fat", unit: "g" },
+  { name: "Unsalted butter", role: "fat", unit: "g" },
+  { name: "Olive oil", role: "fat", unit: "g" },
+  { name: "Vegetable oil", role: "fat", unit: "g" },
+  { name: "Coconut oil", role: "fat", unit: "g", categories: ["dessert"] },
+  { name: "Canola oil", role: "fat", unit: "g" },
 
   // Sweeteners
-  "Sugar",
-  "White sugar",
-  "Brown sugar",
-  "Honey",
-  "Maple syrup",
-  "Molasses",
+  { name: "Sugar", role: "sweetener", unit: "g" },
+  { name: "White sugar", role: "sweetener", unit: "g" },
+  { name: "Brown sugar", role: "sweetener", unit: "g", categories: ["dessert"] },
+  { name: "Honey", role: "sweetener", unit: "g" },
+  { name: "Maple syrup", role: "sweetener", unit: "g", categories: ["dessert"] },
+  { name: "Molasses", role: "sweetener", unit: "g", categories: ["bread", "dessert"] },
 
   // Salt
-  "Salt",
-  "Sea salt",
-  "Kosher salt",
+  { name: "Salt", role: "salt", unit: "g" },
+  { name: "Sea salt", role: "salt", unit: "g" },
+  { name: "Kosher salt", role: "salt", unit: "g" },
 
   // Yeast & Leaveners
-  "Active dry yeast",
-  "Instant yeast",
-  "Fresh yeast",
-  "Baking powder",
-  "Baking soda",
+  { name: "Active dry yeast", role: "other", unit: "g", categories: ["bread"] },
+  { name: "Instant yeast", role: "other", unit: "g", categories: ["bread"] },
+  { name: "Fresh yeast", role: "other", unit: "g", categories: ["bread"] },
+  { name: "Baking powder", role: "other", unit: "g", categories: ["dessert", "bread"] },
+  { name: "Baking soda", role: "other", unit: "g", categories: ["dessert", "bread"] },
 
   // Eggs & Dairy
-  "Eggs",
-  "Egg yolks",
-  "Egg whites",
-  "Yogurt",
-  "Greek yogurt",
-  "Cream cheese",
+  { name: "Eggs", role: "other", unit: "g" },
+  { name: "Egg yolks", role: "fat", unit: "g", categories: ["dessert"] },
+  { name: "Egg whites", role: "other", unit: "g", categories: ["dessert"] },
+  { name: "Yogurt", role: "liquid", unit: "g", categories: ["dessert", "sauce"] },
+  { name: "Greek yogurt", role: "liquid", unit: "g", categories: ["dessert", "sauce"] },
+  { name: "Cream cheese", role: "fat", unit: "g", categories: ["dessert"] },
 
   // Nuts & Seeds
-  "Walnuts",
-  "Almonds",
-  "Pecans",
-  "Sunflower seeds",
-  "Sesame seeds",
-  "Pumpkin seeds",
-  "Flax seeds",
-  "Chia seeds",
+  { name: "Walnuts", role: "add_in", unit: "g" },
+  { name: "Almonds", role: "add_in", unit: "g" },
+  { name: "Pecans", role: "add_in", unit: "g", categories: ["dessert"] },
+  { name: "Sunflower seeds", role: "add_in", unit: "g", categories: ["bread"] },
+  { name: "Sesame seeds", role: "add_in", unit: "g", categories: ["bread"] },
+  { name: "Pumpkin seeds", role: "add_in", unit: "g", categories: ["bread"] },
+  { name: "Flax seeds", role: "add_in", unit: "g", categories: ["bread"] },
+  { name: "Chia seeds", role: "add_in", unit: "g", categories: ["bread", "drink"] },
 
   // Chocolate & Cocoa
-  "Cocoa powder",
-  "Chocolate chips",
-  "Dark chocolate",
-  "Milk chocolate",
+  { name: "Cocoa powder", role: "other", unit: "g", categories: ["dessert", "drink"] },
+  { name: "Chocolate chips", role: "add_in", unit: "g", categories: ["dessert"] },
+  { name: "Dark chocolate", role: "add_in", unit: "g", categories: ["dessert"] },
+  { name: "Milk chocolate", role: "add_in", unit: "g", categories: ["dessert"] },
 
   // Fruits
-  "Raisins",
-  "Dried cranberries",
-  "Dried apricots",
-  "Blueberries",
-  "Strawberries",
+  { name: "Raisins", role: "add_in", unit: "g", categories: ["dessert", "bread"] },
+  {
+    name: "Dried cranberries",
+    role: "add_in",
+    unit: "g",
+    categories: ["dessert", "bread"],
+  },
+  { name: "Dried apricots", role: "add_in", unit: "g", categories: ["dessert"] },
+  { name: "Blueberries", role: "add_in", unit: "g", categories: ["dessert"] },
+  { name: "Strawberries", role: "add_in", unit: "g", categories: ["dessert"] },
+  { name: "Lemon juice", role: "other", unit: "ml", categories: ["dessert", "sauce"] },
+  { name: "Lemon zest", role: "spice", unit: "g", categories: ["dessert"] },
 
-  // Spices
-  "Cinnamon",
-  "Vanilla extract",
-  "Nutmeg",
-  "Cardamom",
-  "Ginger",
-  "Cloves",
+  // Spices & Flavorings
+  { name: "Cinnamon", role: "spice", unit: "g", categories: ["dessert", "bread"] },
+  { name: "Vanilla extract", role: "spice", unit: "ml", categories: ["dessert"] },
+  { name: "Nutmeg", role: "spice", unit: "g", categories: ["dessert"] },
+  {
+    name: "Cardamom",
+    role: "spice",
+    unit: "g",
+    categories: ["dessert", "bread", "drink"],
+  },
+  { name: "Ginger", role: "spice", unit: "g" },
+  { name: "Cloves", role: "spice", unit: "g", categories: ["dessert"] },
+  { name: "Black pepper", role: "spice", unit: "g", categories: ["main", "sauce"] },
+  { name: "Paprika", role: "spice", unit: "g", categories: ["main"] },
+  { name: "Cumin", role: "spice", unit: "g", categories: ["main"] },
+  { name: "Coriander", role: "spice", unit: "g", categories: ["main"] },
 
-  // Other
-  "Olives",
-  "Herbs",
-  "Rosemary",
-  "Thyme",
-  "Basil",
+  // Herbs
+  { name: "Rosemary", role: "spice", unit: "g", categories: ["bread", "main"] },
+  { name: "Thyme", role: "spice", unit: "g", categories: ["main"] },
+  { name: "Basil", role: "spice", unit: "g", categories: ["main", "sauce"] },
+  { name: "Oregano", role: "spice", unit: "g", categories: ["main", "sauce"] },
+  { name: "Parsley", role: "spice", unit: "g", categories: ["main"] },
+
+  // Main dish ingredients
+  { name: "Onion", role: "add_in", unit: "g", categories: ["main", "sauce"] },
+  { name: "Garlic", role: "spice", unit: "g", categories: ["main", "sauce"] },
+  { name: "Tomato paste", role: "add_in", unit: "g", categories: ["main", "sauce"] },
+  { name: "Tomatoes", role: "add_in", unit: "g", categories: ["main", "sauce"] },
+  { name: "Olives", role: "add_in", unit: "g", categories: ["bread", "main"] },
+
+  // Drink ingredients
+  { name: "Coffee beans", role: "other", unit: "g", categories: ["drink"] },
+  { name: "Tea leaves", role: "other", unit: "g", categories: ["drink"] },
+  { name: "Ice", role: "other", unit: "g", categories: ["drink"] },
 ];
+
+/**
+ * Get category-filtered ingredient suggestions
+ */
+export function getCategoryIngredients(
+  category?: RecipeCategory,
+  role?: IngredientRole,
+): string[] {
+  let filtered = INGREDIENT_DATABASE;
+
+  // Filter by category if specified
+  if (category) {
+    filtered = filtered.filter(
+      (ing) => !ing.categories || ing.categories.includes(category),
+    );
+  }
+
+  // Filter by role if specified
+  if (role) {
+    filtered = filtered.filter((ing) => ing.role === role);
+  }
+
+  return filtered.map((ing) => ing.name).sort();
+}
+
+/**
+ * Simple fuzzy search - checks if search term characters appear in order
+ */
+function fuzzyMatch(search: string, target: string): boolean {
+  const searchLower = search.toLowerCase();
+  const targetLower = target.toLowerCase();
+
+  let searchIndex = 0;
+  for (let i = 0; i < targetLower.length && searchIndex < searchLower.length; i++) {
+    if (targetLower[i] === searchLower[searchIndex]) {
+      searchIndex++;
+    }
+  }
+
+  return searchIndex === searchLower.length;
+}
+
+/**
+ * Search ingredients with fuzzy matching
+ */
+export function searchIngredients(
+  query: string,
+  category?: RecipeCategory,
+  limit = 20,
+): string[] {
+  if (!query.trim()) {
+    return getCategoryIngredients(category).slice(0, limit);
+  }
+
+  const categoryFiltered = category
+    ? INGREDIENT_DATABASE.filter(
+        (ing) => !ing.categories || ing.categories.includes(category),
+      )
+    : INGREDIENT_DATABASE;
+
+  // Fuzzy match against query
+  const matches = categoryFiltered.filter((ing) => fuzzyMatch(query, ing.name));
+
+  // Sort by relevance (exact match first, then starts with, then fuzzy)
+  const queryLower = query.toLowerCase();
+  matches.sort((a, b) => {
+    const aLower = a.name.toLowerCase();
+    const bLower = b.name.toLowerCase();
+
+    // Exact match
+    if (aLower === queryLower) return -1;
+    if (bLower === queryLower) return 1;
+
+    // Starts with query
+    if (aLower.startsWith(queryLower) && !bLower.startsWith(queryLower)) return -1;
+    if (bLower.startsWith(queryLower) && !aLower.startsWith(queryLower)) return 1;
+
+    // Alphabetical
+    return aLower.localeCompare(bLower);
+  });
+
+  return matches.slice(0, limit).map((ing) => ing.name);
+}
+
+// Export simple list for backward compatibility
+export const COMMON_INGREDIENTS = INGREDIENT_DATABASE.map((ing) => ing.name).sort();

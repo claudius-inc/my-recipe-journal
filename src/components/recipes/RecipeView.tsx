@@ -12,7 +12,17 @@ import {
   type RecipeVersion,
 } from "@/types/recipes";
 import { getCategoryConfig, useRecipeStore } from "@/store/RecipeStore";
-import { suggestIngredientDefaults, COMMON_INGREDIENTS } from "@/lib/ingredient-helpers";
+import {
+  suggestIngredientDefaults,
+  COMMON_INGREDIENTS,
+  getCategoryIngredients,
+  searchIngredients,
+} from "@/lib/ingredient-helpers";
+import {
+  validateIngredients,
+  getValidationColor,
+  getValidationIcon,
+} from "@/lib/ingredient-validation";
 import { IterationIntentModal } from "./IterationIntentModal";
 import { IterationTracking } from "./IterationTracking";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
@@ -529,10 +539,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         <IngredientEditor
           version={selectedVersion}
           recipeId={selectedRecipe.id}
+          recipeCategory={selectedRecipe.category}
           suggestions={ingredientSuggestions}
           onAdd={addIngredient}
           onUpdate={updateIngredient}
           onRemove={deleteIngredient}
+          enableBakersPercent={categoryConfig?.enableBakersPercent}
         />
 
         {categoryConfig?.enableBakersPercent && (
@@ -756,19 +768,23 @@ type IngredientsOperations = {
 interface IngredientEditorProps {
   version: RecipeVersion;
   recipeId: string;
+  recipeCategory: Recipe["category"];
   suggestions: string[];
   onAdd: IngredientsOperations["add"];
   onUpdate: IngredientsOperations["update"];
   onRemove: IngredientsOperations["remove"];
+  enableBakersPercent?: boolean;
 }
 
 function IngredientEditor({
   version,
   recipeId,
+  recipeCategory,
   suggestions,
   onAdd,
   onUpdate,
   onRemove,
+  enableBakersPercent,
 }: IngredientEditorProps) {
   const [draft, setDraft] = useState({
     name: "",
@@ -797,10 +813,17 @@ function IngredientEditor({
     }
   };
 
-  // Combine user's suggestions with common ingredients
+  // Combine user's suggestions with category-aware ingredients
+  const categoryIngredients = getCategoryIngredients(recipeCategory, undefined);
   const allSuggestions = Array.from(
-    new Set([...COMMON_INGREDIENTS, ...suggestions]),
+    new Set([...categoryIngredients, ...suggestions]),
   ).sort();
+
+  // Validate ingredients
+  const validationWarnings = validateIngredients(
+    version.ingredients,
+    enableBakersPercent,
+  );
 
   const submitDraft = async () => {
     if (!draft.name.trim() || !draft.unit.trim()) {
@@ -825,6 +848,28 @@ function IngredientEditor({
       <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
         Ingredients
       </h3>
+
+      {/* Validation warnings */}
+      {validationWarnings.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {validationWarnings.map((warning, index) => (
+            <div
+              key={index}
+              className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${
+                warning.severity === "error"
+                  ? "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20"
+                  : warning.severity === "warning"
+                    ? "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/20"
+                    : "border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-900/20"
+              }`}
+            >
+              <span>{getValidationIcon(warning.severity)}</span>
+              <p className={getValidationColor(warning.severity)}>{warning.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="mt-3 space-y-2">
         {version.ingredients.map((ingredient) => (
           <IngredientRow
@@ -937,6 +982,9 @@ function IngredientRow({
     role: ingredient.role,
     notes: ingredient.notes ?? "",
   });
+  const [showNotes, setShowNotes] = useState(
+    !!(ingredient.notes && ingredient.notes.trim()),
+  );
 
   // Combine user's suggestions with common ingredients
   const allSuggestions = Array.from(
@@ -1040,14 +1088,46 @@ function IngredientRow({
           </button>
         </div>
       </div>
-      <textarea
-        value={state.notes}
-        onChange={(event) => setState((prev) => ({ ...prev, notes: event.target.value }))}
-        onBlur={commit}
-        rows={2}
-        placeholder="Notes on ingredient tweaks"
-        className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-      />
+
+      {/* Collapsible notes */}
+      {!showNotes ? (
+        <button
+          type="button"
+          onClick={() => setShowNotes(true)}
+          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+        >
+          + Add notes
+        </button>
+      ) : (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+              Notes
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNotes(false);
+                setState((prev) => ({ ...prev, notes: "" }));
+                commit();
+              }}
+              className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+            >
+              Remove
+            </button>
+          </div>
+          <textarea
+            value={state.notes}
+            onChange={(event) =>
+              setState((prev) => ({ ...prev, notes: event.target.value }))
+            }
+            onBlur={commit}
+            rows={2}
+            placeholder="Notes on ingredient tweaks"
+            className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+          />
+        </div>
+      )}
     </div>
   );
 }
