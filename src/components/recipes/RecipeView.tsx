@@ -128,6 +128,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [isSavingIteration, setIsSavingIteration] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [comparisonVersion, setComparisonVersion] = useState<RecipeVersion | null>(null);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   useEffect(() => {
     if (selectedRecipe) {
@@ -287,19 +288,27 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
 
   const handleVersionScaling = useCallback(
     async (factor: number) => {
-      if (!selectedRecipe || !selectedVersion) {
+      if (!selectedRecipe || !selectedVersion || factor <= 0) {
         return;
       }
-      await createVersion(selectedRecipe.id, {
-        baseVersionId: selectedVersion.id,
-        scalingFactor: factor,
-        setActive: true,
-      });
+      // Scale all ingredients in-place
+      const scaledIngredients = selectedVersion.ingredients.map((ing) => ({
+        ...ing,
+        quantity: ing.quantity * factor,
+      }));
+
+      // Update each ingredient
+      for (const ingredient of scaledIngredients) {
+        await updateIngredient(selectedRecipe.id, selectedVersion.id, ingredient.id, {
+          quantity: ingredient.quantity,
+        });
+      }
+
       setIsScalingOpen(false);
       setScalingFactor(1);
       setTargetWeight("");
     },
-    [createVersion, selectedRecipe, selectedVersion],
+    [selectedRecipe, selectedVersion, updateIngredient],
   );
 
   const handleTargetWeight = useCallback(() => {
@@ -447,6 +456,41 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     [selectedRecipe, selectedVersion, updateVersion],
   );
 
+  const handleGenerateDescription = useCallback(async () => {
+    if (!selectedRecipe || !selectedVersion || selectedVersion.ingredients.length === 0) {
+      return;
+    }
+    setIsGeneratingDescription(true);
+    try {
+      const response = await fetch("/api/recipes/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ingredients: selectedVersion.ingredients.map((ing) => ({
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            role: ing.role,
+          })),
+          category: selectedRecipe.category,
+          name: selectedRecipe.name,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate description");
+      }
+
+      const data = await response.json();
+      setRecipeDescription(data.description);
+      await updateRecipe(selectedRecipe.id, { description: data.description });
+    } catch (error) {
+      console.error("Failed to generate description:", error);
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  }, [selectedRecipe, selectedVersion, updateRecipe]);
+
   if (!selectedRecipe || !selectedVersion) {
     return (
       <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
@@ -493,15 +537,31 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
               placeholder="e.g. Country loaf"
               onBlur={() => handleRecipeBlur("name")}
             />
-            <EditableField
-              label="Goal"
-              value={recipeDescription}
-              onChange={setRecipeDescription}
-              onBlur={() => handleRecipeBlur("description")}
-              placeholder="Describe the goal for this recipe iteration."
-              multiline
-              rows={3}
-            />
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  Goal
+                </span>
+                {selectedVersion.ingredients.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleGenerateDescription}
+                    disabled={isGeneratingDescription}
+                    className="text-xs font-medium text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    {isGeneratingDescription ? "Generating..." : "✨ Generate with AI"}
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={recipeDescription}
+                onChange={(event) => setRecipeDescription(event.target.value)}
+                onBlur={() => handleRecipeBlur("description")}
+                placeholder="Describe the goal for this recipe iteration."
+                rows={3}
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+              />
+            </div>
             <div className="flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
                 Category
@@ -664,8 +724,8 @@ function VersionTabs({
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex flex-1 gap-2 overflow-x-auto">
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
           {recipe.versions.map((version) => {
             const isActive = version.id === activeVersion.id;
             return (
@@ -674,7 +734,7 @@ function VersionTabs({
                 type="button"
                 onClick={() => onSelect(recipe.id, version.id)}
                 className={cn(
-                  "flex-shrink-0 rounded-xl border px-3 py-2 text-sm font-medium transition",
+                  "flex-shrink-0 rounded-xl border px-3 py-2 text-sm font-medium transition min-w-[140px]",
                   isActive
                     ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
                     : "border-neutral-200 bg-white hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:border-neutral-500",
@@ -690,45 +750,45 @@ function VersionTabs({
             );
           })}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={onDuplicate}
-            className="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+            className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 sm:flex-initial dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
           >
-            Duplicate version
+            Duplicate
           </button>
           {recipe.versions.length > 1 && (
-            <button
-              type="button"
-              onClick={() => {
-                if (recipe.versions.length > 1) {
-                  const otherVersion = recipe.versions.find(
-                    (v) => v.id !== activeVersion.id,
-                  );
-                  if (otherVersion) {
-                    onCompare(otherVersion.id);
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  if (recipe.versions.length > 1) {
+                    const otherVersion = recipe.versions.find(
+                      (v) => v.id !== activeVersion.id,
+                    );
+                    if (otherVersion) {
+                      onCompare(otherVersion.id);
+                    }
                   }
-                }
-              }}
-              className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-900/30"
-            >
-              Compare versions
-            </button>
-          )}
-          {recipe.versions.length > 1 && (
-            <button
-              type="button"
-              onClick={async () => {
-                setIsDeleting(activeVersion.id);
-                await onDelete(activeVersion.id);
-                setIsDeleting(null);
-              }}
-              disabled={isDeleting === activeVersion.id}
-              className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-900/30"
-            >
-              {isDeleting === activeVersion.id ? "Removing…" : "Delete version"}
-            </button>
+                }}
+                className="flex-1 rounded-lg border border-blue-200 px-3 py-2 text-xs font-medium text-blue-600 transition hover:bg-blue-50 sm:flex-initial dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-900/30"
+              >
+                Compare
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsDeleting(activeVersion.id);
+                  await onDelete(activeVersion.id);
+                  setIsDeleting(null);
+                }}
+                disabled={isDeleting === activeVersion.id}
+                className="flex-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70 sm:flex-initial dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-900/30"
+              >
+                {isDeleting === activeVersion.id ? "Removing…" : "Delete"}
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -881,42 +941,19 @@ function IngredientEditor({
           />
         ))}
       </div>
-      <div className="mt-4 grid gap-2 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-900/60">
+      <div className="mt-4 grid gap-3 rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-900/60">
         <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Add ingredient
         </h4>
-        <div className="grid grid-cols-12 gap-2 text-sm">
-          <div className="col-span-4">
+        <div className="grid gap-2 text-sm">
+          <div className="grid gap-2 sm:grid-cols-2">
             <input
               list="ingredient-suggestions"
               value={draft.name}
               onChange={(event) => handleNameChange(event.target.value)}
-              placeholder="Ingredient"
+              placeholder="Ingredient name"
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
             />
-          </div>
-          <div className="col-span-2">
-            <input
-              type="number"
-              value={draft.quantity}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, quantity: event.target.value }))
-              }
-              placeholder="Qty"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-            />
-          </div>
-          <div className="col-span-2">
-            <input
-              value={draft.unit}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, unit: event.target.value }))
-              }
-              placeholder="Unit"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-            />
-          </div>
-          <div className="col-span-2">
             <select
               value={draft.role}
               onChange={(event) =>
@@ -934,11 +971,28 @@ function IngredientEditor({
               ))}
             </select>
           </div>
-          <div className="col-span-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <input
+              type="number"
+              value={draft.quantity}
+              onChange={(event) =>
+                setDraft((prev) => ({ ...prev, quantity: event.target.value }))
+              }
+              placeholder="Quantity"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            />
+            <input
+              value={draft.unit}
+              onChange={(event) =>
+                setDraft((prev) => ({ ...prev, unit: event.target.value }))
+              }
+              placeholder="Unit (g, ml, cup)"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            />
             <button
               type="button"
               onClick={submitDraft}
-              className="w-full rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+              className="col-span-2 w-full rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 sm:col-span-1 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
             >
               Add
             </button>
@@ -1240,7 +1294,7 @@ function BreadTools({
                     onClick={() => onScale(scalingFactor)}
                     className="rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
                   >
-                    Duplicate scaled
+                    Apply
                   </button>
                 </div>
               </div>
@@ -1253,6 +1307,7 @@ function BreadTools({
                     type="number"
                     value={targetWeight}
                     onChange={(event) => setTargetWeight(event.target.value)}
+                    placeholder={`Current: ${totalWeight.toFixed(1)}g`}
                     className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
                   />
                   <button
@@ -1260,7 +1315,7 @@ function BreadTools({
                     onClick={onTargetWeight}
                     className="rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
                   >
-                    Duplicate
+                    Apply
                   </button>
                 </div>
               </div>

@@ -12,7 +12,7 @@ export function Header() {
         left: 0,
         right: 0,
         height: "64px",
-        zIndex: 50,
+        zIndex: 20,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -23,6 +23,7 @@ export function Header() {
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
       }}
+      className="dark:bg-neutral-900 dark:border-neutral-800"
     >
       {/* Logo/Title */}
       <Heading size="5" style={{ margin: 0, fontWeight: 600 }}>

@@ -149,3 +149,67 @@ export async function extractRecipeFromPhotoWithRetry(
 
   throw lastError || new Error("Failed to extract recipe after retries");
 }
+
+interface GenerateDescriptionInput {
+  ingredients: Array<{ name: string; quantity: number; unit: string; role?: string }>;
+  category?: string;
+  name?: string;
+}
+
+const DESCRIPTION_PROMPT = `You are a recipe description writer. Based on the provided ingredients, generate a concise, appetizing description of the bread or baked good.
+
+The description should:
+1. Be 1-2 sentences long
+2. Highlight key characteristics (texture, flavor, complexity)
+3. Mention standout ingredients or techniques if notable
+4. Be professional but friendly in tone
+5. Focus on what makes this recipe unique or appealing
+
+Return ONLY the description text, no additional formatting or explanation.`;
+
+export async function generateRecipeDescription(
+  input: GenerateDescriptionInput,
+): Promise<string> {
+  if (!genAI) {
+    throw new Error(
+      "Gemini API not configured. Set GEMINI_API_KEY environment variable.",
+    );
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const ingredientsList = input.ingredients
+      .map(
+        (ing) =>
+          `- ${ing.name}: ${ing.quantity}${ing.unit}${ing.role ? ` (${ing.role})` : ""}`,
+      )
+      .join("\n");
+
+    const context = [
+      input.name ? `Recipe name: ${input.name}` : "",
+      input.category ? `Category: ${input.category}` : "",
+      "Ingredients:",
+      ingredientsList,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const prompt = `${DESCRIPTION_PROMPT}\n\n${context}`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const description = response.text().trim();
+
+    if (!description) {
+      throw new Error("Empty response from Gemini");
+    }
+
+    return description;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to generate description: ${error.message}`);
+    }
+    throw new Error("Failed to generate recipe description");
+  }
+}
