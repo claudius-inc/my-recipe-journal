@@ -123,6 +123,9 @@ model RecipeVersion {
   textureRating Int?
   tasteTags     String[]       @default([])
   textureTags   String[]       @default([])
+  iterationIntent String?
+  hypothesis    String?
+  outcome       String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   ingredients   Ingredient[]

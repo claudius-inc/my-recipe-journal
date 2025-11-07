@@ -93,6 +93,9 @@ interface RecipeStoreValue {
       textureRating: number | undefined;
       tasteTags: string[];
       textureTags: string[];
+      iterationIntent: string | undefined;
+      hypothesis: string | undefined;
+      outcome: string | undefined;
     }>,
   ) => Promise<void>;
   deleteVersion: (recipeId: string, versionId: string) => Promise<void>;

@@ -344,6 +344,9 @@ export async function updateVersionDetails(
       | "textureRating"
       | "tasteTags"
       | "textureTags"
+      | "iterationIntent"
+      | "hypothesis"
+      | "outcome"
     >
   > & {
     metadata?: RecipeVersionMetadata | null;

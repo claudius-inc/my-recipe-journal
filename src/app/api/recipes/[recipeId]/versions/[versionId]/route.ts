@@ -49,6 +49,9 @@ export async function PATCH(
     textureRating?: number | null;
     tasteTags?: string[];
     textureTags?: string[];
+    iterationIntent?: string | null;
+    hypothesis?: string | null;
+    outcome?: string | null;
   };
 
   const updateData: Parameters<typeof updateVersionDetails>[2] = {};
@@ -94,6 +97,15 @@ export async function PATCH(
     updateData.textureTags = Array.isArray(payload.textureTags)
       ? payload.textureTags
       : [];
+  }
+  if (payload.iterationIntent !== undefined) {
+    updateData.iterationIntent = payload.iterationIntent ?? undefined;
+  }
+  if (payload.hypothesis !== undefined) {
+    updateData.hypothesis = payload.hypothesis ?? undefined;
+  }
+  if (payload.outcome !== undefined) {
+    updateData.outcome = payload.outcome ?? undefined;
   }
 
   const updatedRecipe = await updateVersionDetails(recipeId, versionId, updateData);

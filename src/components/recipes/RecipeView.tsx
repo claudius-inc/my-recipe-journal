@@ -13,6 +13,8 @@ import {
 } from "@/types/recipes";
 import { getCategoryConfig, useRecipeStore } from "@/store/RecipeStore";
 import { SuccessMetrics } from "./SuccessMetrics";
+import { IterationIntentModal } from "./IterationIntentModal";
+import { IterationTracking } from "./IterationTracking";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -107,6 +109,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [targetWeight, setTargetWeight] = useState<string>("");
   const [savingMetaField, setSavingMetaField] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isIntentModalOpen, setIsIntentModalOpen] = useState(false);
+  const [isCreatingVersion, setIsCreatingVersion] = useState(false);
+  const [isSavingIteration, setIsSavingIteration] = useState(false);
 
   useEffect(() => {
     if (selectedRecipe) {
@@ -345,6 +350,57 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     [selectedRecipe, selectedVersion, updateVersion],
   );
 
+  const handleDuplicateVersion = useCallback(async () => {
+    if (!selectedRecipe || !selectedVersion) {
+      return;
+    }
+    setIsIntentModalOpen(true);
+  }, [selectedRecipe, selectedVersion]);
+
+  const handleCreateVersionWithIntent = useCallback(
+    async (data: {
+      iterationIntent: string;
+      hypothesis?: string;
+      baseVersionId: string;
+    }) => {
+      if (!selectedRecipe) {
+        return;
+      }
+      setIsCreatingVersion(true);
+      try {
+        await createVersion(selectedRecipe.id, {
+          baseVersionId: data.baseVersionId,
+          setActive: true,
+        });
+        // Update the newly created version with iteration intent
+        // This will be handled by selecting the new version and updating it
+        setIsIntentModalOpen(false);
+      } finally {
+        setIsCreatingVersion(false);
+      }
+    },
+    [selectedRecipe, createVersion],
+  );
+
+  const handleSaveIteration = useCallback(
+    async (data: { iterationIntent?: string; hypothesis?: string; outcome?: string }) => {
+      if (!selectedRecipe || !selectedVersion) {
+        return;
+      }
+      setIsSavingIteration(true);
+      try {
+        await updateVersion(selectedRecipe.id, selectedVersion.id, {
+          iterationIntent: data.iterationIntent,
+          hypothesis: data.hypothesis,
+          outcome: data.outcome,
+        });
+      } finally {
+        setIsSavingIteration(false);
+      }
+    },
+    [selectedRecipe, selectedVersion, updateVersion],
+  );
+
   if (!selectedRecipe || !selectedVersion) {
     return (
       <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
@@ -429,12 +485,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           recipe={selectedRecipe}
           activeVersion={selectedVersion}
           onSelect={selectVersion}
-          onDuplicate={() =>
-            createVersion(selectedRecipe.id, {
-              baseVersionId: selectedVersion.id,
-              setActive: true,
-            })
-          }
+          onDuplicate={handleDuplicateVersion}
           onDelete={(versionId) => deleteVersion(selectedRecipe.id, versionId)}
         />
 
@@ -490,12 +541,28 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         />
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <IterationTracking
+            version={selectedVersion}
+            onSave={handleSaveIteration}
+            isSaving={isSavingIteration}
+          />
+        </section>
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
           <SuccessMetrics
             version={selectedVersion}
             onSave={handleSaveMetrics}
             isSaving={isSavingMetrics}
           />
         </section>
+
+        <IterationIntentModal
+          isOpen={isIntentModalOpen}
+          baseVersion={selectedVersion}
+          onConfirm={handleCreateVersionWithIntent}
+          onCancel={() => setIsIntentModalOpen(false)}
+          isLoading={isCreatingVersion}
+        />
       </div>
     </div>
   );

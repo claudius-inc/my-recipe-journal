@@ -78,6 +78,9 @@ export interface RecipeVersion {
   textureRating?: number;
   tasteTags?: string[];
   textureTags?: string[];
+  iterationIntent?: string;
+  hypothesis?: string;
+  outcome?: string;
 }
 
 export interface Recipe {
