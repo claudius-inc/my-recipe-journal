@@ -12,11 +12,13 @@ import {
   type RecipeVersion,
 } from "@/types/recipes";
 import { getCategoryConfig, useRecipeStore } from "@/store/RecipeStore";
-import { SuccessMetrics } from "./SuccessMetrics";
+import { suggestIngredientDefaults, COMMON_INGREDIENTS } from "@/lib/ingredient-helpers";
 import { IterationIntentModal } from "./IterationIntentModal";
 import { IterationTracking } from "./IterationTracking";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
 import { VersionComparisonModal } from "./VersionComparisonModal";
+import { TastingReview } from "./TastingReview";
+import { CollapsibleSection } from "../ui/CollapsibleSection";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -99,12 +101,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [recipeDescription, setRecipeDescription] = useState("");
   const [category, setCategory] = useState(selectedRecipe?.category ?? "bread");
   const [metadataDraft, setMetadataDraft] = useState<Record<string, string>>({});
-  const [isSavingMetrics, setIsSavingMetrics] = useState(false);
   const [notesDraft, setNotesDraft] = useState({
     notes: "",
     tastingNotes: "",
     nextSteps: "",
   });
+  const [isSavingTastingReview, setIsSavingTastingReview] = useState(false);
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
   const [isScalingOpen, setIsScalingOpen] = useState(false);
   const [scalingFactor, setScalingFactor] = useState(1);
@@ -353,8 +355,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     await updateVersion(selectedRecipe.id, selectedVersion.id, { photoUrl: null });
   }, [selectedRecipe, selectedVersion, updateVersion]);
 
-  const handleSaveMetrics = useCallback(
+  const handleSaveTastingReview = useCallback(
     async (data: {
+      tastingNotes: string;
       tasteRating?: number;
       visualRating?: number;
       textureRating?: number;
@@ -364,17 +367,20 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       if (!selectedRecipe || !selectedVersion) {
         return;
       }
-      setIsSavingMetrics(true);
+      setIsSavingTastingReview(true);
       try {
         await updateVersion(selectedRecipe.id, selectedVersion.id, {
+          tastingNotes: data.tastingNotes,
           tasteRating: data.tasteRating,
           visualRating: data.visualRating,
           textureRating: data.textureRating,
           tasteTags: data.tasteTags,
           textureTags: data.textureTags,
         });
+        // Update local state
+        setNotesDraft((prev) => ({ ...prev, tastingNotes: data.tastingNotes }));
       } finally {
-        setIsSavingMetrics(false);
+        setIsSavingTastingReview(false);
       }
     },
     [selectedRecipe, selectedVersion, updateVersion],
@@ -548,22 +554,28 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         )}
 
         {categoryConfig?.fields?.length ? (
-          <MetadataFields
-            fields={categoryConfig.fields}
-            metadata={metadataDraft}
-            onChange={(fieldId, value) =>
-              setMetadataDraft((prev) => ({ ...prev, [fieldId]: value }))
+          <CollapsibleSection
+            title="Category notes"
+            subtitle="Optional recipe-specific details"
+            badge={
+              Object.keys(metadataDraft).length === 0
+                ? "empty"
+                : Object.keys(metadataDraft).length === categoryConfig.fields.length
+                  ? "complete"
+                  : "partial"
             }
-            onSave={handleMetadataSave}
-            savingField={savingMetaField}
-          />
+          >
+            <MetadataFields
+              fields={categoryConfig.fields}
+              metadata={metadataDraft}
+              onChange={(fieldId, value) =>
+                setMetadataDraft((prev) => ({ ...prev, [fieldId]: value }))
+              }
+              onSave={handleMetadataSave}
+              savingField={savingMetaField}
+            />
+          </CollapsibleSection>
         ) : null}
-
-        <VersionNotes
-          notesDraft={notesDraft}
-          onChange={setNotesDraft}
-          onSave={handleNotesSave}
-        />
 
         <PhotoSection
           version={selectedVersion}
@@ -572,19 +584,25 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           isUploading={isUploading}
         />
 
+        <VersionNotes
+          notesDraft={notesDraft}
+          onChange={setNotesDraft}
+          onSave={handleNotesSave}
+        />
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <TastingReview
+            version={selectedVersion}
+            onSave={handleSaveTastingReview}
+            isSaving={isSavingTastingReview}
+          />
+        </section>
+
         <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
           <IterationTracking
             version={selectedVersion}
             onSave={handleSaveIteration}
             isSaving={isSavingIteration}
-          />
-        </section>
-
-        <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-          <SuccessMetrics
-            version={selectedVersion}
-            onSave={handleSaveMetrics}
-            isSaving={isSavingMetrics}
           />
         </section>
 
@@ -764,6 +782,26 @@ function IngredientEditor({
     setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
   }, [version.id]);
 
+  // Auto-suggest role and unit when ingredient name changes
+  const handleNameChange = (name: string) => {
+    const defaults = suggestIngredientDefaults(name);
+    if (defaults) {
+      setDraft((prev) => ({
+        ...prev,
+        name,
+        role: defaults.role || prev.role,
+        unit: defaults.unit || prev.unit,
+      }));
+    } else {
+      setDraft((prev) => ({ ...prev, name }));
+    }
+  };
+
+  // Combine user's suggestions with common ingredients
+  const allSuggestions = Array.from(
+    new Set([...COMMON_INGREDIENTS, ...suggestions]),
+  ).sort();
+
   const submitDraft = async () => {
     if (!draft.name.trim() || !draft.unit.trim()) {
       return;
@@ -807,9 +845,7 @@ function IngredientEditor({
             <input
               list="ingredient-suggestions"
               value={draft.name}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, name: event.target.value }))
-              }
+              onChange={(event) => handleNameChange(event.target.value)}
               placeholder="Ingredient"
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
             />
@@ -864,7 +900,7 @@ function IngredientEditor({
           </div>
         </div>
         <datalist id="ingredient-suggestions">
-          {suggestions.map((name) => (
+          {allSuggestions.map((name) => (
             <option key={name} value={name} />
           ))}
         </datalist>
@@ -901,6 +937,11 @@ function IngredientRow({
     role: ingredient.role,
     notes: ingredient.notes ?? "",
   });
+
+  // Combine user's suggestions with common ingredients
+  const allSuggestions = Array.from(
+    new Set([...COMMON_INGREDIENTS, ...suggestions]),
+  ).sort();
 
   useEffect(() => {
     setState({
@@ -944,7 +985,7 @@ function IngredientRow({
             className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
           />
           <datalist id={`ingredient-suggestions-${ingredient.id}`}>
-            {suggestions.map((name) => (
+            {allSuggestions.map((name) => (
               <option key={name} value={name} />
             ))}
           </datalist>
@@ -1167,63 +1208,58 @@ function MetadataFields({
   savingField,
 }: MetadataFieldsProps) {
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-        Category notes
-      </h3>
-      <div className="mt-4 grid gap-3">
-        {fields.map((field) => (
-          <div key={field.id} className="grid gap-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              {field.label}
-            </label>
-            {field.type === "textarea" ? (
-              <textarea
-                value={metadata[field.id] ?? ""}
-                onChange={(event) => onChange(field.id, event.target.value)}
-                onBlur={(event) => onSave(field, event.target.value)}
-                placeholder={field.placeholder}
-                rows={4}
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-              />
-            ) : field.type === "select" ? (
-              <select
-                value={metadata[field.id] ?? ""}
-                onChange={(event) => {
-                  onChange(field.id, event.target.value);
-                  void onSave(field, event.target.value);
-                }}
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-              >
-                <option value="">Select...</option>
-                {(field.options ?? []).map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type={field.type === "number" ? "number" : "text"}
-                value={metadata[field.id] ?? ""}
-                onChange={(event) => onChange(field.id, event.target.value)}
-                onBlur={(event) => onSave(field, event.target.value)}
-                placeholder={field.placeholder}
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-              />
-            )}
-            {field.helpText ? (
-              <p className="text-xs text-neutral-400 dark:text-neutral-500">
-                {field.helpText}
-              </p>
-            ) : null}
-            {savingField === field.id && (
-              <span className="text-xs text-neutral-400">Saving…</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
+    <div className="grid gap-3">
+      {fields.map((field) => (
+        <div key={field.id} className="grid gap-1">
+          <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            {field.label}
+          </label>
+          {field.type === "textarea" ? (
+            <textarea
+              value={metadata[field.id] ?? ""}
+              onChange={(event) => onChange(field.id, event.target.value)}
+              onBlur={(event) => onSave(field, event.target.value)}
+              placeholder={field.placeholder}
+              rows={4}
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            />
+          ) : field.type === "select" ? (
+            <select
+              value={metadata[field.id] ?? ""}
+              onChange={(event) => {
+                onChange(field.id, event.target.value);
+                void onSave(field, event.target.value);
+              }}
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            >
+              <option value="">Select...</option>
+              {(field.options ?? []).map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type={field.type === "number" ? "number" : "text"}
+              value={metadata[field.id] ?? ""}
+              onChange={(event) => onChange(field.id, event.target.value)}
+              onBlur={(event) => onSave(field, event.target.value)}
+              placeholder={field.placeholder}
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            />
+          )}
+          {field.helpText ? (
+            <p className="text-xs text-neutral-400 dark:text-neutral-500">
+              {field.helpText}
+            </p>
+          ) : null}
+          {savingField === field.id && (
+            <span className="text-xs text-neutral-400">Saving…</span>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -1247,11 +1283,6 @@ function VersionNotes({ notesDraft, onChange, onSave }: VersionNotesProps) {
       key: "notes",
       label: "Process notes",
       help: "Observations during mixing, fermentation, shaping, or baking.",
-    },
-    {
-      key: "tastingNotes",
-      label: "Tasting review",
-      help: "What worked? Where did it fall short?",
     },
     {
       key: "nextSteps",
