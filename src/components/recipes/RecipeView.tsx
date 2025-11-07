@@ -29,6 +29,7 @@ import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
 import { VersionComparisonModal } from "./VersionComparisonModal";
 import { TastingReview } from "./TastingReview";
 import { CollapsibleSection } from "../ui/CollapsibleSection";
+import { ScalingConfirmationModal } from "./ScalingConfirmationModal";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -119,8 +120,20 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [isSavingTastingReview, setIsSavingTastingReview] = useState(false);
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
   const [isScalingOpen, setIsScalingOpen] = useState(false);
-  const [scalingFactor, setScalingFactor] = useState(1);
-  const [targetWeight, setTargetWeight] = useState<string>("");
+  const [scalingMode, setScalingMode] = useState<"ingredient" | null>(null);
+  const [selectedScalingIngredient, setSelectedScalingIngredient] = useState<string>("");
+  const [targetQuantity, setTargetQuantity] = useState<string>("");
+  const [scaledIngredients, setScaledIngredients] = useState<
+    Array<{
+      id: string;
+      name: string;
+      originalQuantity: number;
+      newQuantity: number;
+      unit: string;
+    }>
+  >([]);
+  const [isScalingModalOpen, setIsScalingModalOpen] = useState(false);
+  const [isApplyingScaling, setIsApplyingScaling] = useState(false);
   const [savingMetaField, setSavingMetaField] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isIntentModalOpen, setIsIntentModalOpen] = useState(false);
@@ -286,41 +299,66 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     [selectedRecipe, selectedVersion, updateVersion],
   );
 
-  const handleVersionScaling = useCallback(
-    async (factor: number) => {
-      if (!selectedRecipe || !selectedVersion || factor <= 0) {
-        return;
-      }
-      // Scale all ingredients in-place
-      const scaledIngredients = selectedVersion.ingredients.map((ing) => ({
-        ...ing,
-        quantity: ing.quantity * factor,
-      }));
-
-      // Update each ingredient
-      for (const ingredient of scaledIngredients) {
-        await updateIngredient(selectedRecipe.id, selectedVersion.id, ingredient.id, {
-          quantity: ingredient.quantity,
-        });
-      }
-
-      setIsScalingOpen(false);
-      setScalingFactor(1);
-      setTargetWeight("");
-    },
-    [selectedRecipe, selectedVersion, updateIngredient],
-  );
-
-  const handleTargetWeight = useCallback(() => {
-    if (!totalWeight || !targetWeight) {
+  const handlePreviewScaling = useCallback(() => {
+    if (!selectedVersion || !selectedScalingIngredient || !targetQuantity) {
       return;
     }
-    const parsed = Number(targetWeight);
+
+    const baseIngredient = selectedVersion.ingredients.find(
+      (ing) => ing.id === selectedScalingIngredient,
+    );
+
+    if (!baseIngredient) {
+      return;
+    }
+
+    const parsed = Number(targetQuantity);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return;
     }
-    handleVersionScaling(parsed / totalWeight);
-  }, [handleVersionScaling, targetWeight, totalWeight]);
+
+    const scalingFactor = parsed / baseIngredient.quantity;
+
+    const scaled = selectedVersion.ingredients.map((ing) => ({
+      id: ing.id,
+      name: ing.name,
+      originalQuantity: ing.quantity,
+      newQuantity: ing.quantity * scalingFactor,
+      unit: ing.unit,
+    }));
+
+    setScaledIngredients(scaled);
+    setIsScalingModalOpen(true);
+  }, [selectedVersion, selectedScalingIngredient, targetQuantity]);
+
+  const handleConfirmScaling = useCallback(async () => {
+    if (!selectedRecipe || !selectedVersion || scaledIngredients.length === 0) {
+      return;
+    }
+
+    setIsApplyingScaling(true);
+    try {
+      // Update each ingredient with new quantity
+      for (const ingredient of scaledIngredients) {
+        await updateIngredient(selectedRecipe.id, selectedVersion.id, ingredient.id, {
+          quantity: ingredient.newQuantity,
+        });
+      }
+
+      setIsScalingModalOpen(false);
+      setIsScalingOpen(false);
+      setSelectedScalingIngredient("");
+      setTargetQuantity("");
+      setScaledIngredients([]);
+    } finally {
+      setIsApplyingScaling(false);
+    }
+  }, [selectedRecipe, selectedVersion, scaledIngredients, updateIngredient]);
+
+  const handleCancelScaling = useCallback(() => {
+    setIsScalingModalOpen(false);
+    setScaledIngredients([]);
+  }, []);
 
   const handleUpdateIngredientPercentage = useCallback(
     async (ingredientId: string, newQuantity: number) => {
@@ -615,12 +653,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             hydration={hydrationPercent}
             isScalingOpen={isScalingOpen}
             setIsScalingOpen={setIsScalingOpen}
-            scalingFactor={scalingFactor}
-            setScalingFactor={setScalingFactor}
-            onScale={handleVersionScaling}
-            targetWeight={targetWeight}
-            setTargetWeight={setTargetWeight}
-            onTargetWeight={handleTargetWeight}
+            selectedScalingIngredient={selectedScalingIngredient}
+            setSelectedScalingIngredient={setSelectedScalingIngredient}
+            targetQuantity={targetQuantity}
+            setTargetQuantity={setTargetQuantity}
+            onPreviewScaling={handlePreviewScaling}
             onUpdateIngredientQuantity={handleUpdateIngredientPercentage}
           />
         )}
@@ -698,6 +735,23 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             flourTotal={flourTotal}
           />
         )}
+
+        <ScalingConfirmationModal
+          isOpen={isScalingModalOpen}
+          scaledIngredients={scaledIngredients}
+          scalingMethod={
+            selectedScalingIngredient && selectedVersion
+              ? `Scaling based on ${
+                  selectedVersion.ingredients.find(
+                    (i) => i.id === selectedScalingIngredient,
+                  )?.name
+                } to ${targetQuantity}`
+              : ""
+          }
+          onConfirm={handleConfirmScaling}
+          onCancel={handleCancelScaling}
+          isApplying={isApplyingScaling}
+        />
       </div>
     </div>
   );
@@ -756,7 +810,7 @@ function VersionTabs({
             onClick={onDuplicate}
             className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 sm:flex-initial dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
           >
-            Duplicate
+            + New version
           </button>
           {recipe.versions.length > 1 && (
             <>
@@ -893,14 +947,21 @@ function IngredientEditor({
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return;
     }
-    await onAdd(recipeId, version.id, {
+
+    // Optimistically clear the form immediately for better UX
+    const payload = {
       name: draft.name.trim(),
       quantity: parsed,
       unit: draft.unit.trim(),
       role: draft.role,
       notes: draft.notes?.trim() || undefined,
-    });
+    };
     setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
+
+    // Fire the API call without awaiting
+    onAdd(recipeId, version.id, payload).catch((error) => {
+      console.error("Failed to add ingredient:", error);
+    });
   };
 
   return (
@@ -1075,8 +1136,8 @@ function IngredientRow({
 
   return (
     <div className="space-y-2 rounded-xl border border-neutral-200 bg-white p-3 text-sm shadow-sm dark:border-neutral-700 dark:bg-neutral-950">
-      <div className="grid grid-cols-12 items-center gap-2">
-        <div className="col-span-4">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-12 md:items-center md:gap-2">
+        <div className="md:col-span-4">
           <input
             list={`ingredient-suggestions-${ingredient.id}`}
             value={state.name}
@@ -1084,6 +1145,7 @@ function IngredientRow({
               setState((prev) => ({ ...prev, name: event.target.value }))
             }
             onBlur={commit}
+            placeholder="Ingredient name"
             className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
           />
           <datalist id={`ingredient-suggestions-${ingredient.id}`}>
@@ -1092,54 +1154,58 @@ function IngredientRow({
             ))}
           </datalist>
         </div>
-        <div className="col-span-2">
-          <input
-            type="number"
-            value={state.quantity}
-            onChange={(event) =>
-              setState((prev) => ({ ...prev, quantity: event.target.value }))
-            }
-            onBlur={commit}
-            className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
-          />
-        </div>
-        <div className="col-span-2">
-          <input
-            value={state.unit}
-            onChange={(event) =>
-              setState((prev) => ({ ...prev, unit: event.target.value }))
-            }
-            onBlur={commit}
-            className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
-          />
-        </div>
-        <div className="col-span-2">
-          <select
-            value={state.role}
-            onChange={(event) =>
-              setState((prev) => ({
-                ...prev,
-                role: event.target.value as Ingredient["role"],
-              }))
-            }
-            onBlur={commit}
-            className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
-          >
-            {INGREDIENT_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {IngredientRoleLabels[role] ?? role}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="col-span-1">
-          <button
-            type="button"
-            onClick={onRemove}
-            className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
-          >
-            ✕
-          </button>
+        <div className="grid grid-cols-12 gap-2 md:contents">
+          <div className="col-span-4 md:col-span-2">
+            <input
+              type="number"
+              value={state.quantity}
+              onChange={(event) =>
+                setState((prev) => ({ ...prev, quantity: event.target.value }))
+              }
+              onBlur={commit}
+              placeholder="Amount"
+              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
+            />
+          </div>
+          <div className="col-span-3 md:col-span-2">
+            <input
+              value={state.unit}
+              onChange={(event) =>
+                setState((prev) => ({ ...prev, unit: event.target.value }))
+              }
+              onBlur={commit}
+              placeholder="Unit"
+              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
+            />
+          </div>
+          <div className="col-span-4 md:col-span-2">
+            <select
+              value={state.role}
+              onChange={(event) =>
+                setState((prev) => ({
+                  ...prev,
+                  role: event.target.value as Ingredient["role"],
+                }))
+              }
+              onBlur={commit}
+              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
+            >
+              {INGREDIENT_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {IngredientRoleLabels[role] ?? role}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="col-span-1 md:col-span-1">
+            <button
+              type="button"
+              onClick={onRemove}
+              className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1193,12 +1259,11 @@ interface BreadToolsProps {
   hydration: number;
   isScalingOpen: boolean;
   setIsScalingOpen: (open: boolean) => void;
-  scalingFactor: number;
-  setScalingFactor: (value: number) => void;
-  onScale: (factor: number) => Promise<void>;
-  targetWeight: string;
-  setTargetWeight: (value: string) => void;
-  onTargetWeight: () => void;
+  selectedScalingIngredient: string;
+  setSelectedScalingIngredient: (value: string) => void;
+  targetQuantity: string;
+  setTargetQuantity: (value: string) => void;
+  onPreviewScaling: () => void;
   onUpdateIngredientQuantity: (
     ingredientId: string,
     newQuantity: number,
@@ -1212,14 +1277,16 @@ function BreadTools({
   hydration,
   isScalingOpen,
   setIsScalingOpen,
-  scalingFactor,
-  setScalingFactor,
-  onScale,
-  targetWeight,
-  setTargetWeight,
-  onTargetWeight,
+  selectedScalingIngredient,
+  setSelectedScalingIngredient,
+  targetQuantity,
+  setTargetQuantity,
+  onPreviewScaling,
   onUpdateIngredientQuantity,
 }: BreadToolsProps) {
+  const selectedIngredient = version.ingredients.find(
+    (ing) => ing.id === selectedScalingIngredient,
+  );
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -1277,48 +1344,49 @@ function BreadTools({
           {isScalingOpen && (
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-neutral-500 dark:text-neutral-400">
-                  Scale by factor
+                <label className="block text-neutral-500 dark:text-neutral-400 mb-1">
+                  Scale by ingredient
                 </label>
-                <div className="mt-1 flex gap-2">
-                  <input
-                    type="number"
-                    min={0.1}
-                    step={0.1}
-                    value={scalingFactor}
-                    onChange={(event) => setScalingFactor(Number(event.target.value))}
-                    className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => onScale(scalingFactor)}
-                    className="rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
-                  >
-                    Apply
-                  </button>
-                </div>
+                <select
+                  value={selectedScalingIngredient}
+                  onChange={(event) => setSelectedScalingIngredient(event.target.value)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                >
+                  <option value="">Select ingredient...</option>
+                  {version.ingredients.map((ing) => (
+                    <option key={ing.id} value={ing.id}>
+                      {ing.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div>
-                <label className="text-neutral-500 dark:text-neutral-400">
-                  Scale to total weight (g)
-                </label>
-                <div className="mt-1 flex gap-2">
-                  <input
-                    type="number"
-                    value={targetWeight}
-                    onChange={(event) => setTargetWeight(event.target.value)}
-                    placeholder={`Current: ${totalWeight.toFixed(1)}g`}
-                    className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-                  />
-                  <button
-                    type="button"
-                    onClick={onTargetWeight}
-                    className="rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
-                  >
-                    Apply
-                  </button>
+              {selectedIngredient && (
+                <div>
+                  <label className="block text-neutral-500 dark:text-neutral-400 mb-1">
+                    Target amount ({selectedIngredient.unit})
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={targetQuantity}
+                      onChange={(event) => setTargetQuantity(event.target.value)}
+                      placeholder={`Current: ${selectedIngredient.quantity.toFixed(1)}`}
+                      className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={onPreviewScaling}
+                      disabled={!targetQuantity || Number(targetQuantity) <= 0}
+                      className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-700 dark:hover:bg-blue-600"
+                    >
+                      Preview
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    All other ingredients will be scaled proportionally
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
