@@ -15,6 +15,8 @@ import { getCategoryConfig, useRecipeStore } from "@/store/RecipeStore";
 import { SuccessMetrics } from "./SuccessMetrics";
 import { IterationIntentModal } from "./IterationIntentModal";
 import { IterationTracking } from "./IterationTracking";
+import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
+import { VersionComparisonModal } from "./VersionComparisonModal";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -112,6 +114,8 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [isIntentModalOpen, setIsIntentModalOpen] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
   const [isSavingIteration, setIsSavingIteration] = useState(false);
+  const [isComparisonOpen, setIsComparisonOpen] = useState(false);
+  const [comparisonVersion, setComparisonVersion] = useState<RecipeVersion | null>(null);
 
   useEffect(() => {
     if (selectedRecipe) {
@@ -296,6 +300,32 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }
     handleVersionScaling(parsed / totalWeight);
   }, [handleVersionScaling, targetWeight, totalWeight]);
+
+  const handleUpdateIngredientPercentage = useCallback(
+    async (ingredientId: string, newQuantity: number) => {
+      if (!selectedRecipe || !selectedVersion) {
+        return;
+      }
+      await updateIngredient(selectedRecipe.id, selectedVersion.id, ingredientId, {
+        quantity: newQuantity,
+      });
+    },
+    [selectedRecipe, selectedVersion, updateIngredient],
+  );
+
+  const handleCompareVersion = useCallback(
+    (versionId: string) => {
+      if (!selectedRecipe) {
+        return;
+      }
+      const versionToCompare = selectedRecipe.versions.find((v) => v.id === versionId);
+      if (versionToCompare) {
+        setComparisonVersion(versionToCompare);
+        setIsComparisonOpen(true);
+      }
+    },
+    [selectedRecipe],
+  );
 
   const handlePhotoUpload = useCallback(
     async (file: File) => {
@@ -487,6 +517,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onSelect={selectVersion}
           onDuplicate={handleDuplicateVersion}
           onDelete={(versionId) => deleteVersion(selectedRecipe.id, versionId)}
+          onCompare={handleCompareVersion}
         />
 
         <IngredientEditor
@@ -512,6 +543,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             targetWeight={targetWeight}
             setTargetWeight={setTargetWeight}
             onTargetWeight={handleTargetWeight}
+            onUpdateIngredientQuantity={handleUpdateIngredientPercentage}
           />
         )}
 
@@ -563,6 +595,19 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onCancel={() => setIsIntentModalOpen(false)}
           isLoading={isCreatingVersion}
         />
+
+        {comparisonVersion && (
+          <VersionComparisonModal
+            isOpen={isComparisonOpen}
+            baseVersion={selectedVersion}
+            comparisonVersion={comparisonVersion}
+            onClose={() => {
+              setIsComparisonOpen(false);
+              setComparisonVersion(null);
+            }}
+            flourTotal={flourTotal}
+          />
+        )}
       </div>
     </div>
   );
@@ -574,6 +619,7 @@ interface VersionTabsProps {
   onSelect: (recipeId: string, versionId: string) => Promise<void>;
   onDuplicate: () => Promise<void>;
   onDelete: (versionId: string) => Promise<void>;
+  onCompare: (versionId: string) => void;
 }
 
 function VersionTabs({
@@ -582,6 +628,7 @@ function VersionTabs({
   onSelect,
   onDuplicate,
   onDelete,
+  onCompare,
 }: VersionTabsProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
@@ -621,6 +668,24 @@ function VersionTabs({
           >
             Duplicate version
           </button>
+          {recipe.versions.length > 1 && (
+            <button
+              type="button"
+              onClick={() => {
+                if (recipe.versions.length > 1) {
+                  const otherVersion = recipe.versions.find(
+                    (v) => v.id !== activeVersion.id,
+                  );
+                  if (otherVersion) {
+                    onCompare(otherVersion.id);
+                  }
+                }
+              }}
+              className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-medium text-blue-600 transition hover:bg-blue-50 dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-900/30"
+            >
+              Compare versions
+            </button>
+          )}
           {recipe.versions.length > 1 && (
             <button
               type="button"
@@ -959,6 +1024,10 @@ interface BreadToolsProps {
   targetWeight: string;
   setTargetWeight: (value: string) => void;
   onTargetWeight: () => void;
+  onUpdateIngredientQuantity: (
+    ingredientId: string,
+    newQuantity: number,
+  ) => Promise<void>;
 }
 
 function BreadTools({
@@ -974,6 +1043,7 @@ function BreadTools({
   targetWeight,
   setTargetWeight,
   onTargetWeight,
+  onUpdateIngredientQuantity,
 }: BreadToolsProps) {
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -986,11 +1056,17 @@ function BreadTools({
             {version.ingredients.map((ingredient) => (
               <li key={ingredient.id} className="flex items-center justify-between gap-4">
                 <span>{ingredient.name}</span>
-                <span className="font-mono">
-                  {flourTotal
-                    ? formatPercent((ingredient.quantity / flourTotal) * 100)
-                    : "–"}
-                </span>
+                {flourTotal > 0 ? (
+                  <InteractivePercentageEditor
+                    ingredient={ingredient}
+                    flourTotal={flourTotal}
+                    onSave={(newQuantity) =>
+                      onUpdateIngredientQuantity(ingredient.id, newQuantity)
+                    }
+                  />
+                ) : (
+                  <span className="font-mono">–</span>
+                )}
               </li>
             ))}
           </ul>
