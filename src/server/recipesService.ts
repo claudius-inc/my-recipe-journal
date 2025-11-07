@@ -332,7 +332,20 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
 export async function updateVersionDetails(
   recipeId: string,
   versionId: string,
-  data: Partial<Pick<RecipeVersion, "title" | "notes" | "tastingNotes" | "nextSteps">> & {
+  data: Partial<
+    Pick<
+      RecipeVersion,
+      | "title"
+      | "notes"
+      | "tastingNotes"
+      | "nextSteps"
+      | "tasteRating"
+      | "visualRating"
+      | "textureRating"
+      | "tasteTags"
+      | "textureTags"
+    >
+  > & {
     metadata?: RecipeVersionMetadata | null;
     photoUrl?: string | null;
   },

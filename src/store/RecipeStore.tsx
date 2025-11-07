@@ -88,6 +88,11 @@ interface RecipeStoreValue {
       nextSteps: string;
       metadata: RecipeVersionMetadata | null;
       photoUrl: string | null;
+      tasteRating: number | undefined;
+      visualRating: number | undefined;
+      textureRating: number | undefined;
+      tasteTags: string[];
+      textureTags: string[];
     }>,
   ) => Promise<void>;
   deleteVersion: (recipeId: string, versionId: string) => Promise<void>;

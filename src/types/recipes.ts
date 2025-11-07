@@ -73,6 +73,11 @@ export interface RecipeVersion {
   nextSteps: string;
   metadata?: RecipeVersionMetadata;
   photoUrl?: string;
+  tasteRating?: number;
+  visualRating?: number;
+  textureRating?: number;
+  tasteTags?: string[];
+  textureTags?: string[];
 }
 
 export interface Recipe {

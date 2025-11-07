@@ -118,6 +118,11 @@ model RecipeVersion {
   nextSteps     String         @default("")
   metadata      Json?
   photoUrl      String?
+  tasteRating   Int?
+  visualRating  Int?
+  textureRating Int?
+  tasteTags     String[]       @default([])
+  textureTags   String[]       @default([])
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   ingredients   Ingredient[]

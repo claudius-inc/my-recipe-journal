@@ -44,6 +44,11 @@ export async function PATCH(
     nextSteps?: string;
     metadata?: Record<string, unknown> | null;
     photoUrl?: string | null;
+    tasteRating?: number | null;
+    visualRating?: number | null;
+    textureRating?: number | null;
+    tasteTags?: string[];
+    textureTags?: string[];
   };
 
   const updateData: Parameters<typeof updateVersionDetails>[2] = {};
@@ -72,6 +77,23 @@ export async function PATCH(
   }
   if (payload.photoUrl !== undefined) {
     updateData.photoUrl = payload.photoUrl ?? null;
+  }
+  if (payload.tasteRating !== undefined) {
+    updateData.tasteRating = payload.tasteRating ?? undefined;
+  }
+  if (payload.visualRating !== undefined) {
+    updateData.visualRating = payload.visualRating ?? undefined;
+  }
+  if (payload.textureRating !== undefined) {
+    updateData.textureRating = payload.textureRating ?? undefined;
+  }
+  if (payload.tasteTags !== undefined) {
+    updateData.tasteTags = Array.isArray(payload.tasteTags) ? payload.tasteTags : [];
+  }
+  if (payload.textureTags !== undefined) {
+    updateData.textureTags = Array.isArray(payload.textureTags)
+      ? payload.textureTags
+      : [];
   }
 
   const updatedRecipe = await updateVersionDetails(recipeId, versionId, updateData);

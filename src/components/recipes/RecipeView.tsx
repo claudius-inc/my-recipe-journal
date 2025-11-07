@@ -12,6 +12,7 @@ import {
   type RecipeVersion,
 } from "@/types/recipes";
 import { getCategoryConfig, useRecipeStore } from "@/store/RecipeStore";
+import { SuccessMetrics } from "./SuccessMetrics";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -94,6 +95,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [recipeDescription, setRecipeDescription] = useState("");
   const [category, setCategory] = useState(selectedRecipe?.category ?? "bread");
   const [metadataDraft, setMetadataDraft] = useState<Record<string, string>>({});
+  const [isSavingMetrics, setIsSavingMetrics] = useState(false);
   const [notesDraft, setNotesDraft] = useState({
     notes: "",
     tastingNotes: "",
@@ -316,6 +318,33 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     await updateVersion(selectedRecipe.id, selectedVersion.id, { photoUrl: null });
   }, [selectedRecipe, selectedVersion, updateVersion]);
 
+  const handleSaveMetrics = useCallback(
+    async (data: {
+      tasteRating?: number;
+      visualRating?: number;
+      textureRating?: number;
+      tasteTags: string[];
+      textureTags: string[];
+    }) => {
+      if (!selectedRecipe || !selectedVersion) {
+        return;
+      }
+      setIsSavingMetrics(true);
+      try {
+        await updateVersion(selectedRecipe.id, selectedVersion.id, {
+          tasteRating: data.tasteRating,
+          visualRating: data.visualRating,
+          textureRating: data.textureRating,
+          tasteTags: data.tasteTags,
+          textureTags: data.textureTags,
+        });
+      } finally {
+        setIsSavingMetrics(false);
+      }
+    },
+    [selectedRecipe, selectedVersion, updateVersion],
+  );
+
   if (!selectedRecipe || !selectedVersion) {
     return (
       <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
@@ -459,6 +488,14 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onRemove={removePhoto}
           isUploading={isUploading}
         />
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <SuccessMetrics
+            version={selectedVersion}
+            onSave={handleSaveMetrics}
+            isSaving={isSavingMetrics}
+          />
+        </section>
       </div>
     </div>
   );

@@ -67,3 +67,7 @@ body {
     text-wrap: balance;
   }
 }
+
+.radix-themes {
+  --cursor-button: pointer;
+}
