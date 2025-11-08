@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { CATEGORY_CONFIGS, type RecipeCategory } from "@/types/recipes";
 import { useRecipeStore } from "@/store/RecipeStore";
+import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
 
 interface RecipeSidebarProps {
   isOpen: boolean;
@@ -295,7 +296,13 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-4">
-          {filtered.length === 0 ? (
+          {loading && filtered.length === 0 ? (
+            <div className="space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <SkeletonRecipeCard key={i} />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <p className="px-3 text-sm text-neutral-500 dark:text-neutral-400">
               No recipes yet. Create one to get started.
             </p>

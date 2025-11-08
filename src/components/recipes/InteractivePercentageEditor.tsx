@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import type { Ingredient } from "@/types/recipes";
+import { SaveIndicator } from "../ui/SaveIndicator";
 
 interface InteractivePercentageEditorProps {
   ingredient: Ingredient;
@@ -81,7 +82,7 @@ export function InteractivePercentageEditor({
             placeholder="0.0"
             disabled={isSaving}
             step="0.1"
-            className="w-16 rounded-lg border border-blue-300 bg-blue-50 px-2 py-1 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-300 dark:border-blue-700 dark:bg-blue-900 dark:text-neutral-50"
+            className="w-16 rounded-lg border border-blue-300 bg-blue-50 px-2 py-1 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed dark:border-blue-700 dark:bg-blue-900 dark:text-neutral-50"
           />
           <span className="text-sm text-gray-600 dark:text-neutral-400">%</span>
         </div>
@@ -91,17 +92,18 @@ export function InteractivePercentageEditor({
             {ingredient.unit}
           </span>
         )}
+        <SaveIndicator isSaving={isSaving} />
         <button
           onClick={handleSave}
           disabled={isSaving || !percentageInput || isNaN(Number(percentageInput))}
-          className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
+          className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-700 dark:hover:bg-blue-600"
         >
           ✓
         </button>
         <button
           onClick={handleCancel}
           disabled={isSaving}
-          className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600"
+          className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600"
         >
           ✕
         </button>

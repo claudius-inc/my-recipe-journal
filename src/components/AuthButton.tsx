@@ -9,6 +9,7 @@ export function AuthButton() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,13 +70,26 @@ export function AuthButton() {
             <button
               type="button"
               onClick={async () => {
-                setIsMenuOpen(false);
-                await signOut();
-                router.push("/login");
+                setIsSigningOut(true);
+                try {
+                  await signOut();
+                  setIsMenuOpen(false);
+                  router.push("/login");
+                } finally {
+                  setIsSigningOut(false);
+                }
               }}
-              className="w-full rounded-md px-3 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              disabled={isSigningOut}
+              className="w-full rounded-md px-3 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed dark:text-neutral-300 dark:hover:bg-neutral-800"
             >
-              Sign Out
+              {isSigningOut ? (
+                <span className="flex items-center gap-2">
+                  <Spinner size="1" />
+                  Signing out...
+                </span>
+              ) : (
+                "Sign Out"
+              )}
             </button>
           </div>
         </div>

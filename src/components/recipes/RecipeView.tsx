@@ -30,6 +30,9 @@ import { VersionComparisonModal } from "./VersionComparisonModal";
 import { TastingReview } from "./TastingReview";
 import { CollapsibleSection } from "../ui/CollapsibleSection";
 import { ScalingConfirmationModal } from "./ScalingConfirmationModal";
+import { SaveIndicator } from "../ui/SaveIndicator";
+import { UploadProgress } from "../ui/UploadProgress";
+import { useToast } from "@/context/ToastContext";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -43,6 +46,7 @@ interface EditableFieldProps {
   multiline?: boolean;
   rows?: number;
   onBlur?: () => void;
+  isSaving?: boolean;
 }
 
 const EditableField = ({
@@ -53,11 +57,15 @@ const EditableField = ({
   multiline,
   rows = 3,
   onBlur,
+  isSaving = false,
 }: EditableFieldProps) => (
   <label className="flex flex-col gap-1">
-    <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-      {label}
-    </span>
+    <div className="flex items-center justify-between">
+      <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        {label}
+      </span>
+      <SaveIndicator isSaving={isSaving} />
+    </div>
     {multiline ? (
       <textarea
         value={value}
@@ -94,6 +102,7 @@ const IngredientRoleLabels: Record<string, string> = {
 const formatPercent = (value: number) => `${(Math.round(value * 10) / 10).toFixed(1)}%`;
 
 export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
+  const { addToast } = useToast();
   const {
     selectedRecipe,
     selectedVersion,
@@ -119,6 +128,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   });
   const [isSavingTastingReview, setIsSavingTastingReview] = useState(false);
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isScalingOpen, setIsScalingOpen] = useState(false);
   const [scalingMode, setScalingMode] = useState<"ingredient" | null>(null);
   const [selectedScalingIngredient, setSelectedScalingIngredient] = useState<string>("");
@@ -134,6 +144,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   >([]);
   const [isScalingModalOpen, setIsScalingModalOpen] = useState(false);
   const [isApplyingScaling, setIsApplyingScaling] = useState(false);
+  const [isPreviewingScaling, setIsPreviewingScaling] = useState(false);
   const [savingMetaField, setSavingMetaField] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isIntentModalOpen, setIsIntentModalOpen] = useState(false);
@@ -142,6 +153,15 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [comparisonVersion, setComparisonVersion] = useState<RecipeVersion | null>(null);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [showGenerationTimeout, setShowGenerationTimeout] = useState(false);
+  // SaveIndicator states for auto-save fields
+  const [savingRecipeName, setSavingRecipeName] = useState(false);
+  const [savingRecipeDescription, setSavingRecipeDescription] = useState(false);
+  const [savingNotes, setSavingNotes] = useState<Record<string, boolean>>({});
+  const [savingIngredient, setSavingIngredient] = useState<Record<string, boolean>>({});
+  // Photo upload progress
+  const [photoUploadProgress, setPhotoUploadProgress] = useState(0);
+  const [photoUploadError, setPhotoUploadError] = useState<string | undefined>();
 
   useEffect(() => {
     if (selectedRecipe) {
@@ -175,15 +195,18 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       return;
     }
     let active = true;
+    setIsLoadingSuggestions(true);
     getIngredientSuggestions(selectedRecipe.id)
       .then((data) => {
         if (active) {
           setIngredientSuggestions(data);
+          setIsLoadingSuggestions(false);
         }
       })
       .catch(() => {
         if (active) {
           setIngredientSuggestions([]);
+          setIsLoadingSuggestions(false);
         }
       });
     return () => {
@@ -231,13 +254,25 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         return;
       }
       if (field === "name" && recipeName !== selectedRecipe.name) {
-        await updateRecipe(selectedRecipe.id, { name: recipeName });
+        setSavingRecipeName(true);
+        try {
+          await updateRecipe(selectedRecipe.id, { name: recipeName });
+        } finally {
+          setSavingRecipeName(false);
+        }
       }
       if (
         field === "description" &&
         (recipeDescription ?? "") !== (selectedRecipe.description ?? "")
       ) {
-        await updateRecipe(selectedRecipe.id, { description: recipeDescription || null });
+        setSavingRecipeDescription(true);
+        try {
+          await updateRecipe(selectedRecipe.id, {
+            description: recipeDescription || null,
+          });
+        } finally {
+          setSavingRecipeDescription(false);
+        }
       }
       if (field === "category" && category !== selectedRecipe.category) {
         await updateRecipe(selectedRecipe.id, { category });
@@ -294,7 +329,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         return;
       }
       setNotesDraft((prev) => ({ ...prev, [field]: value }));
-      await updateVersion(selectedRecipe.id, selectedVersion.id, { [field]: value });
+      setSavingNotes((prev) => ({ ...prev, [field]: true }));
+      try {
+        await updateVersion(selectedRecipe.id, selectedVersion.id, { [field]: value });
+      } finally {
+        setSavingNotes((prev) => ({ ...prev, [field]: false }));
+      }
     },
     [selectedRecipe, selectedVersion, updateVersion],
   );
@@ -304,31 +344,39 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       return;
     }
 
-    const baseIngredient = selectedVersion.ingredients.find(
-      (ing) => ing.id === selectedScalingIngredient,
-    );
+    setIsPreviewingScaling(true);
 
-    if (!baseIngredient) {
-      return;
-    }
+    // Simulate brief calculation time for feedback
+    setTimeout(() => {
+      const baseIngredient = selectedVersion.ingredients.find(
+        (ing) => ing.id === selectedScalingIngredient,
+      );
 
-    const parsed = Number(targetQuantity);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      return;
-    }
+      if (!baseIngredient) {
+        setIsPreviewingScaling(false);
+        return;
+      }
 
-    const scalingFactor = parsed / baseIngredient.quantity;
+      const parsed = Number(targetQuantity);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        setIsPreviewingScaling(false);
+        return;
+      }
 
-    const scaled = selectedVersion.ingredients.map((ing) => ({
-      id: ing.id,
-      name: ing.name,
-      originalQuantity: ing.quantity,
-      newQuantity: ing.quantity * scalingFactor,
-      unit: ing.unit,
-    }));
+      const scalingFactor = parsed / baseIngredient.quantity;
 
-    setScaledIngredients(scaled);
-    setIsScalingModalOpen(true);
+      const scaled = selectedVersion.ingredients.map((ing) => ({
+        id: ing.id,
+        name: ing.name,
+        originalQuantity: ing.quantity,
+        newQuantity: ing.quantity * scalingFactor,
+        unit: ing.unit,
+      }));
+
+      setScaledIngredients(scaled);
+      setIsScalingModalOpen(true);
+      setIsPreviewingScaling(false);
+    }, 300);
   }, [selectedVersion, selectedScalingIngredient, targetQuantity]);
 
   const handleConfirmScaling = useCallback(async () => {
@@ -391,25 +439,71 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       if (!selectedRecipe || !selectedVersion) {
         return;
       }
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setPhotoUploadError("Please select a valid image file");
+        return;
+      }
+
+      // Validate file size (5MB max)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setPhotoUploadError("Image must be smaller than 5MB");
+        return;
+      }
+
       setIsUploading(true);
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        reader.onload = () =>
-          resolve(typeof reader.result === "string" ? reader.result : "");
-        reader.onerror = () => reject(reader.error ?? new Error("Failed to read image"));
-        reader.readAsDataURL(file);
-      });
-      await updateVersion(selectedRecipe.id, selectedVersion.id, { photoUrl: dataUrl });
-      setIsUploading(false);
+      setPhotoUploadError(undefined);
+      setPhotoUploadProgress(0);
+
+      try {
+        const reader = new FileReader();
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          reader.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const progress = Math.round((event.loaded / event.total) * 100);
+              setPhotoUploadProgress(progress);
+            }
+          };
+          reader.onload = () => {
+            setPhotoUploadProgress(100);
+            resolve(typeof reader.result === "string" ? reader.result : "");
+          };
+          reader.onerror = () =>
+            reject(reader.error ?? new Error("Failed to read image"));
+          reader.readAsDataURL(file);
+        });
+
+        // Simulate upload delay to show progress
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        await updateVersion(selectedRecipe.id, selectedVersion.id, { photoUrl: dataUrl });
+        setPhotoUploadProgress(0);
+      } catch (error) {
+        setPhotoUploadError(
+          error instanceof Error ? error.message : "Failed to upload photo",
+        );
+        addToast("Failed to upload photo", "error");
+      } finally {
+        setIsUploading(false);
+      }
     },
-    [selectedRecipe, selectedVersion, updateVersion],
+    [selectedRecipe, selectedVersion, updateVersion, addToast],
   );
+
+  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
 
   const removePhoto = useCallback(async () => {
     if (!selectedRecipe || !selectedVersion) {
       return;
     }
-    await updateVersion(selectedRecipe.id, selectedVersion.id, { photoUrl: null });
+    setIsRemovingPhoto(true);
+    try {
+      await updateVersion(selectedRecipe.id, selectedVersion.id, { photoUrl: null });
+    } finally {
+      setIsRemovingPhoto(false);
+    }
   }, [selectedRecipe, selectedVersion, updateVersion]);
 
   const handleSaveTastingReview = useCallback(
@@ -499,6 +593,13 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       return;
     }
     setIsGeneratingDescription(true);
+    setShowGenerationTimeout(false);
+
+    // Show timeout warning after 10 seconds
+    const timeoutHandle = setTimeout(() => {
+      setShowGenerationTimeout(true);
+    }, 10000);
+
     try {
       const response = await fetch("/api/recipes/generate-description", {
         method: "POST",
@@ -515,6 +616,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         }),
       });
 
+      clearTimeout(timeoutHandle);
+      setShowGenerationTimeout(false);
+
       if (!response.ok) {
         throw new Error("Failed to generate description");
       }
@@ -522,12 +626,16 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       const data = await response.json();
       setRecipeDescription(data.description);
       await updateRecipe(selectedRecipe.id, { description: data.description });
+      addToast("Description generated successfully", "success");
     } catch (error) {
       console.error("Failed to generate description:", error);
+      addToast("Failed to generate description", "error");
     } finally {
+      clearTimeout(timeoutHandle);
       setIsGeneratingDescription(false);
+      setShowGenerationTimeout(false);
     }
-  }, [selectedRecipe, selectedVersion, updateRecipe]);
+  }, [selectedRecipe, selectedVersion, updateRecipe, addToast]);
 
   if (!selectedRecipe || !selectedVersion) {
     return (
@@ -574,22 +682,26 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
               onChange={setRecipeName}
               placeholder="e.g. Country loaf"
               onBlur={() => handleRecipeBlur("name")}
+              isSaving={savingRecipeName}
             />
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                   Goal
                 </span>
-                {selectedVersion.ingredients.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleGenerateDescription}
-                    disabled={isGeneratingDescription}
-                    className="text-xs font-medium text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-blue-400 dark:hover:text-blue-300"
-                  >
-                    {isGeneratingDescription ? "Generating..." : "✨ Generate with AI"}
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  <SaveIndicator isSaving={savingRecipeDescription} />
+                  {selectedVersion.ingredients.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleGenerateDescription}
+                      disabled={isGeneratingDescription}
+                      className="text-xs font-medium text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      {isGeneratingDescription ? "Generating..." : "✨ Generate with AI"}
+                    </button>
+                  )}
+                </div>
               </div>
               <textarea
                 value={recipeDescription}
@@ -599,6 +711,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                 rows={3}
                 className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
               />
+              {showGenerationTimeout && isGeneratingDescription && (
+                <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+                  ⏱ Generation is taking longer than expected. Please wait...
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
@@ -639,6 +756,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           recipeId={selectedRecipe.id}
           recipeCategory={selectedRecipe.category}
           suggestions={ingredientSuggestions}
+          isLoadingSuggestions={isLoadingSuggestions}
           onAdd={addIngredient}
           onUpdate={updateIngredient}
           onRemove={deleteIngredient}
@@ -691,12 +809,16 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onUpload={handlePhotoUpload}
           onRemove={removePhoto}
           isUploading={isUploading}
+          uploadProgress={photoUploadProgress}
+          uploadError={photoUploadError}
+          isRemoving={isRemovingPhoto}
         />
 
         <VersionNotes
           notesDraft={notesDraft}
           onChange={setNotesDraft}
           onSave={handleNotesSave}
+          savingNotes={savingNotes}
         />
 
         <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -775,6 +897,7 @@ function VersionTabs({
   onCompare,
 }: VersionTabsProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isSelectingVersion, setIsSelectingVersion] = useState<string | null>(null);
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -782,23 +905,60 @@ function VersionTabs({
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
           {recipe.versions.map((version) => {
             const isActive = version.id === activeVersion.id;
+            const isLoading = isSelectingVersion === version.id;
             return (
               <button
                 key={version.id}
                 type="button"
-                onClick={() => onSelect(recipe.id, version.id)}
+                onClick={async () => {
+                  setIsSelectingVersion(version.id);
+                  try {
+                    await onSelect(recipe.id, version.id);
+                  } finally {
+                    setIsSelectingVersion(null);
+                  }
+                }}
+                disabled={isLoading || isActive}
                 className={cn(
-                  "flex-shrink-0 rounded-xl border px-3 py-2 text-sm font-medium transition min-w-[140px]",
+                  "flex-shrink-0 rounded-xl border px-3 py-2 text-sm font-medium transition min-w-[140px] disabled:cursor-not-allowed",
                   isActive
                     ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-                    : "border-neutral-200 bg-white hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:border-neutral-500",
+                    : isLoading
+                      ? "border-neutral-400 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800 opacity-60"
+                      : "border-neutral-200 bg-white hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:border-neutral-500",
                 )}
               >
-                <div className="flex flex-col text-left">
-                  <span>{version.title || "Untitled"}</span>
-                  <span className="text-xs font-normal text-neutral-400 dark:text-neutral-500">
-                    {new Date(version.createdAt).toLocaleDateString()}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col text-left">
+                    <span>{version.title || "Untitled"}</span>
+                    <span className="text-xs font-normal text-neutral-400 dark:text-neutral-500">
+                      {new Date(version.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {isLoading && (
+                    <div className="animate-spin">
+                      <svg
+                        className="w-3 h-3 text-neutral-600 dark:text-neutral-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                    </div>
+                  )}
                 </div>
               </button>
             );
@@ -884,6 +1044,7 @@ interface IngredientEditorProps {
   recipeId: string;
   recipeCategory: Recipe["category"];
   suggestions: string[];
+  isLoadingSuggestions?: boolean;
   onAdd: IngredientsOperations["add"];
   onUpdate: IngredientsOperations["update"];
   onRemove: IngredientsOperations["remove"];
@@ -895,11 +1056,13 @@ function IngredientEditor({
   recipeId,
   recipeCategory,
   suggestions,
+  isLoadingSuggestions = false,
   onAdd,
   onUpdate,
   onRemove,
   enableBakersPercent,
 }: IngredientEditorProps) {
+  const { addToast } = useToast();
   const [draft, setDraft] = useState({
     name: "",
     quantity: "",
@@ -956,12 +1119,31 @@ function IngredientEditor({
       role: draft.role,
       notes: draft.notes?.trim() || undefined,
     };
-    setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
+    const clearDraft = () =>
+      setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
 
-    // Fire the API call without awaiting
-    onAdd(recipeId, version.id, payload).catch((error) => {
+    // Clear form optimistically
+    clearDraft();
+
+    try {
+      // Fire the API call
+      await onAdd(recipeId, version.id, payload);
+    } catch (error) {
       console.error("Failed to add ingredient:", error);
-    });
+      // Restore the draft on error so user doesn't lose their work
+      setDraft({
+        name: payload.name,
+        quantity: String(payload.quantity),
+        unit: payload.unit,
+        role: payload.role,
+        notes: payload.notes || "",
+      });
+      // Show error toast
+      addToast(
+        error instanceof Error ? error.message : "Failed to add ingredient",
+        "error",
+      );
+    }
   };
 
   return (
@@ -1008,13 +1190,21 @@ function IngredientEditor({
         </h4>
         <div className="grid gap-2 text-sm">
           <div className="grid gap-2 sm:grid-cols-2">
-            <input
-              list="ingredient-suggestions"
-              value={draft.name}
-              onChange={(event) => handleNameChange(event.target.value)}
-              placeholder="Ingredient name"
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-            />
+            <div className="relative">
+              <input
+                list="ingredient-suggestions"
+                value={draft.name}
+                onChange={(event) => handleNameChange(event.target.value)}
+                placeholder="Ingredient name"
+                disabled={isLoadingSuggestions}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-60 disabled:cursor-not-allowed dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+              />
+              {isLoadingSuggestions && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300" />
+                </div>
+              )}
+            </div>
             <select
               value={draft.role}
               onChange={(event) =>
@@ -1023,7 +1213,8 @@ function IngredientEditor({
                   role: event.target.value as Ingredient["role"],
                 }))
               }
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+              disabled={isLoadingSuggestions}
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-60 disabled:cursor-not-allowed dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
             >
               {INGREDIENT_ROLES.map((role) => (
                 <option key={role} value={role}>
@@ -1059,6 +1250,11 @@ function IngredientEditor({
             </button>
           </div>
         </div>
+        {isLoadingSuggestions && (
+          <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+            ⏳ Loading ingredient suggestions…
+          </div>
+        )}
         <datalist id="ingredient-suggestions">
           {allSuggestions.map((name) => (
             <option key={name} value={name} />
@@ -1100,6 +1296,8 @@ function IngredientRow({
   const [showNotes, setShowNotes] = useState(
     !!(ingredient.notes && ingredient.notes.trim()),
   );
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Combine user's suggestions with common ingredients
   const allSuggestions = Array.from(
@@ -1200,8 +1398,9 @@ function IngredientRow({
           <div className="col-span-1 md:col-span-1">
             <button
               type="button"
-              onClick={onRemove}
-              className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isDeleting}
+              className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 transition hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed dark:border-neutral-700 dark:hover:bg-neutral-800"
             >
               ✕
             </button>
@@ -1246,6 +1445,47 @@ function IngredientRow({
             placeholder="Notes on ingredient tweaks"
             className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
           />
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg dark:bg-neutral-900">
+            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+              Delete ingredient?
+            </h3>
+            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+              Are you sure you want to delete <strong>{ingredient.name}</strong>? This
+              action cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsDeleting(true);
+                  try {
+                    await onRemove();
+                    setShowDeleteConfirm(false);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                disabled={isDeleting}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-600 dark:hover:bg-red-700"
+              >
+                {isDeleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1474,9 +1714,15 @@ interface VersionNotesProps {
   };
   onChange: (value: VersionNotesProps["notesDraft"]) => void;
   onSave: (field: keyof VersionNotesProps["notesDraft"], value: string) => Promise<void>;
+  savingNotes?: Record<string, boolean>;
 }
 
-function VersionNotes({ notesDraft, onChange, onSave }: VersionNotesProps) {
+function VersionNotes({
+  notesDraft,
+  onChange,
+  onSave,
+  savingNotes = {},
+}: VersionNotesProps) {
   const entries: Array<{
     key: keyof VersionNotesProps["notesDraft"];
     label: string;
@@ -1502,9 +1748,12 @@ function VersionNotes({ notesDraft, onChange, onSave }: VersionNotesProps) {
       <div className="mt-3 grid gap-4">
         {entries.map(({ key, label, help }) => (
           <div key={key} className="grid gap-2">
-            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              {label}
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                {label}
+              </label>
+              <SaveIndicator isSaving={savingNotes[key] ?? false} />
+            </div>
             <textarea
               value={notesDraft[key]}
               onChange={(event) => onChange({ ...notesDraft, [key]: event.target.value })}
@@ -1526,9 +1775,20 @@ interface PhotoSectionProps {
   onUpload: (file: File) => Promise<void>;
   onRemove: () => Promise<void>;
   isUploading: boolean;
+  uploadProgress?: number;
+  uploadError?: string;
+  isRemoving?: boolean;
 }
 
-function PhotoSection({ version, onUpload, onRemove, isUploading }: PhotoSectionProps) {
+function PhotoSection({
+  version,
+  onUpload,
+  onRemove,
+  isUploading,
+  uploadProgress = 0,
+  uploadError,
+  isRemoving = false,
+}: PhotoSectionProps) {
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1556,6 +1816,19 @@ function PhotoSection({ version, onUpload, onRemove, isUploading }: PhotoSection
           />
         </label>
       </div>
+
+      {/* Upload progress/error */}
+      {(isUploading || uploadError) && (
+        <div className="mt-4">
+          <UploadProgress
+            isUploading={isUploading}
+            progress={uploadProgress}
+            fileName="Photo"
+            error={uploadError}
+          />
+        </div>
+      )}
+
       {version.photoUrl ? (
         <div className="mt-4 space-y-2">
           <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
@@ -1568,9 +1841,10 @@ function PhotoSection({ version, onUpload, onRemove, isUploading }: PhotoSection
           <button
             type="button"
             onClick={onRemove}
-            className="text-xs text-red-500 hover:underline"
+            disabled={isRemoving}
+            className="text-xs text-red-500 hover:underline disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            Remove photo
+            {isRemoving ? "Removing…" : "Remove photo"}
           </button>
         </div>
       ) : (
