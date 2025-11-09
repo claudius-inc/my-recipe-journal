@@ -1351,32 +1351,38 @@ interface PendingIngredientRowProps {
 
 function PendingIngredientRow({ ingredient }: PendingIngredientRowProps) {
   return (
-    <div className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm shadow-sm opacity-60 dark:border-neutral-700 dark:bg-neutral-900/50">
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-12 md:items-center md:gap-2">
-        <div className="md:col-span-4 flex items-center gap-2">
-          <div className="h-3 w-3 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300" />
-          <span className="text-neutral-600 dark:text-neutral-400">
+    <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm shadow-sm opacity-60 md:space-y-2 dark:border-neutral-700 dark:bg-neutral-900/50">
+      {/* Mobile: vertical stack, Desktop: horizontal grid */}
+      <div className="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-2">
+        {/* Ingredient name - full width mobile, prominent */}
+        <div className="flex items-center gap-2 md:col-span-4">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300" />
+          <span className="text-base font-medium text-neutral-600 md:text-sm md:font-normal dark:text-neutral-400">
             {ingredient.name}
           </span>
         </div>
-        <div className="grid grid-cols-12 gap-2 md:contents">
-          <div className="col-span-4 md:col-span-2">
+
+        {/* Quantity/Unit/Role row */}
+        <div className="flex gap-3 md:contents">
+          <div className="flex min-h-[44px] flex-1 items-center rounded-lg border border-neutral-200 bg-white px-3 py-3 md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-700 dark:bg-neutral-900 md:dark:border-transparent md:dark:bg-transparent">
             <span className="text-neutral-500 dark:text-neutral-400">
               {ingredient.quantity}
             </span>
           </div>
-          <div className="col-span-3 md:col-span-2">
+          <div className="flex min-h-[44px] flex-1 items-center rounded-lg border border-neutral-200 bg-white px-3 py-3 md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-700 dark:bg-neutral-900 md:dark:border-transparent md:dark:bg-transparent">
             <span className="text-neutral-500 dark:text-neutral-400">
               {ingredient.unit}
             </span>
           </div>
-          <div className="col-span-4 md:col-span-2">
+          <div className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-3 text-xs md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-600 dark:bg-neutral-800 md:dark:border-transparent md:dark:bg-transparent">
             <span className="text-neutral-500 dark:text-neutral-400">
               {IngredientRoleLabels[ingredient.role]}
             </span>
           </div>
-          <div className="col-span-1 md:col-span-1"></div>
         </div>
+
+        {/* Empty space for delete button alignment */}
+        <div className="md:col-span-1"></div>
       </div>
     </div>
   );
@@ -1413,6 +1419,7 @@ function IngredientRow({
   const [showNotes, setShowNotes] = useState(
     !!(ingredient.notes && ingredient.notes.trim()),
   );
+  const [showRoleSelector, setShowRoleSelector] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -1450,8 +1457,10 @@ function IngredientRow({
   };
 
   return (
-    <div className="space-y-2 rounded-xl border border-neutral-200 bg-white p-3 text-sm shadow-sm dark:border-neutral-700 dark:bg-neutral-950">
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-12 md:items-center md:gap-2">
+    <div className="space-y-3 rounded-xl border border-neutral-200 bg-white p-3 text-sm shadow-sm md:space-y-2 dark:border-neutral-700 dark:bg-neutral-950">
+      {/* Mobile: vertical stack, Desktop: horizontal grid */}
+      <div className="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-2">
+        {/* Ingredient name - full width mobile, prominent */}
         <div className="md:col-span-4">
           <input
             list={`ingredient-suggestions-${ingredient.id}`}
@@ -1461,7 +1470,7 @@ function IngredientRow({
             }
             onBlur={commit}
             placeholder="Ingredient name"
-            className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
+            className="w-full rounded-lg border border-neutral-200 bg-transparent px-3 py-3 text-base font-medium outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:border-transparent md:px-2 md:py-1 md:text-sm md:font-normal dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
           />
           <datalist id={`ingredient-suggestions-${ingredient.id}`}>
             {allSuggestions.map((name) => (
@@ -1469,59 +1478,71 @@ function IngredientRow({
             ))}
           </datalist>
         </div>
-        <div className="grid grid-cols-12 gap-2 md:contents">
-          <div className="col-span-4 md:col-span-2">
-            <input
-              type="number"
-              value={state.quantity}
-              onChange={(event) =>
-                setState((prev) => ({ ...prev, quantity: event.target.value }))
-              }
-              onBlur={commit}
-              placeholder="Amount"
-              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
-            />
-          </div>
-          <div className="col-span-3 md:col-span-2">
-            <input
-              value={state.unit}
-              onChange={(event) =>
-                setState((prev) => ({ ...prev, unit: event.target.value }))
-              }
-              onBlur={commit}
-              placeholder="Unit"
-              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
-            />
-          </div>
-          <div className="col-span-4 md:col-span-2">
-            <select
-              value={state.role}
-              onChange={(event) =>
-                setState((prev) => ({
-                  ...prev,
-                  role: event.target.value as Ingredient["role"],
-                }))
-              }
-              onBlur={commit}
-              className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 outline-none focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:focus:border-neutral-600 dark:focus:bg-neutral-900"
-            >
-              {INGREDIENT_ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {IngredientRoleLabels[role] ?? role}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-span-1 md:col-span-1">
+
+        {/* Quantity/Unit/Role row */}
+        <div className="flex gap-3 md:contents">
+          <input
+            type="number"
+            value={state.quantity}
+            onChange={(event) =>
+              setState((prev) => ({ ...prev, quantity: event.target.value }))
+            }
+            onBlur={commit}
+            placeholder="Amount"
+            className="w-20 min-h-[44px] flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-3 outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:col-span-2 md:w-full md:min-h-0 md:border-transparent md:px-2 md:py-1 dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
+          />
+          <input
+            value={state.unit}
+            onChange={(event) =>
+              setState((prev) => ({ ...prev, unit: event.target.value }))
+            }
+            onBlur={commit}
+            placeholder="Unit"
+            className="w-16 min-h-[44px] flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-3 outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:col-span-2 md:w-full md:min-h-0 md:border-transparent md:px-2 md:py-1 dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
+          />
+
+          {/* Role badge selector - consistent with Add form */}
+          <div className="relative flex-1 md:col-span-2">
             <button
               type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={isDeleting}
-              className="rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-500 transition hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed dark:border-neutral-700 dark:hover:bg-neutral-800"
+              onClick={() => setShowRoleSelector(!showRoleSelector)}
+              className="flex min-h-[44px] w-full items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-3 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50 md:min-h-0 md:rounded-lg md:border-transparent md:bg-transparent md:px-2 md:py-1 md:hover:border-neutral-300 md:hover:bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 md:dark:border-transparent md:dark:bg-transparent md:dark:hover:border-neutral-600 md:dark:hover:bg-neutral-900"
             >
-              ✕
+              <span className="truncate">{IngredientRoleLabels[state.role]}</span>
+              <span className="text-[10px]">▾</span>
             </button>
+            {showRoleSelector && (
+              <div className="absolute left-0 right-0 top-full z-10 mt-1 flex flex-wrap gap-1 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
+                {INGREDIENT_ROLES.filter((r) => r !== state.role).map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => {
+                      setState((prev) => ({ ...prev, role }));
+                      setShowRoleSelector(false);
+                      commit();
+                    }}
+                    className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs text-neutral-600 transition hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-500 dark:hover:bg-neutral-800"
+                  >
+                    {IngredientRoleLabels[role]}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Actions row - visible mobile, integrated desktop */}
+        <div className="flex items-center justify-between gap-3 md:col-span-1 md:justify-end">
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isDeleting}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-red-200 bg-white text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 md:min-h-0 md:min-w-0 md:border-neutral-200 md:px-2 md:py-1 md:text-xs md:text-neutral-500 md:hover:bg-neutral-100 dark:border-red-800/60 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-900/30 md:dark:border-neutral-700 md:dark:text-neutral-400 md:dark:hover:bg-neutral-800"
+            aria-label="Delete ingredient"
+          >
+            ✕
+          </button>
         </div>
       </div>
 
@@ -1530,7 +1551,7 @@ function IngredientRow({
         <button
           type="button"
           onClick={() => setShowNotes(true)}
-          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+          className="w-full rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-3 py-3 text-left text-sm text-blue-600 transition hover:border-blue-300 hover:bg-blue-50 md:w-auto md:border-none md:bg-transparent md:px-0 md:py-0 md:text-xs md:hover:border-none md:hover:bg-transparent md:hover:underline dark:border-neutral-700 dark:bg-neutral-900/50 dark:text-blue-400 dark:hover:border-blue-700 dark:hover:bg-blue-900/20 md:dark:border-none md:dark:bg-transparent md:dark:hover:border-none md:dark:hover:bg-transparent"
         >
           + Add notes
         </button>
@@ -1771,9 +1792,12 @@ function MetadataFields({
     <div className="grid gap-3">
       {fields.map((field) => (
         <div key={field.id} className="grid gap-1">
-          <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            {field.label}
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              {field.label}
+            </label>
+            <SaveIndicator isSaving={savingField === field.id} />
+          </div>
           {field.type === "textarea" ? (
             <textarea
               value={metadata[field.id] ?? ""}
@@ -1814,9 +1838,6 @@ function MetadataFields({
               {field.helpText}
             </p>
           ) : null}
-          {savingField === field.id && (
-            <span className="text-xs text-neutral-400">Saving…</span>
-          )}
         </div>
       ))}
     </div>
