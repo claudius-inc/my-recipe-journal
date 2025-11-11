@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Button } from "@radix-ui/themes";
 import type { RecipeVersion, Ingredient } from "@/types/recipes";
 
 interface VersionComparisonModalProps {
@@ -123,12 +124,9 @@ export function VersionComparisonModal({
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-neutral-50">
               Version Comparison
             </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-neutral-400 dark:hover:text-neutral-200 text-2xl leading-none"
-            >
+            <Button variant="ghost" size="2" onClick={onClose}>
               ✕
-            </button>
+            </Button>
           </div>
           <p className="text-sm text-gray-600 dark:text-neutral-400">
             Comparing: <span className="font-medium">{baseVersion.title}</span> →{" "}
@@ -369,12 +367,9 @@ export function VersionComparisonModal({
 
         {/* Footer */}
         <div className="sticky bottom-0 bg-white dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-700 p-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600"
-          >
+          <Button variant="soft" size="2" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>

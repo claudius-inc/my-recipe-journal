@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { TextField } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "../ui/SaveIndicator";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
+import { ChevronDownIcon } from "@radix-ui/react-icons";
 
 const IngredientRoleLabels: Record<string, string> = {
   flour: "Flour",
@@ -148,7 +150,7 @@ export function IngredientListItem({
       {/* Main Row - Mobile: Single row, Desktop: Grid */}
       <div
         className={cn(
-          "flex items-center gap-2 p-3 md:grid md:grid-cols-12 md:gap-3",
+          "flex items-center gap-2 p-2 md:grid md:grid-cols-12 md:gap-3",
           !isExpanded && "cursor-pointer",
         )}
         onClick={() => !isExpanded && onToggleExpand(ingredient.id)}
@@ -170,7 +172,7 @@ export function IngredientListItem({
             e.stopPropagation();
             onToggleCheck(ingredient.id);
           }}
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded transition hover:bg-neutral-100 dark:hover:bg-neutral-800 md:col-span-1"
+          className="flex h-8 w-5 flex-shrink-0 items-center justify-center rounded transition hover:bg-neutral-100 dark:hover:bg-neutral-800 md:col-span-1"
           aria-label={`Mark ${ingredient.name} as ${isChecked ? "not used" : "used"}`}
         >
           <span className="text-lg leading-none">{isChecked ? "☑" : "☐"}</span>
@@ -299,12 +301,12 @@ export function IngredientListItem({
             onToggleExpand(ingredient.id);
           }}
           className={cn(
-            "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition-transform duration-300 hover:bg-neutral-100 md:col-span-1 dark:hover:bg-neutral-800",
+            "flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition-transform duration-300 hover:bg-neutral-100 md:col-span-1 dark:hover:bg-neutral-800",
             isExpanded && "rotate-180",
           )}
           aria-label={isExpanded ? "Collapse" : "Expand"}
         >
-          <span className="text-base">▼</span>
+          <ChevronDownIcon className="w-4 h-4" />
         </button>
       </div>
 
@@ -345,7 +347,7 @@ export function IngredientListItem({
                 <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   Quantity
                 </label>
-                <input
+                <TextField.Root
                   type="number"
                   value={editState.quantity}
                   onChange={(e) =>
@@ -359,7 +361,7 @@ export function IngredientListItem({
                 <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                   Unit
                 </label>
-                <input
+                <TextField.Root
                   value={editState.unit}
                   onChange={(e) =>
                     setEditState((prev) => ({ ...prev, unit: e.target.value }))

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Button } from "@radix-ui/themes";
 import type { Ingredient } from "@/types/recipes";
 
 interface ScalingConfirmationModalProps {
@@ -65,22 +66,12 @@ export function ScalingConfirmationModal({
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-neutral-200 px-6 py-4 dark:border-neutral-800">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isApplying}
-            className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-          >
+          <Button variant="outline" size="2" onClick={onCancel} disabled={isApplying}>
             Cancel
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={isApplying}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-700 dark:hover:bg-blue-600"
-          >
+          </Button>
+          <Button size="2" onClick={onConfirm} disabled={isApplying}>
             {isApplying ? "Applying..." : "Apply Scaling"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

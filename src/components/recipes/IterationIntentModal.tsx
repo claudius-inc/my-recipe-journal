@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Button } from "@radix-ui/themes";
 import type { RecipeVersion } from "@/types/recipes";
 
 interface IterationIntentModalProps {
@@ -96,13 +97,14 @@ export function IterationIntentModal({
                 <p className="text-xs text-gray-500">Quick options:</p>
                 <div className="flex flex-wrap gap-1">
                   {COMMON_INTENTS.map((quickIntent) => (
-                    <button
+                    <Button
                       key={quickIntent}
+                      variant="soft"
+                      size="1"
                       onClick={() => handleQuickIntent(quickIntent)}
-                      className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded transition dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
                     >
                       {quickIntent}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -125,20 +127,23 @@ export function IterationIntentModal({
 
           {/* Buttons */}
           <div className="flex gap-2 pt-4">
-            <button
+            <Button
+              variant="soft"
+              size="3"
+              className="flex-1"
               onClick={onCancel}
               disabled={isLoading}
-              className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
+              size="3"
+              className="flex-1"
               onClick={handleSubmit}
               disabled={!intent.trim() || isLoading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
             >
               {isLoading ? "Creating..." : "Create Version"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

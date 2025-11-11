@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Button, TextField } from "@radix-ui/themes";
 import type { RecipeVersion } from "@/types/recipes";
 
 interface IterationTrackingProps {
@@ -49,12 +50,9 @@ export function IterationTracking({
           Iteration Tracking
         </h3>
         {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800"
-          >
+          <Button variant="soft" size="1" onClick={() => setIsEditing(true)}>
             {hasIterationData ? "Edit" : "Add tracking"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -99,7 +97,7 @@ export function IterationTracking({
             <label className="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1">
               What were you testing?
             </label>
-            <input
+            <TextField.Root
               type="text"
               value={iterationIntent}
               onChange={(e) => setIterationIntent(e.target.value)}
@@ -138,20 +136,12 @@ export function IterationTracking({
           </div>
 
           <div className="flex gap-2 justify-end pt-2">
-            <button
-              onClick={handleCancel}
-              disabled={isSaving}
-              className="px-3 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 dark:bg-neutral-700 dark:text-neutral-200 dark:border-neutral-600 dark:hover:bg-neutral-600"
-            >
+            <Button variant="outline" size="1" onClick={handleCancel} disabled={isSaving}>
               Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
-            >
+            </Button>
+            <Button size="1" onClick={handleSave} disabled={isSaving}>
               {isSaving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           </div>
         </div>
       )}

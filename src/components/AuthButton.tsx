@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Button, Box, Text, Spinner } from "@radix-ui/themes";
+import { LockOpen1Icon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 
 export function AuthButton() {
@@ -38,22 +39,23 @@ export function AuthButton() {
 
   if (!session) {
     return (
-      <Button onClick={() => router.push("/login")} size="2" color="blue">
-        Sign In
+      <Button onClick={() => router.push("/login")} size="2">
+        Sign In <LockOpen1Icon className="w-4 h-4" />
       </Button>
     );
   }
 
   return (
     <Box style={{ position: "relative" }} ref={menuRef}>
-      <button
-        type="button"
+      <Button
+        variant="solid"
+        size="2"
+        className="!h-8 !w-8 !rounded-full !p-0"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-700 text-sm font-medium text-white transition hover:bg-neutral-600 dark:bg-neutral-300 dark:text-neutral-900 dark:hover:bg-neutral-200"
         aria-label="User menu"
       >
         {session.user?.email?.charAt(0).toUpperCase() || "U"}
-      </button>
+      </Button>
 
       {isMenuOpen && (
         <div
@@ -67,8 +69,10 @@ export function AuthButton() {
             </p>
           </div>
           <div className="p-2">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="2"
+              className="w-full !justify-start"
               onClick={async () => {
                 setIsSigningOut(true);
                 try {
@@ -80,7 +84,6 @@ export function AuthButton() {
                 }
               }}
               disabled={isSigningOut}
-              className="w-full rounded-md px-3 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed dark:text-neutral-300 dark:hover:bg-neutral-800"
             >
               {isSigningOut ? (
                 <span className="flex items-center gap-2">
@@ -90,7 +93,7 @@ export function AuthButton() {
               ) : (
                 "Sign Out"
               )}
-            </button>
+            </Button>
           </div>
         </div>
       )}

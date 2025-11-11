@@ -10,7 +10,7 @@ Mobile-first recipe journaling app for bakers and beverage creatives. Built with
 
 - **Framework:** Next.js 15+ App Router, React 18
 - **Database:** Prisma ORM with SQLite (dev) / PostgreSQL (production)
-- **UI:** Tailwind CSS, Radix UI themes & primitives
+- **UI:** Tailwind CSS, Radix UI themes
 - **State Management:** React Query + custom RecipeStore context
 - **AI Integration:** Google Gemini Vision API for photo extraction
 - **Auth:** Better Auth with magic links (Resend)
@@ -59,6 +59,7 @@ docs/                       # Architecture documentation
 - **Use installed libraries:** Verify packages exist in `package.json` before using
 - **Minimal comments:** Only add comments for complex logic, not obvious operations
 - **Security:** Never expose secrets, API keys, or sensitive data (check git diffs before commits)
+- **Radix UI First:** Always use Radix UI components instead of HTML primitives (see UI Components section below)
 
 ### Testing Requirements
 
@@ -90,10 +91,46 @@ Fix all errors before marking work complete.
 
 ### UI Components
 
-1. Use Radix UI primitives from existing imports
-2. Follow Tailwind utility classes for styling
-3. Ensure mobile-first responsive design
-4. Add to appropriate directory: `components/ui/`, `components/recipes/`, or `components/common/`
+**CRITICAL: Always use Radix UI components, never HTML primitives**
+
+1. **Use Radix UI primitives from `@radix-ui/themes`:**
+   - `<Button>` instead of `<button>`
+   - `<TextField.Root>` / `<TextField.Input>` instead of `<input>`
+   - `<TextArea>` instead of `<textarea>`
+   - `<Select.Root>` / `<Select.Trigger>` / `<Select.Content>` instead of `<select>`
+   - `<Dialog.Root>` / `<Dialog.Content>` instead of `<dialog>` or modal divs
+   - `<DropdownMenu.Root>` for dropdown menus
+   - `<Box>`, `<Flex>`, `<Grid>` for layout containers
+   - `<Text>`, `<Heading>` for typography
+   - Import icons from `@radix-ui/react-icons`
+
+2. **Component structure:**
+   - Check existing components for patterns (e.g., `src/components/recipes/`, `src/app/login/page.tsx`)
+   - Wrap Radix primitives with custom logic when needed
+   - Store reusable custom components in `components/ui/`
+
+3. **Styling:**
+   - Follow Tailwind utility classes for styling
+   - Use Radix UI's built-in props (size, variant, color) where available
+   - Ensure mobile-first responsive design
+
+4. **Organization:**
+   - Add to appropriate directory: `components/ui/`, `components/recipes/`, or `components/common/`
+
+**Examples:**
+
+```tsx
+// ❌ DON'T: HTML primitives
+<button onClick={handleClick}>Click me</button>
+<input type="text" value={name} onChange={handleChange} />
+
+// ✅ DO: Radix UI components
+import { Button, TextField } from "@radix-ui/themes";
+<Button onClick={handleClick}>Click me</Button>
+<TextField.Root>
+  <TextField.Input value={name} onChange={handleChange} />
+</TextField.Root>
+```
 
 ## Feature-Specific Notes
 

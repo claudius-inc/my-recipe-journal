@@ -38,6 +38,8 @@ import { RecipeAIAssistant } from "./RecipeAIAssistant";
 import type { AIAssistantResponse } from "@/lib/gemini-assistant";
 import { IngredientList } from "./IngredientList";
 import { AddIngredientForm } from "./AddIngredientForm";
+import { Button, DropdownMenu, TextField } from "@radix-ui/themes";
+import { PlusCircledIcon, PlusIcon } from "@radix-ui/react-icons";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -105,6 +107,27 @@ const IngredientRoleLabels: Record<string, string> = {
 };
 
 const formatPercent = (value: number) => `${(Math.round(value * 10) / 10).toFixed(1)}%`;
+
+const formatDate = (date: Date | string) => {
+  const d = new Date(date);
+  const day = d.getDate();
+  const month = d.toLocaleDateString("en-US", { month: "short" });
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
+};
+
+const formatDateTime = (date: Date | string) => {
+  const d = new Date(date);
+  const day = d.getDate();
+  const month = d.toLocaleDateString("en-US", { month: "short" });
+  const year = d.getFullYear();
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${day} ${month} ${year}, ${time}`;
+};
 
 export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const { addToast } = useToast();
@@ -838,39 +861,15 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     return (
       <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
         <div className="mx-auto max-w-2xl text-center">
-          <button
-            type="button"
+          <Button
             onClick={onOpenSidebar}
-            className="mb-6 inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+            loading={isLoadingRecipes}
+            variant="solid"
+            size="3"
+            className="mb-6"
           >
-            {isLoadingRecipes ? (
-              <>
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Loading recipes...
-              </>
-            ) : (
-              "Browse recipes"
-            )}
-          </button>
+            {isLoadingRecipes ? "Loading recipes..." : "Browse recipes"}
+          </Button>
           {!isLoadingRecipes && (
             <>
               <h2 className="text-lg font-semibold">Start your first recipe</h2>
@@ -888,19 +887,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   return (
     <div className="flex-1 overflow-y-auto bg-surface">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-5 py-6">
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onOpenSidebar}
-            className="inline-flex items-center gap-2 rounded-full border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-100 md:hidden dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-          >
-            ☰ Recipes
-          </button>
-          <span className="text-xs uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-            Last updated {new Date(selectedRecipe.updatedAt).toLocaleString()}
-          </span>
-        </div>
-
         <section className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
           <div className="flex flex-col gap-2">
             <EditableField
@@ -914,19 +900,19 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                  Goal
+                  Description
                 </span>
                 <div className="flex items-center gap-2">
                   <SaveIndicator isSaving={savingRecipeDescription} />
                   {selectedVersion.ingredients.length > 0 && (
-                    <button
-                      type="button"
+                    <Button
                       onClick={handleGenerateDescription}
                       disabled={isGeneratingDescription}
-                      className="text-xs font-medium text-blue-600 transition hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-blue-400 dark:hover:text-blue-300"
+                      variant="ghost"
+                      size="1"
                     >
                       {isGeneratingDescription ? "Generating..." : "✨ Generate with AI"}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -934,7 +920,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                 value={recipeDescription}
                 onChange={(event) => setRecipeDescription(event.target.value)}
                 onBlur={() => handleRecipeBlur("description")}
-                placeholder="Describe the goal for this recipe iteration."
+                placeholder="Describe this recipe iteration."
                 rows={3}
                 className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
               />
@@ -944,26 +930,28 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                 </div>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-                Category
-                <select
-                  value={category}
-                  onChange={(event) =>
-                    setCategory(event.target.value as Recipe["category"])
-                  }
-                  onBlur={() => handleRecipeBlur("category")}
-                  className="rounded-lg border border-neutral-200 bg-white px-3 py-1 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-                >
-                  {Object.values(CATEGORY_CONFIGS).map((config) => (
-                    <option key={config.id} value={config.id}>
-                      {config.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                  Category
+                  <select
+                    value={category}
+                    onChange={(event) =>
+                      setCategory(event.target.value as Recipe["category"])
+                    }
+                    onBlur={() => handleRecipeBlur("category")}
+                    className="rounded-lg border border-neutral-200 bg-white px-3 py-1 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                  >
+                    {Object.values(CATEGORY_CONFIGS).map((config) => (
+                      <option key={config.id} value={config.id}>
+                        {config.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <span className="text-xs text-neutral-400 dark:text-neutral-500">
-                {CATEGORY_CONFIGS[selectedRecipe.category]?.description}
+                Last updated {formatDateTime(selectedRecipe.updatedAt)}
               </span>
             </div>
           </div>
@@ -1152,111 +1140,104 @@ function VersionTabs({
   const [isSelectingVersion, setIsSelectingVersion] = useState<string | null>(null);
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 relative">
       <div className="flex flex-col gap-3">
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-          {recipe.versions.map((version) => {
-            const isActive = version.id === activeVersion.id;
-            const isLoading = isSelectingVersion === version.id;
-            return (
-              <button
-                key={version.id}
-                type="button"
-                onClick={async () => {
-                  setIsSelectingVersion(version.id);
-                  try {
-                    await onSelect(recipe.id, version.id);
-                  } finally {
-                    setIsSelectingVersion(null);
-                  }
-                }}
-                disabled={isLoading || isActive}
-                className={cn(
-                  "flex-shrink-0 rounded-xl border px-3 py-2 text-sm font-medium transition min-w-[140px] disabled:cursor-not-allowed",
-                  isActive
-                    ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-                    : isLoading
-                      ? "border-neutral-400 bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800 opacity-60"
-                      : "border-neutral-200 bg-white hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:border-neutral-500",
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col text-left">
-                    <span>{version.title || "Untitled"}</span>
-                    <span className="text-xs font-normal text-neutral-400 dark:text-neutral-500">
-                      {new Date(version.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {isLoading && (
-                    <div className="animate-spin">
-                      <svg
-                        className="w-3 h-3 text-neutral-600 dark:text-neutral-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+          {recipe.versions
+            .sort(
+              (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+            )
+            .map((version, index) => {
+              const isActive = version.id === activeVersion.id;
+              const isLoading = isSelectingVersion === version.id;
+              const versionNumber = index + 1;
+              const isDeletingThis = isDeleting === version.id;
+              const otherVersions = recipe.versions.filter((v) => v.id !== version.id);
+
+              return (
+                <DropdownMenu.Root key={version.id}>
+                  <DropdownMenu.Trigger>
+                    <Button
+                      size="2"
+                      loading={isLoading}
+                      variant={isActive ? "solid" : "outline"}
+                      className="h-12"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold">Ver. {versionNumber}</span>
+                          <span className="text-xs font-normal">
+                            {formatDate(version.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </Button>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content>
+                    <DropdownMenu.Item
+                      onClick={async () => {
+                        setIsSelectingVersion(version.id);
+                        try {
+                          await onSelect(recipe.id, version.id);
+                        } finally {
+                          setIsSelectingVersion(null);
+                        }
+                      }}
+                      disabled={isActive}
+                    >
+                      {isActive ? "Current" : "Switch to This Version"}
+                    </DropdownMenu.Item>
+                    {otherVersions.length > 0 && (
+                      <DropdownMenu.Sub>
+                        <DropdownMenu.SubTrigger>Compare with...</DropdownMenu.SubTrigger>
+                        <DropdownMenu.SubContent>
+                          {otherVersions.map((otherVersion, idx) => {
+                            const otherVersionNumber =
+                              recipe.versions
+                                .sort(
+                                  (a, b) =>
+                                    new Date(a.createdAt).getTime() -
+                                    new Date(b.createdAt).getTime(),
+                                )
+                                .findIndex((v) => v.id === otherVersion.id) + 1;
+                            return (
+                              <DropdownMenu.Item
+                                key={otherVersion.id}
+                                onClick={() => onCompare(otherVersion.id)}
+                              >
+                                Ver. {otherVersionNumber} (
+                                {formatDate(otherVersion.createdAt)})
+                              </DropdownMenu.Item>
+                            );
+                          })}
+                        </DropdownMenu.SubContent>
+                      </DropdownMenu.Sub>
+                    )}
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Item
+                      color="red"
+                      onClick={async () => {
+                        setIsDeleting(version.id);
+                        try {
+                          await onDelete(version.id);
+                        } finally {
+                          setIsDeleting(null);
+                        }
+                      }}
+                      disabled={recipe.versions.length === 1 || isDeletingThis}
+                    >
+                      {isDeletingThis ? "Deleting..." : "Delete Version"}
+                    </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
+              );
+            })}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onDuplicate}
-            className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 sm:flex-initial dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-          >
-            + New version
-          </button>
-          {recipe.versions.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  if (recipe.versions.length > 1) {
-                    const otherVersion = recipe.versions.find(
-                      (v) => v.id !== activeVersion.id,
-                    );
-                    if (otherVersion) {
-                      onCompare(otherVersion.id);
-                    }
-                  }
-                }}
-                className="flex-1 rounded-lg border border-blue-200 px-3 py-2 text-xs font-medium text-blue-600 transition hover:bg-blue-50 sm:flex-initial dark:border-blue-800/60 dark:text-blue-300 dark:hover:bg-blue-900/30"
-              >
-                Compare
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  setIsDeleting(activeVersion.id);
-                  await onDelete(activeVersion.id);
-                  setIsDeleting(null);
-                }}
-                disabled={isDeleting === activeVersion.id}
-                className="flex-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70 sm:flex-initial dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-900/30"
-              >
-                {isDeleting === activeVersion.id ? "Removing…" : "Delete"}
-              </button>
-            </>
-          )}
-        </div>
+      </div>
+      <div className="absolute top-0 right-0 -translate-y-2 translate-x-2">
+        <Button onClick={onDuplicate} variant="surface" size="2">
+          <PlusIcon className="w-4 h-4" />
+        </Button>
       </div>
     </section>
   );
@@ -1512,28 +1493,30 @@ function IngredientEditor({
 
             {/* Role badge/chip */}
             <div className="flex items-center gap-2">
-              <button
-                type="button"
+              <Button
                 onClick={() => setShowRoleSelector(!showRoleSelector)}
-                className="inline-flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                variant="soft"
+                size="1"
+                className="rounded-full"
               >
                 {IngredientRoleLabels[draft.role]}
                 <span className="text-[10px]">▾</span>
-              </button>
+              </Button>
               {showRoleSelector && (
                 <div className="flex flex-wrap gap-1">
                   {INGREDIENT_ROLES.filter((r) => r !== draft.role).map((role) => (
-                    <button
+                    <Button
                       key={role}
-                      type="button"
                       onClick={() => {
                         setDraft((prev) => ({ ...prev, role }));
                         setShowRoleSelector(false);
                       }}
-                      className="rounded-full border border-neutral-200 bg-white px-2 py-0.5 text-xs text-neutral-600 transition hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-500 dark:hover:bg-neutral-800"
+                      variant="outline"
+                      size="1"
+                      className="rounded-full"
                     >
                       {IngredientRoleLabels[role]}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -1541,7 +1524,7 @@ function IngredientEditor({
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <input
+            <TextField.Root
               type="number"
               value={draft.quantity}
               onChange={(event) =>
@@ -1550,7 +1533,7 @@ function IngredientEditor({
               placeholder="Quantity"
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
             />
-            <input
+            <TextField.Root
               value={draft.unit}
               onChange={(event) =>
                 setDraft((prev) => ({ ...prev, unit: event.target.value }))
@@ -1558,15 +1541,16 @@ function IngredientEditor({
               placeholder="Unit"
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
             />
-            <button
-              type="button"
+            <Button
               onClick={submitDraft}
               disabled={!isFormValid}
-              className="w-full rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 dark:disabled:hover:bg-neutral-100"
+              variant="solid"
+              size="2"
+              className="w-full"
             >
               <span className="hidden sm:inline">Add</span>
               <span className="sm:hidden">+</span>
-            </button>
+            </Button>
           </div>
 
           {/* Quick unit shortcuts */}
@@ -1576,14 +1560,14 @@ function IngredientEditor({
                 Quick:
               </span>
               {["g", "ml", "pc"].map((unit) => (
-                <button
+                <Button
                   key={unit}
-                  type="button"
                   onClick={() => setQuickUnit(unit)}
-                  className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                  variant="soft"
+                  size="1"
                 >
                   {unit}
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -1750,7 +1734,7 @@ function IngredientRow({
 
         {/* Quantity/Unit/Role row */}
         <div className="flex gap-3 md:contents">
-          <input
+          <TextField.Root
             type="number"
             value={state.quantity}
             onChange={(event) =>
@@ -1760,7 +1744,7 @@ function IngredientRow({
             placeholder="Amount"
             className="w-20 min-h-9 flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-3 outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:col-span-2 md:w-full md:min-h-0 md:border-transparent md:px-2 md:py-1 dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
           />
-          <input
+          <TextField.Root
             value={state.unit}
             onChange={(event) =>
               setState((prev) => ({ ...prev, unit: event.target.value }))
@@ -1772,29 +1756,31 @@ function IngredientRow({
 
           {/* Role badge selector - consistent with Add form */}
           <div className="relative flex-1 md:col-span-2">
-            <button
-              type="button"
+            <Button
               onClick={() => setShowRoleSelector(!showRoleSelector)}
-              className="flex min-h-9 w-full items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-3 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50 md:min-h-0 md:rounded-lg md:border-transparent md:bg-transparent md:px-2 md:py-1 md:hover:border-neutral-300 md:hover:bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 md:dark:border-transparent md:dark:bg-transparent md:dark:hover:border-neutral-600 md:dark:hover:bg-neutral-900"
+              variant="soft"
+              size="1"
+              className="flex min-h-9 w-full items-center justify-center gap-1"
             >
               <span className="truncate">{IngredientRoleLabels[state.role]}</span>
               <span className="text-[10px]">▾</span>
-            </button>
+            </Button>
             {showRoleSelector && (
               <div className="absolute left-0 right-0 top-full z-10 mt-1 flex flex-wrap gap-1 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
                 {INGREDIENT_ROLES.filter((r) => r !== state.role).map((role) => (
-                  <button
+                  <Button
                     key={role}
-                    type="button"
                     onClick={() => {
                       setState((prev) => ({ ...prev, role }));
                       setShowRoleSelector(false);
                       commit();
                     }}
-                    className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-xs text-neutral-600 transition hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-500 dark:hover:bg-neutral-800"
+                    variant="outline"
+                    size="1"
+                    className="rounded-full"
                   >
                     {IngredientRoleLabels[role]}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -1803,44 +1789,45 @@ function IngredientRow({
 
         {/* Actions row - visible mobile, integrated desktop */}
         <div className="flex items-center justify-between gap-3 md:col-span-1 md:justify-end">
-          <button
-            type="button"
+          <Button
             onClick={() => setShowDeleteConfirm(true)}
             disabled={isDeleting}
-            className="flex min-h-9 min-w-[44px] items-center justify-center rounded-lg border border-red-200 bg-white text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 md:min-h-0 md:min-w-0 md:border-neutral-200 md:px-2 md:py-1 md:text-xs md:text-neutral-500 md:hover:bg-neutral-100 dark:border-red-800/60 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-900/30 md:dark:border-neutral-700 md:dark:text-neutral-400 md:dark:hover:bg-neutral-800"
-            aria-label="Delete ingredient"
+            variant="soft"
+            color="red"
+            size="1"
           >
             ✕
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Collapsible notes */}
       {!showNotes ? (
-        <button
-          type="button"
+        <Button
           onClick={() => setShowNotes(true)}
-          className="w-full rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-3 py-3 text-left text-sm text-blue-600 transition hover:border-blue-300 hover:bg-blue-50 md:w-auto md:border-none md:bg-transparent md:px-0 md:py-0 md:text-xs md:hover:border-none md:hover:bg-transparent md:hover:underline dark:border-neutral-700 dark:bg-neutral-900/50 dark:text-blue-400 dark:hover:border-blue-700 dark:hover:bg-blue-900/20 md:dark:border-none md:dark:bg-transparent md:dark:hover:border-none md:dark:hover:bg-transparent"
+          variant="ghost"
+          size="2"
+          className="w-full md:w-auto text-left"
         >
           + Add notes
-        </button>
+        </Button>
       ) : (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
               Notes
             </label>
-            <button
-              type="button"
+            <Button
               onClick={() => {
                 setShowNotes(false);
                 setState((prev) => ({ ...prev, notes: "" }));
                 commit();
               }}
-              className="text-xs text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
+              variant="ghost"
+              size="1"
             >
               Remove
-            </button>
+            </Button>
           </div>
           <textarea
             value={state.notes}
@@ -1867,16 +1854,15 @@ function IngredientRow({
               action cannot be undone.
             </p>
             <div className="mt-6 flex gap-3">
-              <button
-                type="button"
+              <Button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isDeleting}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                variant="soft"
+                className="flex-1"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={async () => {
                   setIsDeleting(true);
                   try {
@@ -1887,10 +1873,12 @@ function IngredientRow({
                   }
                 }}
                 disabled={isDeleting}
-                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-600 dark:hover:bg-red-700"
+                color="red"
+                variant="solid"
+                className="flex-1"
               >
                 {isDeleting ? "Deleting…" : "Delete"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1953,10 +1941,10 @@ function BreadTools({
             <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
               Baker&apos;s percentages
             </h3>
-            <button
-              type="button"
+            <Button
               onClick={onToggleAllIngredients}
-              className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+              variant="ghost"
+              size="1"
               aria-label={
                 allChecked ? "Uncheck all ingredients" : "Check all ingredients"
               }
@@ -1966,7 +1954,7 @@ function BreadTools({
                 {allChecked ? "Uncheck all" : "Check all"}{" "}
                 {checkedCount > 0 && `(${checkedCount}/${version.ingredients.length})`}
               </span>
-            </button>
+            </Button>
           </div>
           <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
             {version.ingredients.map((ingredient) => {
@@ -1981,14 +1969,15 @@ function BreadTools({
                       : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50",
                   )}
                 >
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => onToggleIngredientCheck(ingredient.id)}
-                    className="flex-shrink-0 text-lg leading-none transition hover:scale-110"
+                    variant="ghost"
+                    size="1"
+                    className="flex-shrink-0 text-lg leading-none"
                     aria-label={`Mark ${ingredient.name} as ${isChecked ? "not added" : "added"}`}
                   >
                     {isChecked ? "☑" : "☐"}
-                  </button>
+                  </Button>
                   <span
                     className={cn(
                       "flex-1 min-w-0",
@@ -2044,13 +2033,13 @@ function BreadTools({
               {formatPercent(hydration)}
             </span>
           </p>
-          <button
-            type="button"
+          <Button
             onClick={() => setIsScalingOpen(!isScalingOpen)}
-            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
+            variant="soft"
+            className="w-full"
           >
             {isScalingOpen ? "Hide scaling tools" : "Scale this formula"}
-          </button>
+          </Button>
           {isScalingOpen && (
             <div className="space-y-3 text-xs">
               <div>
@@ -2076,21 +2065,20 @@ function BreadTools({
                     Target amount ({selectedIngredient.unit})
                   </label>
                   <div className="flex gap-2">
-                    <input
+                    <TextField.Root
                       type="number"
                       value={targetQuantity}
                       onChange={(event) => setTargetQuantity(event.target.value)}
                       placeholder={`Current: ${selectedIngredient.quantity.toFixed(1)}`}
                       className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
                     />
-                    <button
-                      type="button"
+                    <Button
                       onClick={onPreviewScaling}
                       disabled={!targetQuantity || Number(targetQuantity) <= 0}
-                      className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-blue-700 dark:hover:bg-blue-600"
+                      variant="solid"
                     >
                       Preview
-                    </button>
+                    </Button>
                   </div>
                   <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                     All other ingredients will be scaled proportionally
@@ -2308,14 +2296,15 @@ function PhotoSection({
               className="h-auto w-full object-cover"
             />
           </div>
-          <button
-            type="button"
+          <Button
             onClick={onRemove}
             disabled={isRemoving}
-            className="text-xs text-red-500 hover:underline disabled:opacity-50 disabled:cursor-not-allowed transition"
+            variant="ghost"
+            color="red"
+            size="1"
           >
             {isRemoving ? "Removing…" : "Remove photo"}
-          </button>
+          </Button>
         </div>
       ) : (
         <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400">

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Button } from "@radix-ui/themes";
 
 interface RatingSelectorProps {
   label: string;
@@ -20,19 +21,21 @@ export function RatingSelector({
       <label className="text-sm font-medium text-gray-700 min-w-fit">{label}</label>
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
-          <button
+          <Button
             key={star}
-            onClick={() => onChange(value === star ? undefined : star)}
-            disabled={disabled}
-            className={`text-2xl transition-colors ${
+            variant="ghost"
+            size="1"
+            className={`!p-1 !h-auto text-2xl transition-colors ${
               star <= (value ?? 0)
                 ? "text-yellow-400 hover:text-yellow-500"
                 : "text-gray-300 hover:text-yellow-300"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            }`}
+            onClick={() => onChange(value === star ? undefined : star)}
+            disabled={disabled}
             title={`${star} star${star !== 1 ? "s" : ""}`}
           >
             ★
-          </button>
+          </Button>
         ))}
       </div>
       {value && <span className="text-sm text-gray-600">({value}/5)</span>}

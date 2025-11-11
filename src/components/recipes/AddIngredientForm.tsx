@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Button, TextField } from "@radix-ui/themes";
 import type { Ingredient, Recipe } from "@/types/recipes";
 import {
   suggestIngredientDefaults,
@@ -196,7 +197,7 @@ export function AddIngredientForm({
       <div className="grid gap-3 text-sm" onKeyDown={handleKeyDown}>
         <div className="flex flex-col gap-2">
           <div className="relative">
-            <input
+            <TextField.Root
               list="ingredient-suggestions"
               value={draft.name}
               onChange={(event) => handleNameChange(event.target.value)}
@@ -213,28 +214,32 @@ export function AddIngredientForm({
 
           {/* Role badge/chip */}
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
               onClick={() => setShowRoleSelector(!showRoleSelector)}
-              className="inline-flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+              variant="outline"
+              size="1"
+              radius="full"
             >
               {IngredientRoleLabels[draft.role]}
-              <span className="text-[10px]">▾</span>
-            </button>
+              <span className="text-[10px] ml-1">▾</span>
+            </Button>
             {showRoleSelector && (
               <div className="flex flex-wrap gap-1">
                 {INGREDIENT_ROLES.filter((r) => r !== draft.role).map((role) => (
-                  <button
+                  <Button
                     key={role}
                     type="button"
                     onClick={() => {
                       setDraft((prev) => ({ ...prev, role }));
                       setShowRoleSelector(false);
                     }}
-                    className="rounded-full border border-neutral-200 bg-white px-2 py-0.5 text-xs text-neutral-600 transition hover:border-neutral-400 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-500 dark:hover:bg-neutral-800"
+                    variant="soft"
+                    size="1"
+                    radius="full"
                   >
                     {IngredientRoleLabels[role]}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -242,7 +247,7 @@ export function AddIngredientForm({
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <input
+          <TextField.Root
             type="number"
             value={draft.quantity}
             onChange={(event) =>
@@ -251,7 +256,7 @@ export function AddIngredientForm({
             placeholder="Quantity"
             className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
           />
-          <input
+          <TextField.Root
             value={draft.unit}
             onChange={(event) =>
               setDraft((prev) => ({ ...prev, unit: event.target.value }))
@@ -259,15 +264,17 @@ export function AddIngredientForm({
             placeholder="Unit"
             className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
           />
-          <button
+          <Button
             type="button"
             onClick={submitDraft}
             disabled={!isFormValid}
-            className="w-full rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-neutral-900 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200 dark:disabled:hover:bg-neutral-100"
+            variant="solid"
+            size="2"
+            className="w-full"
           >
             <span className="hidden sm:inline">Add</span>
             <span className="sm:hidden">+</span>
-          </button>
+          </Button>
         </div>
 
         {/* Quick unit shortcuts */}
@@ -275,14 +282,15 @@ export function AddIngredientForm({
           <div className="flex items-center gap-2">
             <span className="text-xs text-neutral-500 dark:text-neutral-400">Quick:</span>
             {["g", "ml", "pc"].map((unit) => (
-              <button
+              <Button
                 key={unit}
                 type="button"
                 onClick={() => setQuickUnit(unit)}
-                className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                variant="soft"
+                size="1"
               >
                 {unit}
-              </button>
+              </Button>
             ))}
           </div>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { Button, TextField } from "@radix-ui/themes";
 import {
   TASTE_TAG_CATEGORIES,
   TEXTURE_TAG_CATEGORIES,
@@ -89,16 +90,18 @@ export function TagSelector({
               className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
             >
               {tag}
-              <button
+              <Button
+                variant="ghost"
+                size="1"
+                className="!ml-1 !p-0 !h-auto !min-h-0"
                 onClick={() => !disabled && handleRemoveTag(tag)}
-                className="ml-1 text-blue-600 hover:text-blue-800 font-bold"
                 disabled={disabled}
               >
                 ×
-              </button>
+              </Button>
             </span>
           ))}
-          <input
+          <TextField.Root
             ref={inputRef}
             type="text"
             value={searchTerm}
@@ -125,17 +128,19 @@ export function TagSelector({
                     </div>
                     <div className="space-y-1">
                       {category.tags.map((tag) => (
-                        <button
+                        <Button
                           key={tag}
-                          onClick={() => handleAddTag(tag)}
-                          className={`block w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 ${
+                          variant="ghost"
+                          size="2"
+                          className={`!w-full !justify-start ${
                             value.includes(tag)
-                              ? "bg-blue-50 text-blue-700 font-medium"
-                              : "text-gray-700"
+                              ? "!bg-blue-50 !text-blue-700 !font-medium"
+                              : ""
                           }`}
+                          onClick={() => handleAddTag(tag)}
                         >
                           {tag}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -147,28 +152,32 @@ export function TagSelector({
                 {filteredTags.length > 0 && (
                   <div className="space-y-1 mb-2">
                     {filteredTags.map((tag) => (
-                      <button
+                      <Button
                         key={tag}
-                        onClick={() => handleAddTag(tag)}
-                        className={`block w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 ${
+                        variant="ghost"
+                        size="2"
+                        className={`!w-full !justify-start ${
                           value.includes(tag)
-                            ? "bg-blue-50 text-blue-700 font-medium"
-                            : "text-gray-700"
+                            ? "!bg-blue-50 !text-blue-700 !font-medium"
+                            : ""
                         }`}
+                        onClick={() => handleAddTag(tag)}
                       >
                         {tag}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
 
                 {hasCustomMatch && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="2"
+                    className="!w-full !justify-start border-t border-gray-200 mt-2 pt-2"
                     onClick={handleAddCustom}
-                    className="block w-full text-left px-3 py-2 rounded text-sm hover:bg-gray-100 text-gray-700 border-t border-gray-200 mt-2 pt-2"
                   >
                     + Add custom: <span className="font-medium">{searchTerm}</span>
-                  </button>
+                  </Button>
                 )}
 
                 {filteredTags.length === 0 && !hasCustomMatch && (

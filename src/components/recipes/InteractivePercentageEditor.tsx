@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { TextField } from "@radix-ui/themes";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "../ui/SaveIndicator";
 
@@ -73,7 +74,7 @@ export function InteractivePercentageEditor({
     return (
       <div className="flex items-center gap-2">
         <div className="flex-1 flex items-center gap-1">
-          <input
+          <TextField.Root
             ref={inputRef}
             type="number"
             value={percentageInput}

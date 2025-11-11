@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@radix-ui/themes";
 import { ChatMessage, TypingIndicator } from "./ChatMessage";
 import {
   QUICK_PROMPTS,
@@ -237,24 +238,26 @@ export function RecipeAIAssistant({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
             onClick={() =>
               setPanelState((prev) => (prev === "expanded" ? "partial" : "expanded"))
             }
-            className="rounded-lg p-2 text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            variant="ghost"
+            size="2"
             aria-label={panelState === "expanded" ? "Minimize" : "Maximize"}
           >
             {panelState === "expanded" ? "−" : "□"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+            variant="ghost"
+            size="2"
             aria-label="Close"
           >
             ✕
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -289,27 +292,33 @@ export function RecipeAIAssistant({
               </p>
             </div>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => handleQuickPrompt(QUICK_PROMPTS.tooSweet)}
-                className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                variant="outline"
+                size="1"
+                radius="full"
               >
                 Too sweet?
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => handleQuickPrompt(QUICK_PROMPTS.improveTexture)}
-                className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                variant="outline"
+                size="1"
+                radius="full"
               >
                 Improve texture
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => handleQuickPrompt(QUICK_PROMPTS.suggestVariations)}
-                className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                variant="outline"
+                size="1"
+                radius="full"
               >
                 Suggest variations
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -357,14 +366,16 @@ export function RecipeAIAssistant({
               target.style.height = `${Math.min(target.scrollHeight, 100)}px`;
             }}
           />
-          <button
+          <Button
             type="button"
             onClick={() => handleSendMessage(inputValue)}
             disabled={!inputValue.trim() || isGenerating}
-            className="rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:from-purple-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:from-purple-500 dark:to-blue-500 dark:hover:from-purple-600 dark:hover:to-blue-600"
+            variant="solid"
+            size="2"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 dark:from-purple-500 dark:to-blue-500 dark:hover:from-purple-600 dark:hover:to-blue-600"
           >
             {isGenerating ? "..." : "Send"}
-          </button>
+          </Button>
         </div>
         <p className="mt-2 text-[10px] text-neutral-400 dark:text-neutral-500">
           Press Enter to send, Shift+Enter for new line

@@ -136,7 +136,7 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
     const version = await tx.recipeVersion.create({
       data: {
         recipeId: recipe.id,
-        title: "Initial version",
+        title: "Ver. 1",
         notes: "",
         tastingNotes: "",
         nextSteps: "",

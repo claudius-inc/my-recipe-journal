@@ -1,3 +1,5 @@
+import { Button } from "@radix-ui/themes";
+
 interface AIAssistantButtonProps {
   onClick: () => void;
   badge?: number;
@@ -5,10 +7,13 @@ interface AIAssistantButtonProps {
 
 export function AIAssistantButton({ onClick, badge }: AIAssistantButtonProps) {
   return (
-    <button
+    <Button
       type="button"
       onClick={onClick}
-      className="group fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 text-sm font-medium text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 dark:from-purple-500 dark:to-blue-500"
+      variant="solid"
+      size="3"
+      radius="full"
+      className="group fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 dark:from-purple-500 dark:to-blue-500"
       aria-label="Open AI Assistant"
     >
       <span className="text-lg">✨</span>
@@ -19,6 +24,6 @@ export function AIAssistantButton({ onClick, badge }: AIAssistantButtonProps) {
           {badge > 9 ? "9+" : badge}
         </span>
       )}
-    </button>
+    </Button>
   );
 }

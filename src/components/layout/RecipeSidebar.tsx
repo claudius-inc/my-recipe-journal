@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Button, TextField } from "@radix-ui/themes";
 
 import { cn } from "@/lib/utils";
 import { CATEGORY_CONFIGS, type RecipeCategory } from "@/types/recipes";
@@ -178,13 +179,14 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
               Capture iterations and improve every batch.
             </p>
           </div>
-          <button
-            type="button"
-            className="rounded-full border border-neutral-200 p-2 text-neutral-500 transition-colors hover:text-neutral-900 md:hidden dark:border-neutral-700 dark:hover:text-neutral-100"
+          <Button
+            variant="ghost"
+            size="2"
+            className="rounded-full md:hidden"
             onClick={onClose}
           >
             <span className="sr-only">Close recipes panel</span>×
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-4 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
@@ -194,7 +196,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
             </div>
           )}
           <div className="relative">
-            <input
+            <TextField.Root
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -204,31 +206,30 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           </div>
           <div>
             <div className="flex gap-2">
-              <button
-                type="button"
+              <Button
+                size="2"
+                className="flex-1"
                 onClick={() => {
                   setIsCreating(true);
                   onOpen();
                 }}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
               >
                 + New recipe
-              </button>
-              <label
-                className={cn(
-                  "flex cursor-pointer items-center justify-center rounded-xl border-2 border-neutral-900 px-4 py-2 text-sm font-medium text-neutral-900 transition hover:bg-neutral-900 hover:text-white dark:border-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-900",
-                  isScanning && "cursor-not-allowed opacity-60",
-                )}
-              >
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg,image/webp"
-                  onChange={handlePhotoScan}
-                  disabled={isScanning}
-                  className="hidden"
-                />
-                {isScanning ? "📸 Scanning…" : "📸 Scan"}
-              </label>
+              </Button>
+              <Button variant="outline" size="2" asChild disabled={isScanning}>
+                <label
+                  className={cn("cursor-pointer", isScanning && "cursor-not-allowed")}
+                >
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/webp"
+                    onChange={handlePhotoScan}
+                    disabled={isScanning}
+                    className="hidden"
+                  />
+                  {isScanning ? "📸 Scanning…" : "📸 Scan"}
+                </label>
+              </Button>
             </div>
             {scanError && (
               <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
@@ -241,7 +242,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                   <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     Recipe name
                   </label>
-                  <input
+                  <TextField.Root
                     autoFocus
                     value={draftName}
                     onChange={(event) => setDraftName(event.target.value)}
@@ -268,19 +269,18 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                 </div>
                 {creationError && <p className="text-xs text-red-500">{creationError}</p>}
                 <div className="flex gap-2">
-                  <button
-                    type="button"
+                  <Button
+                    size="2"
+                    className="flex-1"
                     onClick={persistRecipe}
                     disabled={isSaving}
-                    className={cn(
-                      "flex-1 rounded-lg bg-neutral-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200",
-                    )}
                   >
                     {isSaving ? "Creating…" : "Create"}
-                  </button>
-                  <button
-                    type="button"
-                    className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-600 transition hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="2"
+                    className="flex-1"
                     onClick={() => {
                       setIsCreating(false);
                       setDraftName("");
@@ -288,7 +288,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                     }}
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -311,18 +311,19 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
               <ul className="space-y-2">
                 {filtered.map((recipe) => (
                   <li key={recipe.id}>
-                    <button
-                      type="button"
+                    <Button
+                      variant={recipe.id === selectedRecipeId ? "solid" : "soft"}
+                      size="3"
+                      className={cn(
+                        "w-full rounded-xl px-4 py-3 text-left",
+                        recipe.id === selectedRecipeId
+                          ? ""
+                          : "bg-neutral-50 dark:bg-neutral-900/60",
+                      )}
                       onClick={() => {
                         selectRecipe(recipe.id);
                         onClose();
                       }}
-                      className={cn(
-                        "w-full rounded-xl border px-4 py-3 text-left transition",
-                        recipe.id === selectedRecipeId
-                          ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-900"
-                          : "border-transparent bg-neutral-50 hover:border-neutral-200 hover:bg-neutral-100 dark:bg-neutral-900/60 dark:text-neutral-100 dark:hover:border-neutral-700 dark:hover:bg-neutral-900",
-                      )}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-semibold">{recipe.name}</span>
@@ -338,22 +339,21 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                       <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">
                         Updated {formatRelativeTime(recipe.updatedAt)}
                       </p>
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
               {hasMore && (
                 <div className="mt-4 px-3">
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="2"
+                    className="w-full"
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className={cn(
-                      "w-full rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-600 dark:hover:bg-neutral-800",
-                    )}
                   >
                     {loadingMore ? "Loading…" : "Load more"}
-                  </button>
+                  </Button>
                 </div>
               )}
             </>

@@ -30,7 +30,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <Theme accentColor="gray" grayColor="olive" radius="large" scaling="95%">
+        <Theme accentColor="gold" grayColor="olive" radius="large" scaling="95%">
           {children}
           <ToastContainer />
         </Theme>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Button } from "@radix-ui/themes";
 import { RatingSelector } from "./RatingSelector";
 import { TagSelector } from "./TagSelector";
 import type { RecipeVersion } from "@/types/recipes";
@@ -71,12 +72,9 @@ export function TastingReview({ version, onSave, isSaving = false }: TastingRevi
           </p>
         </div>
         {!isEditing && (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-          >
+          <Button variant="outline" size="1" onClick={() => setIsEditing(true)}>
             {hasData ? "Edit review" : "Add review"}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -239,20 +237,12 @@ export function TastingReview({ version, onSave, isSaving = false }: TastingRevi
 
           {/* Action buttons */}
           <div className="flex justify-end gap-2 border-t border-neutral-300 pt-4 dark:border-neutral-600">
-            <button
-              onClick={handleCancel}
-              disabled={isSaving}
-              className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-white disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
-            >
+            <Button variant="outline" size="2" onClick={handleCancel} disabled={isSaving}>
               Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
-            >
+            </Button>
+            <Button size="2" onClick={handleSave} disabled={isSaving}>
               {isSaving ? "Saving..." : "Save review"}
-            </button>
+            </Button>
           </div>
         </div>
       )}

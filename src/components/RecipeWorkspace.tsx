@@ -5,13 +5,15 @@ import { useState } from "react";
 import { RecipeStoreProvider } from "@/store/RecipeStore";
 import { RecipeSidebar } from "@/components/layout/RecipeSidebar";
 import { RecipeView } from "@/components/recipes/RecipeView";
+import { Header } from "@/components/layout/Header";
 
 export function RecipeWorkspace() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <RecipeStoreProvider>
-      <div className="flex h-[calc(100dvh-64px)] w-full bg-surface text-foreground">
+      <Header onMenuClick={() => setSidebarOpen(true)} />
+      <div className="flex h-[calc(100dvh-50px)] w-full bg-surface text-foreground">
         <RecipeSidebar
           isOpen={isSidebarOpen}
           onClose={() => setSidebarOpen(false)}
