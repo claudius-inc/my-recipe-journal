@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button, TextField } from "@radix-ui/themes";
+import { Button, TextField, TextArea } from "@radix-ui/themes";
 import type { RecipeVersion } from "@/types/recipes";
 
 interface IterationTrackingProps {
@@ -111,7 +111,7 @@ export function IterationTracking({
             <label className="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1">
               Your hypothesis
             </label>
-            <textarea
+            <TextArea
               value={hypothesis}
               onChange={(e) => setHypothesis(e.target.value)}
               placeholder="What did you expect would happen?"
@@ -125,7 +125,7 @@ export function IterationTracking({
             <label className="block text-xs font-medium text-gray-700 dark:text-neutral-300 mb-1">
               What actually happened?
             </label>
-            <textarea
+            <TextArea
               value={outcome}
               onChange={(e) => setOutcome(e.target.value)}
               placeholder="Record what you observed - crumb structure, rise, taste, etc"

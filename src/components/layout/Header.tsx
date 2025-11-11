@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Heading, Button } from "@radix-ui/themes";
+import { Box, Heading, IconButton, Tooltip } from "@radix-ui/themes";
 import { AuthButton } from "../AuthButton";
 
 interface HeaderProps {
@@ -32,29 +32,31 @@ export function Header({ onMenuClick }: HeaderProps) {
       <div className="flex items-center gap-3">
         {/* Hamburger Menu Button - Mobile Only */}
         {onMenuClick && (
-          <Button
-            variant="ghost"
-            size="2"
-            className="md:hidden"
-            onClick={onMenuClick}
-            aria-label="Open recipes menu"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <Tooltip content="Open recipes menu">
+            <IconButton
+              variant="ghost"
+              size="2"
+              className="md:hidden"
+              onClick={onMenuClick}
+              aria-label="Open recipes menu"
             >
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </Button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </IconButton>
+          </Tooltip>
         )}
 
         {/* Logo/Title */}

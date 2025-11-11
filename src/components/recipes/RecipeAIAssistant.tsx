@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@radix-ui/themes";
+import { Button, IconButton, TextArea, Tooltip } from "@radix-ui/themes";
 import { ChatMessage, TypingIndicator } from "./ChatMessage";
 import {
   QUICK_PROMPTS,
@@ -238,26 +238,30 @@ export function RecipeAIAssistant({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            onClick={() =>
-              setPanelState((prev) => (prev === "expanded" ? "partial" : "expanded"))
-            }
-            variant="ghost"
-            size="2"
-            aria-label={panelState === "expanded" ? "Minimize" : "Maximize"}
-          >
-            {panelState === "expanded" ? "−" : "□"}
-          </Button>
-          <Button
-            type="button"
-            onClick={onClose}
-            variant="ghost"
-            size="2"
-            aria-label="Close"
-          >
-            ✕
-          </Button>
+          <Tooltip content={panelState === "expanded" ? "Minimize" : "Maximize"}>
+            <IconButton
+              type="button"
+              onClick={() =>
+                setPanelState((prev) => (prev === "expanded" ? "partial" : "expanded"))
+              }
+              variant="ghost"
+              size="2"
+              aria-label={panelState === "expanded" ? "Minimize" : "Maximize"}
+            >
+              {panelState === "expanded" ? "−" : "□"}
+            </IconButton>
+          </Tooltip>
+          <Tooltip content="Close">
+            <IconButton
+              type="button"
+              onClick={onClose}
+              variant="ghost"
+              size="2"
+              aria-label="Close"
+            >
+              ✕
+            </IconButton>
+          </Tooltip>
         </div>
       </div>
 
@@ -347,7 +351,7 @@ export function RecipeAIAssistant({
       {/* Input Area */}
       <div className="border-t border-neutral-200 px-5 py-4 dark:border-neutral-700">
         <div className="flex items-end gap-2">
-          <textarea
+          <TextArea
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}

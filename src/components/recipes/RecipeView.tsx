@@ -38,7 +38,17 @@ import { RecipeAIAssistant } from "./RecipeAIAssistant";
 import type { AIAssistantResponse } from "@/lib/gemini-assistant";
 import { IngredientList } from "./IngredientList";
 import { AddIngredientForm } from "./AddIngredientForm";
-import { Button, DropdownMenu, TextField } from "@radix-ui/themes";
+import {
+  Button,
+  Checkbox,
+  DropdownMenu,
+  IconButton,
+  Select,
+  TextField,
+  TextArea,
+  Spinner,
+  Tooltip,
+} from "@radix-ui/themes";
 import { PlusCircledIcon, PlusIcon } from "@radix-ui/react-icons";
 
 interface RecipeViewProps {
@@ -74,7 +84,7 @@ const EditableField = ({
       <SaveIndicator isSaving={isSaving} />
     </div>
     {multiline ? (
-      <textarea
+      <TextArea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
@@ -916,7 +926,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                   )}
                 </div>
               </div>
-              <textarea
+              <TextArea
                 value={recipeDescription}
                 onChange={(event) => setRecipeDescription(event.target.value)}
                 onBlur={() => handleRecipeBlur("description")}
@@ -934,20 +944,22 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
               <div className="flex flex-wrap items-center gap-3">
                 <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
                   Category
-                  <select
+                  <Select.Root
                     value={category}
-                    onChange={(event) =>
-                      setCategory(event.target.value as Recipe["category"])
-                    }
-                    onBlur={() => handleRecipeBlur("category")}
-                    className="rounded-lg border border-neutral-200 bg-white px-3 py-1 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                    onValueChange={(value) => {
+                      setCategory(value as Recipe["category"]);
+                      handleRecipeBlur("category");
+                    }}
                   >
-                    {Object.values(CATEGORY_CONFIGS).map((config) => (
-                      <option key={config.id} value={config.id}>
-                        {config.name}
-                      </option>
-                    ))}
-                  </select>
+                    <Select.Trigger />
+                    <Select.Content>
+                      {Object.values(CATEGORY_CONFIGS).map((config) => (
+                        <Select.Item key={config.id} value={config.id}>
+                          {config.name}
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Root>
                 </label>
               </div>
               <span className="text-xs text-neutral-400 dark:text-neutral-500">
@@ -1235,9 +1247,16 @@ function VersionTabs({
         </div>
       </div>
       <div className="absolute top-0 right-0 -translate-y-2 translate-x-2">
-        <Button onClick={onDuplicate} variant="surface" size="2">
-          <PlusIcon className="w-4 h-4" />
-        </Button>
+        <Tooltip content="Create new version">
+          <IconButton
+            onClick={onDuplicate}
+            variant="surface"
+            size="2"
+            aria-label="Create new version"
+          >
+            <PlusIcon className="w-4 h-4" />
+          </IconButton>
+        </Tooltip>
       </div>
     </section>
   );
@@ -1486,7 +1505,7 @@ function IngredientEditor({
               />
               {isLoadingSuggestions && (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300" />
+                  <Spinner size="1" />
                 </div>
               )}
             </div>
@@ -1604,7 +1623,7 @@ function PendingIngredientRow({ ingredient }: PendingIngredientRowProps) {
       <div className="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-2">
         {/* Ingredient name - full width mobile, prominent */}
         <div className="flex items-center gap-2 md:col-span-4">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300" />
+          <Spinner size="1" />
           <span className="text-base font-medium text-neutral-600 md:text-sm md:font-normal dark:text-neutral-400">
             {ingredient.name}
           </span>
@@ -1789,15 +1808,18 @@ function IngredientRow({
 
         {/* Actions row - visible mobile, integrated desktop */}
         <div className="flex items-center justify-between gap-3 md:col-span-1 md:justify-end">
-          <Button
-            onClick={() => setShowDeleteConfirm(true)}
-            disabled={isDeleting}
-            variant="soft"
-            color="red"
-            size="1"
-          >
-            ✕
-          </Button>
+          <Tooltip content="Delete ingredient">
+            <IconButton
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={isDeleting}
+              variant="soft"
+              color="red"
+              size="1"
+              aria-label="Delete ingredient"
+            >
+              ✕
+            </IconButton>
+          </Tooltip>
         </div>
       </div>
 
@@ -1829,7 +1851,7 @@ function IngredientRow({
               Remove
             </Button>
           </div>
-          <textarea
+          <TextArea
             value={state.notes}
             onChange={(event) =>
               setState((prev) => ({ ...prev, notes: event.target.value }))
@@ -1941,20 +1963,34 @@ function BreadTools({
             <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
               Baker&apos;s percentages
             </h3>
-            <Button
+            <div
               onClick={onToggleAllIngredients}
-              variant="ghost"
-              size="1"
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100 cursor-pointer dark:text-neutral-400 dark:hover:bg-neutral-800"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onToggleAllIngredients();
+                }
+              }}
               aria-label={
                 allChecked ? "Uncheck all ingredients" : "Check all ingredients"
               }
             >
-              <span className="text-base">{allChecked ? "☑" : "☐"}</span>
+              <Checkbox
+                checked={allChecked}
+                onCheckedChange={(checked) => {
+                  if (checked !== "indeterminate") {
+                    onToggleAllIngredients();
+                  }
+                }}
+              />
               <span>
                 {allChecked ? "Uncheck all" : "Check all"}{" "}
                 {checkedCount > 0 && `(${checkedCount}/${version.ingredients.length})`}
               </span>
-            </Button>
+            </div>
           </div>
           <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
             {version.ingredients.map((ingredient) => {
@@ -1969,15 +2005,16 @@ function BreadTools({
                       : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50",
                   )}
                 >
-                  <Button
-                    onClick={() => onToggleIngredientCheck(ingredient.id)}
-                    variant="ghost"
-                    size="1"
-                    className="flex-shrink-0 text-lg leading-none"
+                  <Checkbox
+                    checked={isChecked}
+                    onCheckedChange={(checked) => {
+                      if (checked !== "indeterminate") {
+                        onToggleIngredientCheck(ingredient.id);
+                      }
+                    }}
+                    className="flex-shrink-0"
                     aria-label={`Mark ${ingredient.name} as ${isChecked ? "not added" : "added"}`}
-                  >
-                    {isChecked ? "☑" : "☐"}
-                  </Button>
+                  />
                   <span
                     className={cn(
                       "flex-1 min-w-0",
@@ -2046,18 +2083,19 @@ function BreadTools({
                 <label className="block text-neutral-500 dark:text-neutral-400 mb-1">
                   Scale by ingredient
                 </label>
-                <select
+                <Select.Root
                   value={selectedScalingIngredient}
-                  onChange={(event) => setSelectedScalingIngredient(event.target.value)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                  onValueChange={(value) => setSelectedScalingIngredient(value)}
                 >
-                  <option value="">Select ingredient...</option>
-                  {version.ingredients.map((ing) => (
-                    <option key={ing.id} value={ing.id}>
-                      {ing.name}
-                    </option>
-                  ))}
-                </select>
+                  <Select.Trigger className="w-full" placeholder="Select ingredient..." />
+                  <Select.Content>
+                    {version.ingredients.map((ing) => (
+                      <Select.Item key={ing.id} value={ing.id}>
+                        {ing.name}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Root>
               </div>
               {selectedIngredient && (
                 <div>
@@ -2119,7 +2157,7 @@ function MetadataFields({
             <SaveIndicator isSaving={savingField === field.id} />
           </div>
           {field.type === "textarea" ? (
-            <textarea
+            <TextArea
               value={metadata[field.id] ?? ""}
               onChange={(event) => onChange(field.id, event.target.value)}
               onBlur={(event) => onSave(field, event.target.value)}
@@ -2128,21 +2166,22 @@ function MetadataFields({
               className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
             />
           ) : field.type === "select" ? (
-            <select
+            <Select.Root
               value={metadata[field.id] ?? ""}
-              onChange={(event) => {
-                onChange(field.id, event.target.value);
-                void onSave(field, event.target.value);
+              onValueChange={(value) => {
+                onChange(field.id, value);
+                void onSave(field, value);
               }}
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
             >
-              <option value="">Select...</option>
-              {(field.options ?? []).map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+              <Select.Trigger className="w-full" placeholder="Select..." />
+              <Select.Content>
+                {(field.options ?? []).map((option) => (
+                  <Select.Item key={option} value={option}>
+                    {option}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
           ) : (
             <input
               type={field.type === "number" ? "number" : "text"}
@@ -2212,7 +2251,7 @@ function VersionNotes({
               </label>
               <SaveIndicator isSaving={savingNotes[key] ?? false} />
             </div>
-            <textarea
+            <TextArea
               value={notesDraft[key]}
               onChange={(event) => onChange({ ...notesDraft, [key]: event.target.value })}
               onBlur={(event) => onSave(key, event.target.value)}

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button } from "@radix-ui/themes";
+import { Button, Dialog } from "@radix-ui/themes";
 import type { Ingredient } from "@/types/recipes";
 
 interface ScalingConfirmationModalProps {
@@ -27,21 +27,16 @@ export function ScalingConfirmationModal({
   onCancel,
   isApplying = false,
 }: ScalingConfirmationModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
-          <h2 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-            Confirm Scaled Ingredients
-          </h2>
-          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-            {scalingMethod}
-          </p>
-        </div>
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(open) => !open && !isApplying && onCancel()}
+    >
+      <Dialog.Content className="max-w-2xl max-h-[90vh]">
+        <Dialog.Title>Confirm Scaled Ingredients</Dialog.Title>
+        <Dialog.Description>{scalingMethod}</Dialog.Description>
 
-        <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
+        <div className="max-h-[60vh] overflow-y-auto mt-4">
           <div className="space-y-2">
             {scaledIngredients.map((ingredient) => (
               <div
@@ -65,15 +60,17 @@ export function ScalingConfirmationModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-neutral-200 px-6 py-4 dark:border-neutral-800">
-          <Button variant="outline" size="2" onClick={onCancel} disabled={isApplying}>
-            Cancel
-          </Button>
+        <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+          <Dialog.Close>
+            <Button variant="outline" size="2" onClick={onCancel} disabled={isApplying}>
+              Cancel
+            </Button>
+          </Dialog.Close>
           <Button size="2" onClick={onConfirm} disabled={isApplying}>
             {isApplying ? "Applying..." : "Apply Scaling"}
           </Button>
         </div>
-      </div>
-    </div>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 }

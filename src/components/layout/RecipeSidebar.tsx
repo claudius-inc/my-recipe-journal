@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button, TextField } from "@radix-ui/themes";
+import { Button, IconButton, Select, TextField, Tooltip } from "@radix-ui/themes";
 
 import { cn } from "@/lib/utils";
 import { CATEGORY_CONFIGS, type RecipeCategory } from "@/types/recipes";
@@ -179,14 +179,17 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
               Capture iterations and improve every batch.
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="2"
-            className="rounded-full md:hidden"
-            onClick={onClose}
-          >
-            <span className="sr-only">Close recipes panel</span>×
-          </Button>
+          <Tooltip content="Close">
+            <IconButton
+              variant="ghost"
+              size="2"
+              className="rounded-full md:hidden"
+              onClick={onClose}
+              aria-label="Close recipes panel"
+            >
+              ×
+            </IconButton>
+          </Tooltip>
         </div>
 
         <div className="space-y-4 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
@@ -253,19 +256,19 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                   <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     Category
                   </label>
-                  <select
-                    className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                  <Select.Root
                     value={draftCategory}
-                    onChange={(event) =>
-                      setDraftCategory(event.target.value as RecipeCategory)
-                    }
+                    onValueChange={(value) => setDraftCategory(value as RecipeCategory)}
                   >
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                    <Select.Trigger className="w-full" />
+                    <Select.Content>
+                      {categories.map((category) => (
+                        <Select.Item key={category.id} value={category.id}>
+                          {category.name}
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Root>
                 </div>
                 {creationError && <p className="text-xs text-red-500">{creationError}</p>}
                 <div className="flex gap-2">

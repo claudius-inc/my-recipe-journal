@@ -1,30 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useSession, signOut } from "@/lib/auth-client";
-import { Button, Box, Text, Spinner } from "@radix-ui/themes";
+import { Button, Box, Text, Spinner, DropdownMenu } from "@radix-ui/themes";
 import { LockOpen1Icon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 
 export function AuthButton() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    }
-
-    if (isMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [isMenuOpen]);
 
   if (isPending) {
     return (
@@ -46,57 +31,51 @@ export function AuthButton() {
   }
 
   return (
-    <Box style={{ position: "relative" }} ref={menuRef}>
-      <Button
-        variant="solid"
-        size="2"
-        className="!h-8 !w-8 !rounded-full !p-0"
-        onClick={() => setIsMenuOpen(!isMenuOpen)}
-        aria-label="User menu"
-      >
-        {session.user?.email?.charAt(0).toUpperCase() || "U"}
-      </Button>
-
-      {isMenuOpen && (
-        <div
-          className="absolute right-0 top-full mt-2 w-64 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
-          style={{ zIndex: 100 }}
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger>
+        <button
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-9)] text-sm font-medium text-white transition hover:bg-[var(--accent-10)] dark:bg-[var(--accent-9)] dark:text-white"
+          aria-label="User menu"
         >
-          <div className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-700">
+          {session.user?.email?.charAt(0).toUpperCase() || "U"}
+        </button>
+      </DropdownMenu.Trigger>
+
+      <DropdownMenu.Content align="end" className="min-w-[16rem]">
+        <DropdownMenu.Label>
+          <div className="px-1 py-1.5">
             <p className="text-xs text-neutral-500 dark:text-neutral-400">Signed in as</p>
             <p className="mt-1 truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
               {session.user?.email}
             </p>
           </div>
-          <div className="p-2">
-            <Button
-              variant="ghost"
-              size="2"
-              className="w-full !justify-start"
-              onClick={async () => {
-                setIsSigningOut(true);
-                try {
-                  await signOut();
-                  setIsMenuOpen(false);
-                  router.push("/login");
-                } finally {
-                  setIsSigningOut(false);
-                }
-              }}
-              disabled={isSigningOut}
-            >
-              {isSigningOut ? (
-                <span className="flex items-center gap-2">
-                  <Spinner size="1" />
-                  Signing out...
-                </span>
-              ) : (
-                "Sign Out"
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
-    </Box>
+        </DropdownMenu.Label>
+
+        <DropdownMenu.Separator />
+
+        <DropdownMenu.Item
+          onSelect={async (e) => {
+            e.preventDefault();
+            setIsSigningOut(true);
+            try {
+              await signOut();
+              router.push("/login");
+            } finally {
+              setIsSigningOut(false);
+            }
+          }}
+          disabled={isSigningOut}
+        >
+          {isSigningOut ? (
+            <span className="flex items-center gap-2">
+              <Spinner size="1" />
+              Signing out...
+            </span>
+          ) : (
+            "Sign Out"
+          )}
+        </DropdownMenu.Item>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   );
 }

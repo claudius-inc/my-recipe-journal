@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "@radix-ui/themes";
+import { Button, TextArea, Dialog } from "@radix-ui/themes";
 import type { RecipeVersion } from "@/types/recipes";
 
 interface IterationIntentModalProps {
@@ -59,27 +59,21 @@ export function IterationIntentModal({
     setUseQuickStart(false);
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 p-6 dark:bg-neutral-900">
-        <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-neutral-50">
-          Create New Version
-        </h2>
-        <p className="text-sm text-gray-600 dark:text-neutral-400 mb-4">
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && !isLoading && onCancel()}>
+      <Dialog.Content className="max-w-md">
+        <Dialog.Title>Create New Version</Dialog.Title>
+        <Dialog.Description>
           Based on: <span className="font-medium">{baseVersion.title || "Untitled"}</span>
-        </p>
+        </Dialog.Description>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
           {/* Intent Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
               What are you testing or changing?
             </label>
-            <textarea
+            <TextArea
               value={intent}
               onChange={(e) => {
                 setIntent(e.target.value);
@@ -116,7 +110,7 @@ export function IterationIntentModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
               Your hypothesis (optional)
             </label>
-            <textarea
+            <TextArea
               value={hypothesis}
               onChange={(e) => setHypothesis(e.target.value)}
               placeholder="e.g., I think increasing hydration to 75% will improve the open crumb"
@@ -127,15 +121,17 @@ export function IterationIntentModal({
 
           {/* Buttons */}
           <div className="flex gap-2 pt-4">
-            <Button
-              variant="soft"
-              size="3"
-              className="flex-1"
-              onClick={onCancel}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
+            <Dialog.Close>
+              <Button
+                variant="soft"
+                size="3"
+                className="flex-1"
+                onClick={onCancel}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+            </Dialog.Close>
             <Button
               size="3"
               className="flex-1"
@@ -146,7 +142,7 @@ export function IterationIntentModal({
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 }

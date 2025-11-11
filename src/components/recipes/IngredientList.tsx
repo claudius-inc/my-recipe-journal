@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { Checkbox, Spinner } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient, RecipeVersion } from "@/types/recipes";
 import { IngredientListItem } from "./IngredientListItem";
@@ -79,18 +80,23 @@ export function IngredientList({
           Ingredient List
         </h3>
         {version.ingredients.length > 0 && (
-          <button
-            type="button"
-            onClick={onToggleAllIngredients}
-            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
-            aria-label={allChecked ? "Uncheck all ingredients" : "Check all ingredients"}
-          >
-            <span className="text-base">{allChecked ? "☑" : "☐"}</span>
+          <label className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 cursor-pointer">
+            <Checkbox
+              checked={allChecked}
+              onCheckedChange={(checked) => {
+                if (checked !== "indeterminate") {
+                  onToggleAllIngredients?.();
+                }
+              }}
+              aria-label={
+                allChecked ? "Uncheck all ingredients" : "Check all ingredients"
+              }
+            />
             <span>
               {allChecked ? "Uncheck all" : "Check all"}
               {checkedCount > 0 && ` (${checkedCount}/${version.ingredients.length})`}
             </span>
-          </button>
+          </label>
         )}
       </div>
 
@@ -184,7 +190,7 @@ function PendingIngredientListItem({ ingredient }: PendingIngredientListItemProp
     <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-sm opacity-60 dark:border-neutral-700 dark:bg-neutral-900/50">
       {/* Loading spinner */}
       <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300" />
+        <Spinner size="1" />
       </div>
 
       {/* Name */}

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button } from "@radix-ui/themes";
+import { Button, Dialog, Tooltip } from "@radix-ui/themes";
 import type { RecipeVersion, Ingredient } from "@/types/recipes";
 
 interface VersionComparisonModalProps {
@@ -28,10 +28,6 @@ export function VersionComparisonModal({
   onClose,
   flourTotal = 0,
 }: VersionComparisonModalProps) {
-  if (!isOpen) {
-    return null;
-  }
-
   // Build a map of ingredients by name for the base version
   const baseIngredientMap = new Map<string, Ingredient>();
   baseVersion.ingredients.forEach((ing) => {
@@ -116,26 +112,15 @@ export function VersionComparisonModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-auto dark:bg-neutral-900">
-        {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-700 p-6">
-          <div className="flex justify-between items-start mb-2">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-neutral-50">
-              Version Comparison
-            </h2>
-            <Button variant="ghost" size="2" onClick={onClose}>
-              ✕
-            </Button>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-neutral-400">
-            Comparing: <span className="font-medium">{baseVersion.title}</span> →{" "}
-            <span className="font-medium">{comparisonVersion.title}</span>
-          </p>
-        </div>
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog.Content className="max-w-4xl max-h-[90vh] overflow-auto">
+        <Dialog.Title>Version Comparison</Dialog.Title>
+        <Dialog.Description>
+          Comparing: <span className="font-medium">{baseVersion.title}</span> →{" "}
+          <span className="font-medium">{comparisonVersion.title}</span>
+        </Dialog.Description>
 
-        {/* Content */}
-        <div className="p-6">
+        <div className="mt-6">
           {!hasChanges ? (
             <div className="text-center py-12">
               <p className="text-gray-600 dark:text-neutral-400">
@@ -366,12 +351,14 @@ export function VersionComparisonModal({
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-700 p-6 flex justify-end">
-          <Button variant="soft" size="2" onClick={onClose}>
-            Close
-          </Button>
+        <div className="flex justify-end mt-6 pt-4 border-t border-gray-200 dark:border-neutral-700">
+          <Dialog.Close>
+            <Button variant="soft" size="2">
+              Close
+            </Button>
+          </Dialog.Close>
         </div>
-      </div>
-    </div>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 }

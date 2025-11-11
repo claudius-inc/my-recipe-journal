@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, TextField } from "@radix-ui/themes";
+import { Button, TextField, Spinner } from "@radix-ui/themes";
 import type { Ingredient, Recipe } from "@/types/recipes";
 import {
   suggestIngredientDefaults,
@@ -207,7 +207,7 @@ export function AddIngredientForm({
             />
             {isLoadingSuggestions && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600 dark:border-neutral-600 dark:border-t-neutral-300" />
+                <Spinner size="1" />
               </div>
             )}
           </div>

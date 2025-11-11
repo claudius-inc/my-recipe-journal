@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TextField } from "@radix-ui/themes";
+import { Checkbox, TextField } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "../ui/SaveIndicator";
@@ -166,17 +166,22 @@ export function IngredientListItem({
         }}
       >
         {/* Checkbox - Isolated touch target */}
-        <button
-          type="button"
+        <div
           onClick={(e) => {
             e.stopPropagation();
-            onToggleCheck(ingredient.id);
           }}
           className="flex h-8 w-5 flex-shrink-0 items-center justify-center rounded transition hover:bg-neutral-100 dark:hover:bg-neutral-800 md:col-span-1"
-          aria-label={`Mark ${ingredient.name} as ${isChecked ? "not used" : "used"}`}
         >
-          <span className="text-lg leading-none">{isChecked ? "☑" : "☐"}</span>
-        </button>
+          <Checkbox
+            checked={isChecked}
+            onCheckedChange={(checked) => {
+              if (checked !== "indeterminate") {
+                onToggleCheck(ingredient.id);
+              }
+            }}
+            aria-label={`Mark ${ingredient.name} as ${isChecked ? "not used" : "used"}`}
+          />
+        </div>
 
         {/* Ingredient Name - Truncated on mobile */}
         <span

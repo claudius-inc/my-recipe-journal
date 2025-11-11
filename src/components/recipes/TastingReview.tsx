@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "@radix-ui/themes";
+import { Button, TextArea } from "@radix-ui/themes";
 import { RatingSelector } from "./RatingSelector";
 import { TagSelector } from "./TagSelector";
 import type { RecipeVersion } from "@/types/recipes";
@@ -225,7 +225,7 @@ export function TastingReview({ version, onSave, isSaving = false }: TastingRevi
             <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
               Tasting notes
             </label>
-            <textarea
+            <TextArea
               value={tastingNotes}
               onChange={(e) => setTastingNotes(e.target.value)}
               rows={4}
