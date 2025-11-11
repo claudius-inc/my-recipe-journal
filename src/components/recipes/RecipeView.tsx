@@ -162,6 +162,8 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   // Photo upload progress
   const [photoUploadProgress, setPhotoUploadProgress] = useState(0);
   const [photoUploadError, setPhotoUploadError] = useState<string | undefined>();
+  // Baking checklist (ephemeral, not persisted)
+  const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (selectedRecipe) {
@@ -213,6 +215,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       active = false;
     };
   }, [getIngredientSuggestions, selectedRecipe]);
+
+  // Reset baking checklist when version changes
+  useEffect(() => {
+    setCheckedIngredients(new Set());
+  }, [selectedVersion?.id]);
 
   const categoryConfig = useMemo(
     () => (selectedRecipe ? getCategoryConfig(selectedRecipe.category) : null),
@@ -458,28 +465,84 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       setPhotoUploadProgress(0);
 
       try {
-        const reader = new FileReader();
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          reader.onprogress = (event) => {
-            if (event.lengthComputable) {
-              const progress = Math.round((event.loaded / event.total) * 100);
-              setPhotoUploadProgress(progress);
-            }
-          };
-          reader.onload = () => {
-            setPhotoUploadProgress(100);
-            resolve(typeof reader.result === "string" ? reader.result : "");
-          };
-          reader.onerror = () =>
-            reject(reader.error ?? new Error("Failed to read image"));
-          reader.readAsDataURL(file);
+        // Try R2 presigned URL upload first
+        const presignedResponse = await fetch("/api/photos/presigned-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipeId: selectedRecipe.id,
+            versionId: selectedVersion.id,
+            contentType: file.type,
+            fileSize: file.size,
+          }),
         });
 
-        // Simulate upload delay to show progress
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        if (presignedResponse.ok) {
+          // R2 is configured - use presigned URL upload
+          const { presignedUrl, publicUrl, r2Key } = await presignedResponse.json();
 
-        await updateVersion(selectedRecipe.id, selectedVersion.id, { photoUrl: dataUrl });
-        setPhotoUploadProgress(0);
+          // Upload directly to R2 with progress tracking
+          const xhr = new XMLHttpRequest();
+
+          await new Promise<void>((resolve, reject) => {
+            xhr.upload.addEventListener("progress", (event) => {
+              if (event.lengthComputable) {
+                const progress = Math.round((event.loaded / event.total) * 100);
+                setPhotoUploadProgress(progress);
+              }
+            });
+
+            xhr.addEventListener("load", () => {
+              if (xhr.status === 200) {
+                resolve();
+              } else {
+                reject(new Error(`Upload failed with status ${xhr.status}`));
+              }
+            });
+
+            xhr.addEventListener("error", () =>
+              reject(new Error("Network error during upload")),
+            );
+            xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
+
+            xhr.open("PUT", presignedUrl);
+            xhr.setRequestHeader("Content-Type", file.type);
+            xhr.send(file);
+          });
+
+          // Update database with R2 URL and key
+          await updateVersion(selectedRecipe.id, selectedVersion.id, {
+            photoUrl: publicUrl,
+            r2Key,
+          });
+
+          setPhotoUploadProgress(0);
+          addToast("Photo uploaded successfully", "success");
+        } else {
+          // R2 not configured - fallback to Base64
+          const reader = new FileReader();
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            reader.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const progress = Math.round((event.loaded / event.total) * 100);
+                setPhotoUploadProgress(progress);
+              }
+            };
+            reader.onload = () => {
+              setPhotoUploadProgress(100);
+              resolve(typeof reader.result === "string" ? reader.result : "");
+            };
+            reader.onerror = () =>
+              reject(reader.error ?? new Error("Failed to read image"));
+            reader.readAsDataURL(file);
+          });
+
+          await updateVersion(selectedRecipe.id, selectedVersion.id, {
+            photoUrl: dataUrl,
+          });
+          setPhotoUploadProgress(0);
+          addToast("Photo uploaded (using database storage)", "success");
+        }
       } catch (error) {
         setPhotoUploadError(
           error instanceof Error ? error.message : "Failed to upload photo",
@@ -500,11 +563,35 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }
     setIsRemovingPhoto(true);
     try {
-      await updateVersion(selectedRecipe.id, selectedVersion.id, { photoUrl: null });
+      // Delete from R2 if using R2 storage
+      if (selectedVersion.r2Key) {
+        try {
+          await fetch("/api/photos/delete", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              r2Key: selectedVersion.r2Key,
+              photoUrl: selectedVersion.photoUrl,
+            }),
+          });
+        } catch (error) {
+          console.error("Failed to delete from R2:", error);
+          // Continue anyway to clear database reference
+        }
+      }
+
+      // Clear database references
+      await updateVersion(selectedRecipe.id, selectedVersion.id, {
+        photoUrl: null,
+        r2Key: null,
+      });
+      addToast("Photo removed successfully", "success");
+    } catch (error) {
+      addToast("Failed to remove photo", "error");
     } finally {
       setIsRemovingPhoto(false);
     }
-  }, [selectedRecipe, selectedVersion, updateVersion]);
+  }, [selectedRecipe, selectedVersion, updateVersion, addToast]);
 
   const handleSaveTastingReview = useCallback(
     async (data: {
@@ -637,6 +724,32 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }
   }, [selectedRecipe, selectedVersion, updateRecipe, addToast]);
 
+  const handleToggleIngredientCheck = useCallback((ingredientId: string) => {
+    setCheckedIngredients((prev) => {
+      const next = new Set(prev);
+      if (next.has(ingredientId)) {
+        next.delete(ingredientId);
+      } else {
+        next.add(ingredientId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleAllIngredients = useCallback(() => {
+    if (!selectedVersion) {
+      return;
+    }
+    setCheckedIngredients((prev) => {
+      // If all are checked, uncheck all. Otherwise, check all.
+      const allChecked = selectedVersion.ingredients.every((ing) => prev.has(ing.id));
+      if (allChecked) {
+        return new Set();
+      }
+      return new Set(selectedVersion.ingredients.map((ing) => ing.id));
+    });
+  }, [selectedVersion]);
+
   if (!selectedRecipe || !selectedVersion) {
     return (
       <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
@@ -761,6 +874,8 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onUpdate={updateIngredient}
           onRemove={deleteIngredient}
           enableBakersPercent={categoryConfig?.enableBakersPercent}
+          savingIngredient={savingIngredient}
+          setSavingIngredient={setSavingIngredient}
         />
 
         {categoryConfig?.enableBakersPercent && (
@@ -777,6 +892,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             setTargetQuantity={setTargetQuantity}
             onPreviewScaling={handlePreviewScaling}
             onUpdateIngredientQuantity={handleUpdateIngredientPercentage}
+            checkedIngredients={checkedIngredients}
+            onToggleIngredientCheck={handleToggleIngredientCheck}
+            onToggleAllIngredients={handleToggleAllIngredients}
           />
         )}
 
@@ -1049,6 +1167,8 @@ interface IngredientEditorProps {
   onUpdate: IngredientsOperations["update"];
   onRemove: IngredientsOperations["remove"];
   enableBakersPercent?: boolean;
+  savingIngredient: Record<string, boolean>;
+  setSavingIngredient: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 }
 
 function IngredientEditor({
@@ -1061,6 +1181,8 @@ function IngredientEditor({
   onUpdate,
   onRemove,
   enableBakersPercent,
+  savingIngredient,
+  setSavingIngredient,
 }: IngredientEditorProps) {
   const { addToast } = useToast();
   const [draft, setDraft] = useState({
@@ -1215,8 +1337,16 @@ function IngredientEditor({
             key={ingredient.id}
             ingredient={ingredient}
             suggestions={suggestions}
-            onChange={(payload) => onUpdate(recipeId, version.id, ingredient.id, payload)}
+            onChange={async (payload) => {
+              setSavingIngredient((prev) => ({ ...prev, [ingredient.id]: true }));
+              try {
+                await onUpdate(recipeId, version.id, ingredient.id, payload);
+              } finally {
+                setSavingIngredient((prev) => ({ ...prev, [ingredient.id]: false }));
+              }
+            }}
             onRemove={() => onRemove(recipeId, version.id, ingredient.id)}
+            isSaving={savingIngredient[ingredient.id] ?? false}
           />
         ))}
         {/* Pending ingredients (optimistic UI) */}
@@ -1364,17 +1494,17 @@ function PendingIngredientRow({ ingredient }: PendingIngredientRowProps) {
 
         {/* Quantity/Unit/Role row */}
         <div className="flex gap-3 md:contents">
-          <div className="flex min-h-[44px] flex-1 items-center rounded-lg border border-neutral-200 bg-white px-3 py-3 md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-700 dark:bg-neutral-900 md:dark:border-transparent md:dark:bg-transparent">
+          <div className="flex min-h-9 flex-1 items-center rounded-lg border border-neutral-200 bg-white px-3 py-3 md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-700 dark:bg-neutral-900 md:dark:border-transparent md:dark:bg-transparent">
             <span className="text-neutral-500 dark:text-neutral-400">
               {ingredient.quantity}
             </span>
           </div>
-          <div className="flex min-h-[44px] flex-1 items-center rounded-lg border border-neutral-200 bg-white px-3 py-3 md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-700 dark:bg-neutral-900 md:dark:border-transparent md:dark:bg-transparent">
+          <div className="flex min-h-9 flex-1 items-center rounded-lg border border-neutral-200 bg-white px-3 py-3 md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-700 dark:bg-neutral-900 md:dark:border-transparent md:dark:bg-transparent">
             <span className="text-neutral-500 dark:text-neutral-400">
               {ingredient.unit}
             </span>
           </div>
-          <div className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-3 text-xs md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-600 dark:bg-neutral-800 md:dark:border-transparent md:dark:bg-transparent">
+          <div className="flex min-h-9 flex-1 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 py-3 text-xs md:col-span-2 md:min-h-0 md:border-transparent md:bg-transparent md:px-0 md:py-0 dark:border-neutral-600 dark:bg-neutral-800 md:dark:border-transparent md:dark:bg-transparent">
             <span className="text-neutral-500 dark:text-neutral-400">
               {IngredientRoleLabels[ingredient.role]}
             </span>
@@ -1401,6 +1531,7 @@ interface IngredientRowProps {
     }>,
   ) => Promise<void>;
   onRemove: () => Promise<void>;
+  isSaving?: boolean;
 }
 
 function IngredientRow({
@@ -1408,6 +1539,7 @@ function IngredientRow({
   suggestions,
   onChange,
   onRemove,
+  isSaving = false,
 }: IngredientRowProps) {
   const [state, setState] = useState({
     name: ingredient.name,
@@ -1462,16 +1594,19 @@ function IngredientRow({
       <div className="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-2">
         {/* Ingredient name - full width mobile, prominent */}
         <div className="md:col-span-4">
-          <input
-            list={`ingredient-suggestions-${ingredient.id}`}
-            value={state.name}
-            onChange={(event) =>
-              setState((prev) => ({ ...prev, name: event.target.value }))
-            }
-            onBlur={commit}
-            placeholder="Ingredient name"
-            className="w-full rounded-lg border border-neutral-200 bg-transparent px-3 py-3 text-base font-medium outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:border-transparent md:px-2 md:py-1 md:text-sm md:font-normal dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              list={`ingredient-suggestions-${ingredient.id}`}
+              value={state.name}
+              onChange={(event) =>
+                setState((prev) => ({ ...prev, name: event.target.value }))
+              }
+              onBlur={commit}
+              placeholder="Ingredient name"
+              className="flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-3 text-base font-medium outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:border-transparent md:px-2 md:py-1 md:text-sm md:font-normal dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
+            />
+            <SaveIndicator isSaving={isSaving} />
+          </div>
           <datalist id={`ingredient-suggestions-${ingredient.id}`}>
             {allSuggestions.map((name) => (
               <option key={name} value={name} />
@@ -1489,7 +1624,7 @@ function IngredientRow({
             }
             onBlur={commit}
             placeholder="Amount"
-            className="w-20 min-h-[44px] flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-3 outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:col-span-2 md:w-full md:min-h-0 md:border-transparent md:px-2 md:py-1 dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
+            className="w-20 min-h-9 flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-3 outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:col-span-2 md:w-full md:min-h-0 md:border-transparent md:px-2 md:py-1 dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
           />
           <input
             value={state.unit}
@@ -1498,7 +1633,7 @@ function IngredientRow({
             }
             onBlur={commit}
             placeholder="Unit"
-            className="w-16 min-h-[44px] flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-3 outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:col-span-2 md:w-full md:min-h-0 md:border-transparent md:px-2 md:py-1 dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
+            className="w-16 min-h-9 flex-1 rounded-lg border border-neutral-200 bg-transparent px-3 py-3 outline-none focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 md:col-span-2 md:w-full md:min-h-0 md:border-transparent md:px-2 md:py-1 dark:border-neutral-700 dark:focus:border-neutral-500 dark:focus:bg-neutral-900 dark:focus:ring-neutral-700 md:dark:border-transparent"
           />
 
           {/* Role badge selector - consistent with Add form */}
@@ -1506,7 +1641,7 @@ function IngredientRow({
             <button
               type="button"
               onClick={() => setShowRoleSelector(!showRoleSelector)}
-              className="flex min-h-[44px] w-full items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-3 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50 md:min-h-0 md:rounded-lg md:border-transparent md:bg-transparent md:px-2 md:py-1 md:hover:border-neutral-300 md:hover:bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 md:dark:border-transparent md:dark:bg-transparent md:dark:hover:border-neutral-600 md:dark:hover:bg-neutral-900"
+              className="flex min-h-9 w-full items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-3 text-xs font-medium text-neutral-600 transition hover:bg-neutral-50 md:min-h-0 md:rounded-lg md:border-transparent md:bg-transparent md:px-2 md:py-1 md:hover:border-neutral-300 md:hover:bg-white dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 md:dark:border-transparent md:dark:bg-transparent md:dark:hover:border-neutral-600 md:dark:hover:bg-neutral-900"
             >
               <span className="truncate">{IngredientRoleLabels[state.role]}</span>
               <span className="text-[10px]">▾</span>
@@ -1538,7 +1673,7 @@ function IngredientRow({
             type="button"
             onClick={() => setShowDeleteConfirm(true)}
             disabled={isDeleting}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-red-200 bg-white text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 md:min-h-0 md:min-w-0 md:border-neutral-200 md:px-2 md:py-1 md:text-xs md:text-neutral-500 md:hover:bg-neutral-100 dark:border-red-800/60 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-900/30 md:dark:border-neutral-700 md:dark:text-neutral-400 md:dark:hover:bg-neutral-800"
+            className="flex min-h-9 min-w-[44px] items-center justify-center rounded-lg border border-red-200 bg-white text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 md:min-h-0 md:min-w-0 md:border-neutral-200 md:px-2 md:py-1 md:text-xs md:text-neutral-500 md:hover:bg-neutral-100 dark:border-red-800/60 dark:bg-neutral-900 dark:text-red-400 dark:hover:bg-red-900/30 md:dark:border-neutral-700 md:dark:text-neutral-400 md:dark:hover:bg-neutral-800"
             aria-label="Delete ingredient"
           >
             ✕
@@ -1646,6 +1781,9 @@ interface BreadToolsProps {
     ingredientId: string,
     newQuantity: number,
   ) => Promise<void>;
+  checkedIngredients: Set<string>;
+  onToggleIngredientCheck: (ingredientId: string) => void;
+  onToggleAllIngredients: () => void;
 }
 
 function BreadTools({
@@ -1661,34 +1799,94 @@ function BreadTools({
   setTargetQuantity,
   onPreviewScaling,
   onUpdateIngredientQuantity,
+  checkedIngredients,
+  onToggleIngredientCheck,
+  onToggleAllIngredients,
 }: BreadToolsProps) {
   const selectedIngredient = version.ingredients.find(
     (ing) => ing.id === selectedScalingIngredient,
   );
+  const allChecked = version.ingredients.every((ing) => checkedIngredients.has(ing.id));
+  const checkedCount = version.ingredients.filter((ing) =>
+    checkedIngredients.has(ing.id),
+  ).length;
+
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-            Baker’s percentages
-          </h3>
+        <div className="space-y-2 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+              Baker&apos;s percentages
+            </h3>
+            <button
+              type="button"
+              onClick={onToggleAllIngredients}
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
+              aria-label={
+                allChecked ? "Uncheck all ingredients" : "Check all ingredients"
+              }
+            >
+              <span className="text-base">{allChecked ? "☑" : "☐"}</span>
+              <span>
+                {allChecked ? "Uncheck all" : "Check all"}{" "}
+                {checkedCount > 0 && `(${checkedCount}/${version.ingredients.length})`}
+              </span>
+            </button>
+          </div>
           <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
-            {version.ingredients.map((ingredient) => (
-              <li key={ingredient.id} className="flex items-center justify-between gap-4">
-                <span>{ingredient.name}</span>
-                {flourTotal > 0 ? (
-                  <InteractivePercentageEditor
-                    ingredient={ingredient}
-                    flourTotal={flourTotal}
-                    onSave={(newQuantity) =>
-                      onUpdateIngredientQuantity(ingredient.id, newQuantity)
-                    }
-                  />
-                ) : (
-                  <span className="font-mono">–</span>
-                )}
-              </li>
-            ))}
+            {version.ingredients.map((ingredient) => {
+              const isChecked = checkedIngredients.has(ingredient.id);
+              return (
+                <li
+                  key={ingredient.id}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-2 py-1.5 transition",
+                    isChecked
+                      ? "bg-green-50 dark:bg-green-900/20"
+                      : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50",
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onToggleIngredientCheck(ingredient.id)}
+                    className="flex-shrink-0 text-lg leading-none transition hover:scale-110"
+                    aria-label={`Mark ${ingredient.name} as ${isChecked ? "not added" : "added"}`}
+                  >
+                    {isChecked ? "☑" : "☐"}
+                  </button>
+                  <span
+                    className={cn(
+                      "flex-1 min-w-0",
+                      isChecked && "line-through opacity-60",
+                    )}
+                  >
+                    {ingredient.name}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-sm whitespace-nowrap",
+                      isChecked
+                        ? "text-neutral-400 dark:text-neutral-500"
+                        : "text-neutral-500 dark:text-neutral-400",
+                    )}
+                  >
+                    {ingredient.quantity} {ingredient.unit}
+                  </span>
+                  {flourTotal > 0 ? (
+                    <InteractivePercentageEditor
+                      ingredient={ingredient}
+                      flourTotal={flourTotal}
+                      onSave={(newQuantity) =>
+                        onUpdateIngredientQuantity(ingredient.id, newQuantity)
+                      }
+                    />
+                  ) : (
+                    <span className="font-mono">–</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
         <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm dark:border-neutral-700 dark:bg-neutral-900/60">
