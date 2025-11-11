@@ -97,6 +97,23 @@ Fix all errors before marking work complete.
 
 ## Feature-Specific Notes
 
+### AI Recipe Assistant
+
+- **New Feature:** Conversational AI assistant for recipe improvement
+- **Location:** Floating button (bottom-right) on recipe edit/create screens
+- **Components:**
+  - `AIAssistantButton` - Floating trigger button
+  - `RecipeAIAssistant` - Slide-up chat panel
+  - `ChatMessage` - Message rendering with change preview
+- **API:** `/api/recipes/ai-assist` (POST) - Gemini-powered suggestions
+- **Capabilities:**
+  - Ingredient modifications (quantities, substitutions, additions)
+  - Recipe name and description updates
+  - Baking guidance and troubleshooting
+  - Baker's percentage adjustments
+- **State:** Ephemeral (per-version, in-memory only for v1.0)
+- **See:** [AI Assistant Guide](docs/ai-assistant.md) and [Roadmap](docs/ai-assistant-roadmap.md)
+
 ### Photo Extraction (Gemini AI)
 
 - Requires `GEMINI_API_KEY` environment variable
@@ -120,6 +137,8 @@ Fix all errors before marking work complete.
 - `src/server/recipesService.ts` - Core business logic
 - `src/store/RecipeStore.tsx` - React Query setup & hooks
 - `src/lib/ingredient-helpers.ts` - Ingredient utilities
+- `src/lib/gemini-assistant.ts` - AI assistant prompt engineering
+- `src/components/recipes/RecipeAIAssistant.tsx` - AI chat interface
 - `prisma/schema.prisma` - Database schema
 - `middleware.ts` - Auth middleware
 
@@ -141,7 +160,7 @@ For deeper understanding, consult:
 
 ### Optional Features
 
-- `GEMINI_API_KEY` - Enable photo-to-recipe extraction
+- `GEMINI_API_KEY` - Enable photo-to-recipe extraction AND AI assistant
 - `RESEND_API_KEY` - Magic link email delivery
 - `FROM_EMAIL` - Verified sender address
 

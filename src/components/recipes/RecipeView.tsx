@@ -33,6 +33,9 @@ import { ScalingConfirmationModal } from "./ScalingConfirmationModal";
 import { SaveIndicator } from "../ui/SaveIndicator";
 import { UploadProgress } from "../ui/UploadProgress";
 import { useToast } from "@/context/ToastContext";
+import { AIAssistantButton } from "./AIAssistantButton";
+import { RecipeAIAssistant } from "./RecipeAIAssistant";
+import type { AIAssistantResponse } from "@/lib/gemini-assistant";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -154,6 +157,8 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [comparisonVersion, setComparisonVersion] = useState<RecipeVersion | null>(null);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [showGenerationTimeout, setShowGenerationTimeout] = useState(false);
+  // AI Assistant state
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   // SaveIndicator states for auto-save fields
   const [savingRecipeName, setSavingRecipeName] = useState(false);
   const [savingRecipeDescription, setSavingRecipeDescription] = useState(false);
@@ -750,6 +755,68 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     });
   }, [selectedVersion]);
 
+  const handleApplyAIChanges = useCallback(
+    async (changes: AIAssistantResponse["changes"]) => {
+      if (!selectedRecipe || !selectedVersion || !changes) {
+        return;
+      }
+
+      // Apply ingredient changes
+      if (changes.ingredients) {
+        for (const change of changes.ingredients) {
+          const ingredientToUpdate = selectedVersion.ingredients.find(
+            (ing) => ing.id === change.id,
+          );
+          if (ingredientToUpdate) {
+            const payload: Partial<{
+              name: string;
+              quantity: number;
+              unit: string;
+              role: Ingredient["role"];
+            }> = {};
+
+            if (change.quantity !== undefined) {
+              payload.quantity = change.quantity;
+            }
+            if (change.name !== undefined) {
+              payload.name = change.name;
+            }
+            if (change.unit !== undefined) {
+              payload.unit = change.unit;
+            }
+            if (change.role !== undefined) {
+              payload.role = change.role;
+            }
+
+            await updateIngredient(
+              selectedRecipe.id,
+              selectedVersion.id,
+              change.id,
+              payload,
+            );
+          }
+        }
+      }
+
+      // Apply recipe changes
+      if (changes.recipe) {
+        await updateRecipe(selectedRecipe.id, changes.recipe);
+        if (changes.recipe.name) {
+          setRecipeName(changes.recipe.name);
+        }
+        if (changes.recipe.description) {
+          setRecipeDescription(changes.recipe.description);
+        }
+      }
+
+      // Apply version changes
+      if (changes.version) {
+        await updateVersion(selectedRecipe.id, selectedVersion.id, changes.version);
+      }
+    },
+    [selectedRecipe, selectedVersion, updateIngredient, updateRecipe, updateVersion],
+  );
+
   if (!selectedRecipe || !selectedVersion) {
     return (
       <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
@@ -993,6 +1060,21 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           isApplying={isApplyingScaling}
         />
       </div>
+
+      {/* AI Assistant */}
+      <AIAssistantButton onClick={() => setIsAIAssistantOpen(true)} />
+      <RecipeAIAssistant
+        recipe={selectedRecipe}
+        version={selectedVersion}
+        bakerPercentages={
+          categoryConfig?.enableBakersPercent
+            ? { flourTotal, hydration: hydrationPercent, totalWeight }
+            : undefined
+        }
+        isOpen={isAIAssistantOpen}
+        onClose={() => setIsAIAssistantOpen(false)}
+        onApplyChanges={handleApplyAIChanges}
+      />
     </div>
   );
 }
