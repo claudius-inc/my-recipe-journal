@@ -107,6 +107,8 @@ const formatPercent = (value: number) => `${(Math.round(value * 10) / 10).toFixe
 export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const { addToast } = useToast();
   const {
+    recipes,
+    loading,
     selectedRecipe,
     selectedVersion,
     selectVersion,
@@ -818,6 +820,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   );
 
   if (!selectedRecipe || !selectedVersion) {
+    // Show loading state while recipes are being fetched
+    const isLoadingRecipes = loading && recipes.length === 0;
+
     return (
       <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
         <div className="mx-auto max-w-2xl text-center">
@@ -826,13 +831,43 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             onClick={onOpenSidebar}
             className="mb-6 inline-flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
-            Browse recipes
+            {isLoadingRecipes ? (
+              <>
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                Loading recipes...
+              </>
+            ) : (
+              "Browse recipes"
+            )}
           </button>
-          <h2 className="text-lg font-semibold">Start your first recipe</h2>
-          <p className="mt-2 text-sm">
-            Use the drawer to create a recipe, then track each experiment with notes,
-            ingredient tweaks, and baker’s percentages for breads.
-          </p>
+          {!isLoadingRecipes && (
+            <>
+              <h2 className="text-lg font-semibold">Start your first recipe</h2>
+              <p className="mt-2 text-sm">
+                Use the drawer to create a recipe, then track each experiment with notes,
+                ingredient tweaks, and baker&apos;s percentages for breads.
+              </p>
+            </>
+          )}
         </div>
       </div>
     );

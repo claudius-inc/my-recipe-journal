@@ -22,6 +22,7 @@ import {
   type RecipeVersion,
   type RecipeVersionMetadata,
 } from "@/types/recipes";
+import { getLastViewedRecipe, setLastViewedRecipe } from "@/lib/recipe-storage";
 
 interface RecipeStoreValue {
   recipes: Recipe[];
@@ -224,9 +225,18 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     }
 
     if (!selectedRecipeId || !recipes.some((recipe) => recipe.id === selectedRecipeId)) {
-      const first = recipes[0];
-      setSelectedRecipeId(first.id);
-      setSelectedVersionId(first.activeVersionId ?? first.versions[0]?.id ?? null);
+      // Try to restore last viewed recipe from localStorage
+      const lastViewedId = getLastViewedRecipe();
+      const lastViewedRecipe = lastViewedId
+        ? recipes.find((recipe) => recipe.id === lastViewedId)
+        : null;
+
+      // Use last viewed recipe if it exists, otherwise use first recipe
+      const targetRecipe = lastViewedRecipe ?? recipes[0];
+      setSelectedRecipeId(targetRecipe.id);
+      setSelectedVersionId(
+        targetRecipe.activeVersionId ?? targetRecipe.versions[0]?.id ?? null,
+      );
       return;
     }
 
@@ -275,6 +285,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       }
       setSelectedRecipeId(recipeId);
       setSelectedVersionId(recipe.activeVersionId ?? recipe.versions[0]?.id ?? null);
+      // Persist selection to localStorage
+      setLastViewedRecipe(recipeId);
     },
     [recipes],
   );
@@ -289,6 +301,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
       setSelectedRecipeId(recipeId);
       setSelectedVersionId(versionId);
+      // Persist selection to localStorage
+      setLastViewedRecipe(recipeId);
     },
     [queryClient],
   );
@@ -317,6 +331,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       });
       setSelectedRecipeId(recipe.id);
       setSelectedVersionId(recipe.activeVersionId ?? recipe.versions[0]?.id ?? null);
+      // Persist selection to localStorage
+      setLastViewedRecipe(recipe.id);
     },
     [queryClient],
   );
@@ -374,6 +390,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       });
       setSelectedRecipeId(recipe.id);
       setSelectedVersionId(versionId);
+      // Persist selection to localStorage
+      setLastViewedRecipe(recipe.id);
     },
     [queryClient],
   );
@@ -401,6 +419,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       await queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
       setSelectedRecipeId(recipe.id);
       setSelectedVersionId(recipe.activeVersionId ?? recipe.versions[0]?.id ?? null);
+      // Persist selection to localStorage
+      setLastViewedRecipe(recipe.id);
     },
     [queryClient],
   );
@@ -431,6 +451,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       await queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
       setSelectedRecipeId(recipe.id);
       setSelectedVersionId(recipe.activeVersionId ?? recipe.versions[0]?.id ?? null);
+      // Persist selection to localStorage
+      setLastViewedRecipe(recipe.id);
     },
     [queryClient],
   );
