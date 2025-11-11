@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "../ui/SaveIndicator";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
-import { ChevronDownIcon } from "@radix-ui/react-icons";
+import { ChevronDownIcon, InfoCircledIcon } from "@radix-ui/react-icons";
 
 const IngredientRoleLabels: Record<string, string> = {
   flour: "Flour",
@@ -139,18 +139,18 @@ export function IngredientListItem({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-white text-sm shadow-sm transition-all dark:bg-neutral-950",
+        "rounded-md border bg-white text-sm transition-all dark:bg-neutral-950",
         isChecked
           ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
           : isExpanded
-            ? "border-blue-400 shadow-md dark:border-blue-600"
-            : "border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-900/50",
+            ? "border-neutral-200 dark:border-blue-600"
+            : "border-transparent hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-900/50",
       )}
     >
       {/* Main Row - Mobile: Single row, Desktop: Grid */}
       <div
         className={cn(
-          "flex items-center gap-2 p-2 md:grid md:grid-cols-12 md:gap-3",
+          "flex items-center gap-2 md:grid md:grid-cols-11 md:gap-3",
           !isExpanded && "cursor-pointer",
         )}
         onClick={() => !isExpanded && onToggleExpand(ingredient.id)}
@@ -183,15 +183,66 @@ export function IngredientListItem({
           />
         </div>
 
-        {/* Ingredient Name - Truncated on mobile */}
-        <span
+        {/* Ingredient Name with Notes Popover */}
+        <div
           className={cn(
-            "min-w-0 flex-1 truncate font-medium md:col-span-3",
+            "relative min-w-0 flex-1 md:col-span-3",
             isChecked && "opacity-60 line-through",
           )}
         >
-          {ingredient.name}
-        </span>
+          <div className="flex items-center gap-1">
+            <span className="font-medium">{ingredient.name}</span>
+            {ingredient.notes && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowNotePopover(!showNotePopover);
+                  }}
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                  aria-label="View ingredient notes"
+                >
+                  <InfoCircledIcon className="w-4 h-4 text-gray-600" />
+                </button>
+                {showNotePopover && (
+                  <>
+                    {/* Backdrop to close popover */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowNotePopover(false);
+                      }}
+                    />
+                    {/* Popover */}
+                    <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                          Notes
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowNotePopover(false);
+                            onToggleExpand(ingredient.id);
+                          }}
+                          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                      <p className="text-xs text-neutral-700 dark:text-neutral-300">
+                        {ingredient.notes}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Amount + Unit (inline on mobile, separate on desktop) */}
         <span
@@ -243,60 +294,6 @@ export function IngredientListItem({
         {!bakerPercentage && enableBakersPercent && (
           <span className="hidden md:col-span-1 md:inline"></span>
         )}
-
-        {/* Info Icon - Only if notes exist */}
-        {ingredient.notes && (
-          <div className="relative flex-shrink-0 md:col-span-1 md:flex md:justify-center">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowNotePopover(!showNotePopover);
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
-              aria-label="View ingredient notes"
-            >
-              <span className="text-base">ℹ️</span>
-            </button>
-            {showNotePopover && (
-              <>
-                {/* Backdrop to close popover */}
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowNotePopover(false);
-                  }}
-                />
-                {/* Popover */}
-                <div className="absolute right-0 top-full z-20 mt-2 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                      Notes
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowNotePopover(false);
-                        onToggleExpand(ingredient.id);
-                      }}
-                      className="text-xs text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                  <p className="text-xs text-neutral-700 dark:text-neutral-300">
-                    {ingredient.notes}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Spacer when no notes */}
-        {!ingredient.notes && <span className="hidden md:col-span-1 md:inline"></span>}
 
         {/* Expand Arrow */}
         <button
