@@ -118,6 +118,7 @@ model RecipeVersion {
   nextSteps     String         @default("")
   metadata      Json?
   photoUrl      String?
+  r2Key         String?        // R2 object key for photo (if using R2 storage)
   tasteRating   Int?
   visualRating  Int?
   textureRating Int?

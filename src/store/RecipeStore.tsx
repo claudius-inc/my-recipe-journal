@@ -88,6 +88,7 @@ interface RecipeStoreValue {
       nextSteps: string;
       metadata: RecipeVersionMetadata | null;
       photoUrl: string | null;
+      r2Key: string | null;
       tasteRating: number | undefined;
       visualRating: number | undefined;
       textureRating: number | undefined;
