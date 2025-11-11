@@ -36,6 +36,8 @@ import { useToast } from "@/context/ToastContext";
 import { AIAssistantButton } from "./AIAssistantButton";
 import { RecipeAIAssistant } from "./RecipeAIAssistant";
 import type { AIAssistantResponse } from "@/lib/gemini-assistant";
+import { IngredientList } from "./IngredientList";
+import { AddIngredientForm } from "./AddIngredientForm";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -171,6 +173,16 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [photoUploadError, setPhotoUploadError] = useState<string | undefined>();
   // Baking checklist (ephemeral, not persisted)
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
+  // Pending ingredients for optimistic UI
+  const [pendingIngredients, setPendingIngredients] = useState<
+    Array<{
+      tempId: string;
+      name: string;
+      quantity: number;
+      unit: string;
+      role: Ingredient["role"];
+    }>
+  >([]);
 
   useEffect(() => {
     if (selectedRecipe) {
@@ -966,39 +978,44 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onCompare={handleCompareVersion}
         />
 
-        <IngredientEditor
+        <IngredientList
           version={selectedVersion}
           recipeId={selectedRecipe.id}
+          onUpdateIngredient={async (ingredientId, data) => {
+            setSavingIngredient((prev) => ({ ...prev, [ingredientId]: true }));
+            try {
+              await updateIngredient(
+                selectedRecipe.id,
+                selectedVersion.id,
+                ingredientId,
+                data,
+              );
+            } finally {
+              setSavingIngredient((prev) => ({ ...prev, [ingredientId]: false }));
+            }
+          }}
+          onDeleteIngredient={(ingredientId) =>
+            deleteIngredient(selectedRecipe.id, selectedVersion.id, ingredientId)
+          }
+          enableBakersPercent={categoryConfig?.enableBakersPercent}
+          flourTotal={flourTotal}
+          savingIngredient={savingIngredient}
+          suggestions={ingredientSuggestions}
+          checkedIngredients={checkedIngredients}
+          onToggleIngredientCheck={handleToggleIngredientCheck}
+          onToggleAllIngredients={handleToggleAllIngredients}
+          pendingIngredients={pendingIngredients}
+        />
+
+        <AddIngredientForm
+          recipeId={selectedRecipe.id}
+          versionId={selectedVersion.id}
           recipeCategory={selectedRecipe.category}
           suggestions={ingredientSuggestions}
           isLoadingSuggestions={isLoadingSuggestions}
           onAdd={addIngredient}
-          onUpdate={updateIngredient}
-          onRemove={deleteIngredient}
-          enableBakersPercent={categoryConfig?.enableBakersPercent}
-          savingIngredient={savingIngredient}
-          setSavingIngredient={setSavingIngredient}
+          onPendingChange={setPendingIngredients}
         />
-
-        {categoryConfig?.enableBakersPercent && (
-          <BreadTools
-            version={selectedVersion}
-            flourTotal={flourTotal}
-            totalWeight={totalWeight}
-            hydration={hydrationPercent}
-            isScalingOpen={isScalingOpen}
-            setIsScalingOpen={setIsScalingOpen}
-            selectedScalingIngredient={selectedScalingIngredient}
-            setSelectedScalingIngredient={setSelectedScalingIngredient}
-            targetQuantity={targetQuantity}
-            setTargetQuantity={setTargetQuantity}
-            onPreviewScaling={handlePreviewScaling}
-            onUpdateIngredientQuantity={handleUpdateIngredientPercentage}
-            checkedIngredients={checkedIngredients}
-            onToggleIngredientCheck={handleToggleIngredientCheck}
-            onToggleAllIngredients={handleToggleAllIngredients}
-          />
-        )}
 
         {categoryConfig?.fields?.length ? (
           <CollapsibleSection

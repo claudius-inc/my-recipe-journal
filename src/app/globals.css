@@ -66,6 +66,22 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  @keyframes slideDown {
+    from {
+      max-height: 0;
+      opacity: 0;
+    }
+    to {
+      max-height: 800px;
+      opacity: 1;
+    }
+  }
+
+  .animate-slideDown {
+    animation: slideDown 300ms ease-out;
+    overflow: hidden;
+  }
 }
 
 .radix-themes {
