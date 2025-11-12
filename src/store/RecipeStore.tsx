@@ -13,14 +13,12 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 
 import {
-  CATEGORY_CONFIGS,
   INGREDIENT_ROLES,
   RECIPE_CATEGORIES,
   type IngredientRole,
   type Recipe,
   type RecipeCategory,
   type RecipeVersion,
-  type RecipeVersionMetadata,
 } from "@/types/recipes";
 import { getLastViewedRecipe, setLastViewedRecipe } from "@/lib/recipe-storage";
 
@@ -55,7 +53,6 @@ interface RecipeStoreValue {
       notes?: string;
     }>;
     instructions?: string;
-    metadata?: RecipeVersionMetadata;
   }) => Promise<void>;
   updateRecipe: (
     recipeId: string,
@@ -72,9 +69,7 @@ interface RecipeStoreValue {
       title?: string;
       baseVersionId?: string;
       scalingFactor?: number;
-      metadata?: RecipeVersionMetadata;
       notes?: string;
-      tastingNotes?: string;
       nextSteps?: string;
       setActive?: boolean;
     },
@@ -85,19 +80,15 @@ interface RecipeStoreValue {
     payload: Partial<{
       title: string;
       notes: string;
-      tastingNotes: string;
       nextSteps: string;
-      metadata: RecipeVersionMetadata | null;
       photoUrl: string | null;
       r2Key: string | null;
       tasteRating: number | undefined;
       visualRating: number | undefined;
       textureRating: number | undefined;
-      tasteTags: string[];
-      textureTags: string[];
-      iterationIntent: string | undefined;
-      hypothesis: string | undefined;
-      outcome: string | undefined;
+      tasteNotes: string;
+      visualNotes: string;
+      textureNotes: string;
     }>,
   ) => Promise<void>;
   deleteVersion: (recipeId: string, versionId: string) => Promise<void>;
@@ -338,7 +329,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
   );
 
   const createRecipeWithData = useCallback<RecipeStoreValue["createRecipeWithData"]>(
-    async ({ name, category, description, ingredients, instructions, metadata }) => {
+    async ({ name, category, description, ingredients, instructions }) => {
       if (!name.trim()) {
         throw new Error("Recipe name is required");
       }
@@ -373,13 +364,12 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Update version with instructions and metadata if provided
-      if (instructions || metadata) {
+      // Update version with instructions if provided
+      if (instructions) {
         await requestJson(`/api/recipes/${recipe.id}/versions/${versionId}`, {
           method: "PATCH",
           body: JSON.stringify({
             notes: instructions,
-            metadata: metadata ?? null,
           }),
         });
       }
@@ -607,6 +597,3 @@ export const useRecipeStore = () => {
   }
   return context;
 };
-
-export const getCategoryConfig = (category: RecipeCategory) =>
-  CATEGORY_CONFIGS[category] ?? CATEGORY_CONFIGS.other;

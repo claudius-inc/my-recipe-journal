@@ -4,14 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import {
-  CATEGORY_CONFIGS,
   INGREDIENT_ROLES,
-  type CategoryField,
   type Ingredient,
   type Recipe,
   type RecipeVersion,
 } from "@/types/recipes";
-import { getCategoryConfig, useRecipeStore } from "@/store/RecipeStore";
+import { useRecipeStore } from "@/store/RecipeStore";
 import {
   suggestIngredientDefaults,
   COMMON_INGREDIENTS,
@@ -24,11 +22,8 @@ import {
   getValidationIconType,
 } from "@/lib/ingredient-validation";
 import { IterationIntentModal } from "./IterationIntentModal";
-import { IterationTracking } from "./IterationTracking";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
 import { VersionComparisonModal } from "./VersionComparisonModal";
-import { TastingReview } from "./TastingReview";
-import { CollapsibleSection } from "../ui/CollapsibleSection";
 import { ScalingConfirmationModal } from "./ScalingConfirmationModal";
 import { SaveIndicator } from "../ui/SaveIndicator";
 import { UploadProgress } from "../ui/UploadProgress";
@@ -54,6 +49,8 @@ import {
   ChevronDownIcon,
   ExclamationTriangleIcon,
   InfoCircledIcon,
+  StarFilledIcon,
+  StarIcon,
 } from "@radix-ui/react-icons";
 
 interface RecipeViewProps {
@@ -165,13 +162,13 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [recipeName, setRecipeName] = useState("");
   const [recipeDescription, setRecipeDescription] = useState("");
   const [category, setCategory] = useState(selectedRecipe?.category ?? "bread");
-  const [metadataDraft, setMetadataDraft] = useState<Record<string, string>>({});
   const [notesDraft, setNotesDraft] = useState({
     notes: "",
-    tastingNotes: "",
     nextSteps: "",
+    tasteNotes: "",
+    visualNotes: "",
+    textureNotes: "",
   });
-  const [isSavingTastingReview, setIsSavingTastingReview] = useState(false);
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isScalingOpen, setIsScalingOpen] = useState(false);
@@ -194,7 +191,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isIntentModalOpen, setIsIntentModalOpen] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
-  const [isSavingIteration, setIsSavingIteration] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [comparisonVersion, setComparisonVersion] = useState<RecipeVersion | null>(null);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
@@ -234,18 +230,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     if (selectedVersion) {
       setNotesDraft({
         notes: selectedVersion.notes,
-        tastingNotes: selectedVersion.tastingNotes,
         nextSteps: selectedVersion.nextSteps,
+        tasteNotes: selectedVersion.tasteNotes || "",
+        visualNotes: selectedVersion.visualNotes || "",
+        textureNotes: selectedVersion.textureNotes || "",
       });
-
-      const metadataEntries = Object.entries(selectedVersion.metadata ?? {}).reduce(
-        (acc, [key, value]) => {
-          acc[key] = String(value ?? "");
-          return acc;
-        },
-        {} as Record<string, string>,
-      );
-      setMetadataDraft(metadataEntries);
     }
   }, [selectedVersion]);
 
@@ -277,11 +266,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   useEffect(() => {
     setCheckedIngredients(new Set());
   }, [selectedVersion?.id]);
-
-  const categoryConfig = useMemo(
-    () => (selectedRecipe ? getCategoryConfig(selectedRecipe.category) : null),
-    [selectedRecipe],
-  );
 
   const flourTotal = useMemo(() => {
     if (!selectedVersion) {
@@ -345,48 +329,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     [category, recipeDescription, recipeName, selectedRecipe, updateRecipe],
   );
 
-  const handleMetadataSave = useCallback(
-    async (field: CategoryField, value: string) => {
-      if (!selectedRecipe || !selectedVersion) {
-        return;
-      }
-      setSavingMetaField(field.id);
-      try {
-        let normalized: string | number | undefined = value;
-        if (field.type === "number") {
-          const numericValue = Number(value);
-          normalized = Number.isFinite(numericValue) ? numericValue : undefined;
-        } else {
-          normalized = value.trim();
-        }
-        const nextMetadata = { ...(selectedVersion.metadata ?? {}) } as Record<
-          string,
-          string | number
-        >;
-        if (normalized === undefined || normalized === "") {
-          delete nextMetadata[field.id];
-        } else {
-          nextMetadata[field.id] = normalized;
-        }
-        await updateVersion(selectedRecipe.id, selectedVersion.id, {
-          metadata: nextMetadata,
-        });
-        setMetadataDraft((prev) => {
-          const next = { ...prev };
-          if (normalized === undefined || normalized === "") {
-            delete next[field.id];
-          } else {
-            next[field.id] = String(normalized);
-          }
-          return next;
-        });
-      } finally {
-        setSavingMetaField(null);
-      }
-    },
-    [selectedRecipe, selectedVersion, updateVersion],
-  );
-
   const handleNotesSave = useCallback(
     async (field: keyof typeof notesDraft, value: string) => {
       if (!selectedRecipe || !selectedVersion) {
@@ -398,6 +340,20 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         await updateVersion(selectedRecipe.id, selectedVersion.id, { [field]: value });
       } finally {
         setSavingNotes((prev) => ({ ...prev, [field]: false }));
+      }
+    },
+    [selectedRecipe, selectedVersion, updateVersion],
+  );
+
+  const handleRatingChange = useCallback(
+    async (field: "tasteRating" | "visualRating" | "textureRating", value: number) => {
+      if (!selectedRecipe || !selectedVersion) {
+        return;
+      }
+      try {
+        await updateVersion(selectedRecipe.id, selectedVersion.id, { [field]: value });
+      } catch (error) {
+        console.error("Failed to save rating:", error);
       }
     },
     [selectedRecipe, selectedVersion, updateVersion],
@@ -650,37 +606,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }
   }, [selectedRecipe, selectedVersion, updateVersion, addToast]);
 
-  const handleSaveTastingReview = useCallback(
-    async (data: {
-      tastingNotes: string;
-      tasteRating?: number;
-      visualRating?: number;
-      textureRating?: number;
-      tasteTags: string[];
-      textureTags: string[];
-    }) => {
-      if (!selectedRecipe || !selectedVersion) {
-        return;
-      }
-      setIsSavingTastingReview(true);
-      try {
-        await updateVersion(selectedRecipe.id, selectedVersion.id, {
-          tastingNotes: data.tastingNotes,
-          tasteRating: data.tasteRating,
-          visualRating: data.visualRating,
-          textureRating: data.textureRating,
-          tasteTags: data.tasteTags,
-          textureTags: data.textureTags,
-        });
-        // Update local state
-        setNotesDraft((prev) => ({ ...prev, tastingNotes: data.tastingNotes }));
-      } finally {
-        setIsSavingTastingReview(false);
-      }
-    },
-    [selectedRecipe, selectedVersion, updateVersion],
-  );
-
   const handleDuplicateVersion = useCallback(async () => {
     if (!selectedRecipe || !selectedVersion) {
       return;
@@ -711,25 +636,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       }
     },
     [selectedRecipe, createVersion],
-  );
-
-  const handleSaveIteration = useCallback(
-    async (data: { iterationIntent?: string; hypothesis?: string; outcome?: string }) => {
-      if (!selectedRecipe || !selectedVersion) {
-        return;
-      }
-      setIsSavingIteration(true);
-      try {
-        await updateVersion(selectedRecipe.id, selectedVersion.id, {
-          iterationIntent: data.iterationIntent,
-          hypothesis: data.hypothesis,
-          outcome: data.outcome,
-        });
-      } finally {
-        setIsSavingIteration(false);
-      }
-    },
-    [selectedRecipe, selectedVersion, updateVersion],
   );
 
   const handleGenerateDescription = useCallback(async () => {
@@ -941,11 +847,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                   >
                     <Select.Trigger />
                     <Select.Content>
-                      {Object.values(CATEGORY_CONFIGS).map((config) => (
-                        <Select.Item key={config.id} value={config.id}>
-                          {config.name}
-                        </Select.Item>
-                      ))}
+                      <Select.Item value="bread">Bread</Select.Item>
+                      <Select.Item value="dessert">Dessert</Select.Item>
+                      <Select.Item value="drink">Drink</Select.Item>
+                      <Select.Item value="main">Main</Select.Item>
+                      <Select.Item value="sauce">Sauce</Select.Item>
+                      <Select.Item value="other">Other</Select.Item>
                     </Select.Content>
                   </Select.Root>
                 </label>
@@ -986,7 +893,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onDeleteIngredient={(ingredientId) =>
             deleteIngredient(selectedRecipe.id, selectedVersion.id, ingredientId)
           }
-          enableBakersPercent={categoryConfig?.enableBakersPercent}
+          enableBakersPercent={selectedRecipe.category === "bread"}
           flourTotal={flourTotal}
           savingIngredient={savingIngredient}
           suggestions={ingredientSuggestions}
@@ -1007,30 +914,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           isPreviewingScaling={isPreviewingScaling}
         />
 
-        {categoryConfig?.fields?.length ? (
-          <CollapsibleSection
-            title="Category notes"
-            subtitle="Optional recipe-specific details"
-            badge={
-              Object.keys(metadataDraft).length === 0
-                ? "empty"
-                : Object.keys(metadataDraft).length === categoryConfig.fields.length
-                  ? "complete"
-                  : "partial"
-            }
-          >
-            <MetadataFields
-              fields={categoryConfig.fields}
-              metadata={metadataDraft}
-              onChange={(fieldId, value) =>
-                setMetadataDraft((prev) => ({ ...prev, [fieldId]: value }))
-              }
-              onSave={handleMetadataSave}
-              savingField={savingMetaField}
-            />
-          </CollapsibleSection>
-        ) : null}
-
         <PhotoSection
           version={selectedVersion}
           onUpload={handlePhotoUpload}
@@ -1046,23 +929,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onChange={setNotesDraft}
           onSave={handleNotesSave}
           savingNotes={savingNotes}
+          tasteRating={selectedVersion.tasteRating}
+          visualRating={selectedVersion.visualRating}
+          textureRating={selectedVersion.textureRating}
+          onRatingChange={handleRatingChange}
         />
-
-        <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-          <TastingReview
-            version={selectedVersion}
-            onSave={handleSaveTastingReview}
-            isSaving={isSavingTastingReview}
-          />
-        </section>
-
-        <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-          <IterationTracking
-            version={selectedVersion}
-            onSave={handleSaveIteration}
-            isSaving={isSavingIteration}
-          />
-        </section>
 
         <IterationIntentModal
           isOpen={isIntentModalOpen}
@@ -1113,7 +984,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         recipe={selectedRecipe}
         version={selectedVersion}
         bakerPercentages={
-          categoryConfig?.enableBakersPercent
+          selectedRecipe.category === "bread"
             ? { flourTotal, hydration: hydrationPercent, totalWeight }
             : undefined
         }
@@ -2017,84 +1888,21 @@ function BreadTools({
   );
 }
 
-interface MetadataFieldsProps {
-  fields: CategoryField[];
-  metadata: Record<string, string>;
-  onChange: (fieldId: string, value: string) => void;
-  onSave: (field: CategoryField, value: string) => Promise<void>;
-  savingField: string | null;
-}
-
-function MetadataFields({
-  fields,
-  metadata,
-  onChange,
-  onSave,
-  savingField,
-}: MetadataFieldsProps) {
-  return (
-    <div className="grid gap-3">
-      {fields.map((field) => (
-        <div key={field.id} className="grid gap-1">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              {field.label}
-            </label>
-            <SaveIndicator isSaving={savingField === field.id} />
-          </div>
-          {field.type === "textarea" ? (
-            <TextArea
-              value={metadata[field.id] ?? ""}
-              onChange={(event) => onChange(field.id, event.target.value)}
-              onBlur={(event) => onSave(field, event.target.value)}
-              placeholder={field.placeholder}
-              rows={4}
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-            />
-          ) : field.type === "select" ? (
-            <Select.Root
-              value={metadata[field.id] ?? ""}
-              onValueChange={(value) => {
-                onChange(field.id, value);
-                void onSave(field, value);
-              }}
-            >
-              <Select.Trigger className="w-full" placeholder="Select..." />
-              <Select.Content>
-                {(field.options ?? []).map((option) => (
-                  <Select.Item key={option} value={option}>
-                    {option}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Root>
-          ) : (
-            <input
-              type={field.type === "number" ? "number" : "text"}
-              value={metadata[field.id] ?? ""}
-              onChange={(event) => onChange(field.id, event.target.value)}
-              onBlur={(event) => onSave(field, event.target.value)}
-              placeholder={field.placeholder}
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-            />
-          )}
-          {field.helpText ? (
-            <p className="text-xs text-neutral-400 dark:text-neutral-500">
-              {field.helpText}
-            </p>
-          ) : null}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 interface VersionNotesProps {
   notesDraft: {
     notes: string;
-    tastingNotes: string;
     nextSteps: string;
+    tasteNotes: string;
+    visualNotes: string;
+    textureNotes: string;
   };
+  tasteRating?: number;
+  visualRating?: number;
+  textureRating?: number;
+  onRatingChange: (
+    field: "tasteRating" | "visualRating" | "textureRating",
+    value: number,
+  ) => Promise<void>;
   onChange: (value: VersionNotesProps["notesDraft"]) => void;
   onSave: (field: keyof VersionNotesProps["notesDraft"], value: string) => Promise<void>;
   savingNotes?: Record<string, boolean>;
@@ -2105,49 +1913,222 @@ function VersionNotes({
   onChange,
   onSave,
   savingNotes = {},
+  tasteRating,
+  visualRating,
+  textureRating,
+  onRatingChange,
 }: VersionNotesProps) {
-  const entries: Array<{
-    key: keyof VersionNotesProps["notesDraft"];
+  const [editingRatingNote, setEditingRatingNote] = useState<
+    "taste" | "visual" | "texture" | null
+  >(null);
+  const [ratingNoteDraft, setRatingNoteDraft] = useState("");
+
+  const ratings: Array<{
+    key: "taste" | "visual" | "texture";
     label: string;
-    help: string;
+    rating?: number;
+    note?: string;
+    noteField: "tasteNotes" | "visualNotes" | "textureNotes";
+    ratingField: "tasteRating" | "visualRating" | "textureRating";
   }> = [
     {
-      key: "notes",
-      label: "Process notes",
-      help: "Observations during mixing, fermentation, shaping, or baking.",
+      key: "taste",
+      label: "Taste",
+      rating: tasteRating,
+      note: notesDraft.tasteNotes,
+      noteField: "tasteNotes",
+      ratingField: "tasteRating",
     },
     {
-      key: "nextSteps",
-      label: "Next iteration plan",
-      help: "Call out the next tweaks to try, schedules to adjust, or ingredients to swap.",
+      key: "visual",
+      label: "Visual",
+      rating: visualRating,
+      note: notesDraft.visualNotes,
+      noteField: "visualNotes",
+      ratingField: "visualRating",
+    },
+    {
+      key: "texture",
+      label: "Texture",
+      rating: textureRating,
+      note: notesDraft.textureNotes,
+      noteField: "textureNotes",
+      ratingField: "textureRating",
     },
   ];
+
+  const handleAddNote = (key: "taste" | "visual" | "texture", currentNote?: string) => {
+    setEditingRatingNote(key);
+    setRatingNoteDraft(currentNote || "");
+  };
+
+  const handleSaveRatingNote = async (
+    noteField: "tasteNotes" | "visualNotes" | "textureNotes",
+  ) => {
+    await onSave(noteField, ratingNoteDraft);
+    setEditingRatingNote(null);
+    setRatingNoteDraft("");
+  };
+
+  const handleCancelRatingNote = () => {
+    setEditingRatingNote(null);
+    setRatingNoteDraft("");
+  };
+
+  const handleRemoveRatingNote = async (
+    noteField: "tasteNotes" | "visualNotes" | "textureNotes",
+  ) => {
+    await onSave(noteField, "");
+  };
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
         Version journal
       </h3>
-      <div className="mt-3 grid gap-4">
-        {entries.map(({ key, label, help }) => (
-          <div key={key} className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                {label}
-              </label>
-              <SaveIndicator isSaving={savingNotes[key] ?? false} />
-            </div>
-            <TextArea
-              value={notesDraft[key]}
-              onChange={(event) => onChange({ ...notesDraft, [key]: event.target.value })}
-              onBlur={(event) => onSave(key, event.target.value)}
-              rows={4}
-              placeholder={help}
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-            />
-            <p className="text-xs text-neutral-400 dark:text-neutral-500">{help}</p>
+      <div className="mt-3 grid gap-6">
+        {/* Process Notes */}
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Process notes
+            </label>
+            <SaveIndicator isSaving={savingNotes["notes"] ?? false} />
           </div>
-        ))}
+          <TextArea
+            value={notesDraft.notes}
+            onChange={(event) => onChange({ ...notesDraft, notes: event.target.value })}
+            onBlur={(event) => onSave("notes", event.target.value)}
+            rows={4}
+            placeholder="Observations during mixing, fermentation, shaping, or baking."
+            className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+          />
+          <p className="text-xs text-neutral-400 dark:text-neutral-500">
+            Observations during mixing, fermentation, shaping, or baking.
+          </p>
+        </div>
+
+        {/* Taste Review */}
+        <div className="grid gap-3">
+          <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            Taste Review
+          </label>
+          {ratings.map(({ key, label, rating, note, noteField, ratingField }) => (
+            <div key={key} className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                  {label}
+                </span>
+                <div className="flex items-center gap-2">
+                  {/* Star Rating */}
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => onRatingChange(ratingField, i + 1)}
+                        className="cursor-pointer text-amber-500 hover:scale-110 transition-transform"
+                      >
+                        {i < (rating || 0) ? (
+                          <StarFilledIcon className="w-5 h-5" />
+                        ) : (
+                          <StarIcon className="w-5 h-5" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Note Button */}
+                  {!note && editingRatingNote !== key && (
+                    <Button
+                      variant="ghost"
+                      size="1"
+                      onClick={() => handleAddNote(key, note)}
+                    >
+                      + Note
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Show existing note */}
+              {note && editingRatingNote !== key && (
+                <div className="ml-0 mt-1">
+                  <div className="flex items-start justify-between gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800">
+                    <p className="text-sm text-neutral-700 dark:text-neutral-300 flex-1">
+                      {note}
+                    </p>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="1"
+                        onClick={() => handleAddNote(key, note)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="1"
+                        color="red"
+                        onClick={() => handleRemoveRatingNote(noteField)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Editing note */}
+              {editingRatingNote === key && (
+                <div className="ml-0 mt-1 grid gap-2">
+                  <TextArea
+                    value={ratingNoteDraft}
+                    onChange={(event) => setRatingNoteDraft(event.target.value)}
+                    rows={2}
+                    placeholder={`Notes on ${label.toLowerCase()}`}
+                    className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="1"
+                      onClick={() => handleSaveRatingNote(noteField)}
+                      disabled={savingNotes[noteField] ?? false}
+                    >
+                      {savingNotes[noteField] ? "Saving..." : "Save"}
+                    </Button>
+                    <Button size="1" variant="ghost" onClick={handleCancelRatingNote}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Next Iteration Plan */}
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Next iteration plan
+            </label>
+            <SaveIndicator isSaving={savingNotes["nextSteps"] ?? false} />
+          </div>
+          <TextArea
+            value={notesDraft.nextSteps}
+            onChange={(event) =>
+              onChange({ ...notesDraft, nextSteps: event.target.value })
+            }
+            onBlur={(event) => onSave("nextSteps", event.target.value)}
+            rows={4}
+            placeholder="Call out the next tweaks to try, schedules to adjust, or ingredients to swap."
+            className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+          />
+          <p className="text-xs text-neutral-400 dark:text-neutral-500">
+            Call out the next tweaks to try, schedules to adjust, or ingredients to swap.
+          </p>
+        </div>
       </div>
     </section>
   );

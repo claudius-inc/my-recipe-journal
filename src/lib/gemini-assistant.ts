@@ -41,7 +41,7 @@ export interface AIAssistantResponse {
     };
     version?: {
       notes?: string;
-      tastingNotes?: string;
+      nextSteps?: string;
     };
   };
 }
@@ -68,30 +68,15 @@ Baker's Percentages:
 - Total Weight: ${bakerPercentages.totalWeight}g`;
   }
 
-  // Build metadata section
-  let metadataSection = "";
-  if (version.metadata && Object.keys(version.metadata).length > 0) {
-    const metaEntries = Object.entries(version.metadata)
-      .map(([key, value]) => `- ${key}: ${value}`)
-      .join("\n");
-    metadataSection = `
-
-Category-Specific Details:
-${metaEntries}`;
-  }
-
   // Build notes section
   let notesSection = "";
-  if (version.notes || version.tastingNotes || version.iterationIntent) {
+  if (version.notes || version.nextSteps) {
     const parts = [];
-    if (version.iterationIntent) {
-      parts.push(`Intent: ${version.iterationIntent}`);
-    }
     if (version.notes) {
       parts.push(`Process Notes: ${version.notes}`);
     }
-    if (version.tastingNotes) {
-      parts.push(`Tasting Notes: ${version.tastingNotes}`);
+    if (version.nextSteps) {
+      parts.push(`Next Steps: ${version.nextSteps}`);
     }
     notesSection = `
 
@@ -101,21 +86,27 @@ ${parts.join("\n")}`;
 
   // Build ratings section
   let ratingsSection = "";
-  if (version.tasteRating || version.visualRating || version.textureRating) {
-    const ratings = [];
-    if (version.tasteRating) {
-      ratings.push(`Taste: ${version.tasteRating}/5`);
-    }
-    if (version.visualRating) {
-      ratings.push(`Visual: ${version.visualRating}/5`);
-    }
-    if (version.textureRating) {
-      ratings.push(`Texture: ${version.textureRating}/5`);
-    }
+  const ratings = [];
+  if (version.tasteRating) {
+    ratings.push(
+      `Taste: ${version.tasteRating}/5${version.tasteNotes ? ` (${version.tasteNotes})` : ""}`,
+    );
+  }
+  if (version.visualRating) {
+    ratings.push(
+      `Visual: ${version.visualRating}/5${version.visualNotes ? ` (${version.visualNotes})` : ""}`,
+    );
+  }
+  if (version.textureRating) {
+    ratings.push(
+      `Texture: ${version.textureRating}/5${version.textureNotes ? ` (${version.textureNotes})` : ""}`,
+    );
+  }
+  if (ratings.length > 0) {
     ratingsSection = `
 
 Ratings:
-${ratings.join(", ")}`;
+${ratings.join("\n")}`;
   }
 
   return `
@@ -128,7 +119,7 @@ ${recipe.description ? `Description: ${recipe.description}` : ""}
 Version: ${version.title || "Untitled"}
 
 Ingredients:
-${ingredientsList}${bakerSection}${metadataSection}${notesSection}${ratingsSection}
+${ingredientsList}${bakerSection}${notesSection}${ratingsSection}
 `.trim();
 }
 

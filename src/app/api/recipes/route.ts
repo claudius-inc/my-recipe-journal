@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { CATEGORY_CONFIGS, type RecipeCategory } from "@/types/recipes";
+import { RECIPE_CATEGORIES, type RecipeCategory } from "@/types/recipes";
 import {
   createRecipe,
   listRecipes,
@@ -8,7 +8,7 @@ import {
 } from "@/server/recipesService";
 import { requireAuth } from "@/lib/auth-utils";
 
-const allowedCategories = Object.keys(CATEGORY_CONFIGS) as RecipeCategory[];
+const allowedCategories = RECIPE_CATEGORIES;
 
 export async function GET(request: NextRequest) {
   const { userId, error, status } = await requireAuth(request);

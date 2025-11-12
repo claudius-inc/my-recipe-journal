@@ -1,20 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { createVersionFromBase, getRecipe } from "@/server/recipesService";
-import type { RecipeVersionMetadata } from "@/types/recipes";
-
-const normalizeMetadata = (value: unknown): RecipeVersionMetadata | undefined => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-
-  return Object.entries(value as Record<string, unknown>).reduce((acc, [key, entry]) => {
-    if (typeof entry === "string" || typeof entry === "number") {
-      acc[key] = entry;
-    }
-    return acc;
-  }, {} as RecipeVersionMetadata);
-};
 
 export async function POST(
   request: Request,
@@ -33,9 +19,7 @@ export async function POST(
     baseVersionId?: string;
     scalingFactor?: number;
     notes?: string;
-    tastingNotes?: string;
     nextSteps?: string;
-    metadata?: Record<string, unknown>;
     setActive?: boolean;
   };
 
@@ -53,9 +37,7 @@ export async function POST(
       scalingFactor: payload.scalingFactor,
       title: payload.title,
       notes: payload.notes,
-      tastingNotes: payload.tastingNotes,
       nextSteps: payload.nextSteps,
-      metadata: normalizeMetadata(payload.metadata),
       setActive: payload.setActive,
     });
 

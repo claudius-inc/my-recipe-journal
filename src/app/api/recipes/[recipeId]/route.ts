@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { CATEGORY_CONFIGS, type RecipeCategory } from "@/types/recipes";
+import { RECIPE_CATEGORIES, type RecipeCategory } from "@/types/recipes";
 import {
   getRecipe,
   setActiveVersion,
   updateRecipeDetails,
 } from "@/server/recipesService";
 
-const allowedCategories = Object.keys(CATEGORY_CONFIGS) as RecipeCategory[];
+const allowedCategories = RECIPE_CATEGORIES;
 
 export async function GET(
   _request: Request,

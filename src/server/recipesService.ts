@@ -11,42 +11,10 @@ import type {
   Recipe,
   RecipeCategory,
   RecipeVersion,
-  RecipeVersionMetadata,
 } from "@/types/recipes";
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
-
-const sanitizeMetadata = (
-  metadata?: RecipeVersionMetadata | null,
-): RecipeVersionMetadata => {
-  if (!metadata) {
-    return {};
-  }
-
-  return Object.entries(metadata).reduce((acc, [key, value]) => {
-    if (typeof value === "string" || typeof value === "number") {
-      acc[key] = value;
-    }
-    return acc;
-  }, {} as RecipeVersionMetadata);
-};
-
-const parseStoredMetadata = (metadata: unknown): RecipeVersionMetadata => {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return {};
-  }
-
-  return Object.entries(metadata as Record<string, unknown>).reduce(
-    (acc, [key, value]) => {
-      if (typeof value === "string" || typeof value === "number") {
-        acc[key] = value;
-      }
-      return acc;
-    },
-    {} as RecipeVersionMetadata,
-  );
-};
 
 export interface ListRecipesOptions {
   userId: string;
@@ -138,9 +106,7 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
         recipeId: recipe.id,
         title: "Ver. 1",
         notes: "",
-        tastingNotes: "",
         nextSteps: "",
-        metadata: {},
       },
     });
 
@@ -213,9 +179,7 @@ export interface CreateVersionInput {
   recipeId: string;
   title: string;
   notes: string;
-  tastingNotes: string;
   nextSteps: string;
-  metadata?: RecipeVersionMetadata;
   ingredients?: Array<{
     name: string;
     quantity: number;
@@ -238,9 +202,7 @@ export async function createVersion(input: CreateVersionInput): Promise<Recipe> 
         recipeId: input.recipeId,
         title: input.title,
         notes: input.notes,
-        tastingNotes: input.tastingNotes,
         nextSteps: input.nextSteps,
-        metadata: sanitizeMetadata(input.metadata),
         ingredients: {
           create: (input.ingredients ?? []).map(
             (ingredient: CreateVersionIngredientInput, index: number) => ({
@@ -277,9 +239,7 @@ export interface CloneVersionInput {
   scalingFactor?: number;
   title?: string;
   notes?: string;
-  tastingNotes?: string;
   nextSteps?: string;
-  metadata?: RecipeVersionMetadata;
   setActive?: boolean;
 }
 
@@ -313,17 +273,11 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
     }),
   );
 
-  const baseMetadata = baseVersion ? parseStoredMetadata(baseVersion.metadata) : {};
-  const metadata =
-    input.metadata !== undefined ? sanitizeMetadata(input.metadata) : baseMetadata;
-
   return createVersion({
     recipeId: input.recipeId,
     title: newTitle,
     notes: input.notes ?? baseVersion?.notes ?? "",
-    tastingNotes: input.tastingNotes ?? baseVersion?.tastingNotes ?? "",
     nextSteps: input.nextSteps ?? baseVersion?.nextSteps ?? "",
-    metadata,
     ingredients,
     setActive: input.setActive,
   });
@@ -337,33 +291,21 @@ export async function updateVersionDetails(
       RecipeVersion,
       | "title"
       | "notes"
-      | "tastingNotes"
       | "nextSteps"
       | "tasteRating"
       | "visualRating"
       | "textureRating"
-      | "tasteTags"
-      | "textureTags"
-      | "iterationIntent"
-      | "hypothesis"
-      | "outcome"
+      | "tasteNotes"
+      | "visualNotes"
+      | "textureNotes"
     >
   > & {
-    metadata?: RecipeVersionMetadata | null;
     photoUrl?: string | null;
   },
 ): Promise<Recipe | null> {
-  const { metadata: _, ...restData } = data;
-  const updatePayload = {
-    ...restData,
-    ...(data.metadata !== undefined
-      ? { metadata: data.metadata ? sanitizeMetadata(data.metadata) : {} }
-      : {}),
-  };
-
   await prisma.recipeVersion.update({
     where: { id: versionId },
-    data: updatePayload,
+    data,
   });
   return getRecipe(recipeId);
 }

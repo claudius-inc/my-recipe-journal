@@ -4,7 +4,6 @@ import type {
   Recipe,
   RecipeCategory,
   RecipeVersion,
-  RecipeVersionMetadata,
 } from "@/types/recipes";
 
 export const recipeWithRelations = {
@@ -30,10 +29,14 @@ type PrismaRecipeVersionRecord = {
   title: string;
   createdAt: Date;
   notes: string;
-  tastingNotes: string;
   nextSteps: string;
-  metadata: Record<string, unknown> | null;
   photoUrl: string | null;
+  tasteRating: number | null;
+  visualRating: number | null;
+  textureRating: number | null;
+  tasteNotes: string | null;
+  visualNotes: string | null;
+  textureNotes: string | null;
   ingredients: PrismaIngredientRecord[];
 };
 
@@ -50,21 +53,6 @@ type PrismaRecipeRecord = {
 };
 
 export type RecipeWithRelations = PrismaRecipeRecord;
-
-const toRecipeVersionMetadata = (
-  metadata: Record<string, unknown> | null,
-): RecipeVersionMetadata | undefined => {
-  if (!metadata) {
-    return undefined;
-  }
-
-  return Object.entries(metadata).reduce((acc, [key, value]) => {
-    if (typeof value === "string" || typeof value === "number") {
-      acc[key] = value;
-    }
-    return acc;
-  }, {} as RecipeVersionMetadata);
-};
 
 export const toIngredient = (ingredient: PrismaIngredientRecord): Ingredient => ({
   id: ingredient.id,
@@ -83,10 +71,14 @@ export const toRecipeVersion = (version: PrismaRecipeVersionRecord): RecipeVersi
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((ingredient) => toIngredient(ingredient)),
   notes: version.notes,
-  tastingNotes: version.tastingNotes,
   nextSteps: version.nextSteps,
-  metadata: toRecipeVersionMetadata(version.metadata),
   photoUrl: version.photoUrl ?? undefined,
+  tasteRating: version.tasteRating ?? undefined,
+  visualRating: version.visualRating ?? undefined,
+  textureRating: version.textureRating ?? undefined,
+  tasteNotes: version.tasteNotes ?? undefined,
+  visualNotes: version.visualNotes ?? undefined,
+  textureNotes: version.textureNotes ?? undefined,
 });
 
 export const toRecipe = (recipe: PrismaRecipeRecord): Recipe => ({

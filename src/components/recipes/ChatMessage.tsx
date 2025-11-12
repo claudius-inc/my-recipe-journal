@@ -104,10 +104,10 @@ export function ChatMessage({
                     <span className="flex-1">{changes.version.notes}</span>
                   </li>
                 )}
-                {changes.version.tastingNotes && (
+                {changes.version.nextSteps && (
                   <li className="flex items-start gap-2">
                     <span className="text-blue-400">•</span>
-                    <span className="flex-1">{changes.version.tastingNotes}</span>
+                    <span className="flex-1">{changes.version.nextSteps}</span>
                   </li>
                 )}
               </ul>

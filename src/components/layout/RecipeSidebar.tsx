@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button, IconButton, Select, TextField, Tooltip } from "@radix-ui/themes";
+import { Badge, Button, IconButton, Select, TextField, Tooltip } from "@radix-ui/themes";
 import { Cross2Icon, CameraIcon } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
-import { CATEGORY_CONFIGS, type RecipeCategory } from "@/types/recipes";
+import { RECIPE_CATEGORIES, type RecipeCategory } from "@/types/recipes";
 import { useRecipeStore } from "@/store/RecipeStore";
 import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
 
@@ -14,8 +14,6 @@ interface RecipeSidebarProps {
   onClose: () => void;
   onOpen: () => void;
 }
-
-const categories = Object.values(CATEGORY_CONFIGS);
 
 const formatRelativeTime = (iso: string) => {
   const formatter = new Intl.RelativeTimeFormat(undefined, {
@@ -94,7 +92,6 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           description: extractedData.description,
           ingredients: extractedData.ingredients,
           instructions: extractedData.instructions,
-          metadata: extractedData.metadata,
         });
 
         // Clean up stored data
@@ -205,7 +202,6 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search recipes"
-              className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm outline-none transition focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
             />
           </div>
           <div>
@@ -264,9 +260,9 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                   >
                     <Select.Trigger className="w-full" />
                     <Select.Content>
-                      {categories.map((category) => (
-                        <Select.Item key={category.id} value={category.id}>
-                          {category.name}
+                      {RECIPE_CATEGORIES.map((category) => (
+                        <Select.Item key={category} value={category}>
+                          {category}
                         </Select.Item>
                       ))}
                     </Select.Content>
@@ -313,37 +309,48 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
             </p>
           ) : (
             <>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {filtered.map((recipe) => (
                   <li key={recipe.id}>
                     <Button
                       variant={recipe.id === selectedRecipeId ? "solid" : "soft"}
                       size="3"
                       className={cn(
-                        "w-full rounded-xl px-4 py-3 text-left",
+                        "w-full h-auto rounded-xl px-4 py-4 text-left transition-shadow justify-start",
                         recipe.id === selectedRecipeId
-                          ? ""
-                          : "bg-neutral-50 dark:bg-neutral-900/60",
+                          ? "shadow-sm"
+                          : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
                       )}
                       onClick={() => {
                         selectRecipe(recipe.id);
                         onClose();
                       }}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold">{recipe.name}</span>
-                        <span className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                          {CATEGORY_CONFIGS[recipe.category]?.name ?? recipe.category}
-                        </span>
-                      </div>
-                      {recipe.description ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-neutral-500 dark:text-neutral-400">
-                          {recipe.description}
+                      <div className="space-y-2">
+                        <div className="flex flex-col gap-2 items-start">
+                          <span className="text-base font-semibold leading-tight md:text-sm">
+                            {recipe.name}
+                          </span>
+                          <Badge
+                            color={recipe.id === selectedRecipeId ? "gray" : "gold"}
+                            variant="soft"
+                            className={recipe.id === selectedRecipeId ? "bg-white" : ""}
+                          >
+                            {RECIPE_CATEGORIES.find(
+                              (c) => c === recipe.category,
+                            )?.toLocaleUpperCase() ?? recipe.category.toLocaleUpperCase()}
+                          </Badge>
+                        </div>
+                        <p
+                          className={cn(
+                            "text-xs text-neutral-400 dark:text-neutral-500",
+                            recipe.id === selectedRecipeId &&
+                              "text-neutral-100 dark:text-neutral-100 font-medium",
+                          )}
+                        >
+                          Updated {formatRelativeTime(recipe.updatedAt)}
                         </p>
-                      ) : null}
-                      <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">
-                        Updated {formatRelativeTime(recipe.updatedAt)}
-                      </p>
+                      </div>
                     </Button>
                   </li>
                 ))}

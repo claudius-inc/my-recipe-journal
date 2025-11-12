@@ -1,23 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { deleteVersion, getRecipe, updateVersionDetails } from "@/server/recipesService";
-import type { RecipeVersionMetadata } from "@/types/recipes";
-
-const normalizeMetadata = (value: unknown): RecipeVersionMetadata | undefined => {
-  if (value === null) {
-    return {};
-  }
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-
-  return Object.entries(value as Record<string, unknown>).reduce((acc, [key, entry]) => {
-    if (typeof entry === "string" || typeof entry === "number") {
-      acc[key] = entry;
-    }
-    return acc;
-  }, {} as RecipeVersionMetadata);
-};
 
 export async function PATCH(
   request: Request,
@@ -40,18 +23,14 @@ export async function PATCH(
   const payload = (await request.json().catch(() => ({}))) as {
     title?: string;
     notes?: string;
-    tastingNotes?: string;
     nextSteps?: string;
-    metadata?: Record<string, unknown> | null;
     photoUrl?: string | null;
     tasteRating?: number | null;
     visualRating?: number | null;
     textureRating?: number | null;
-    tasteTags?: string[];
-    textureTags?: string[];
-    iterationIntent?: string | null;
-    hypothesis?: string | null;
-    outcome?: string | null;
+    tasteNotes?: string;
+    visualNotes?: string;
+    textureNotes?: string;
   };
 
   const updateData: Parameters<typeof updateVersionDetails>[2] = {};
@@ -62,21 +41,8 @@ export async function PATCH(
   if (payload.notes !== undefined) {
     updateData.notes = payload.notes;
   }
-  if (payload.tastingNotes !== undefined) {
-    updateData.tastingNotes = payload.tastingNotes;
-  }
   if (payload.nextSteps !== undefined) {
     updateData.nextSteps = payload.nextSteps;
-  }
-  if (payload.metadata !== undefined) {
-    if (payload.metadata === null) {
-      updateData.metadata = {};
-    } else {
-      const normalized = normalizeMetadata(payload.metadata);
-      if (normalized !== undefined) {
-        updateData.metadata = normalized;
-      }
-    }
   }
   if (payload.photoUrl !== undefined) {
     updateData.photoUrl = payload.photoUrl ?? null;
@@ -90,22 +56,14 @@ export async function PATCH(
   if (payload.textureRating !== undefined) {
     updateData.textureRating = payload.textureRating ?? undefined;
   }
-  if (payload.tasteTags !== undefined) {
-    updateData.tasteTags = Array.isArray(payload.tasteTags) ? payload.tasteTags : [];
+  if (payload.tasteNotes !== undefined) {
+    updateData.tasteNotes = payload.tasteNotes;
   }
-  if (payload.textureTags !== undefined) {
-    updateData.textureTags = Array.isArray(payload.textureTags)
-      ? payload.textureTags
-      : [];
+  if (payload.visualNotes !== undefined) {
+    updateData.visualNotes = payload.visualNotes;
   }
-  if (payload.iterationIntent !== undefined) {
-    updateData.iterationIntent = payload.iterationIntent ?? undefined;
-  }
-  if (payload.hypothesis !== undefined) {
-    updateData.hypothesis = payload.hypothesis ?? undefined;
-  }
-  if (payload.outcome !== undefined) {
-    updateData.outcome = payload.outcome ?? undefined;
+  if (payload.textureNotes !== undefined) {
+    updateData.textureNotes = payload.textureNotes;
   }
 
   const updatedRecipe = await updateVersionDetails(recipeId, versionId, updateData);
