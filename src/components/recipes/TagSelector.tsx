@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Button, TextField } from "@radix-ui/themes";
+import { Cross2Icon } from "@radix-ui/react-icons";
 import {
   TASTE_TAG_CATEGORIES,
   TEXTURE_TAG_CATEGORIES,
@@ -97,7 +98,7 @@ export function TagSelector({
                 onClick={() => !disabled && handleRemoveTag(tag)}
                 disabled={disabled}
               >
-                ×
+                <Cross2Icon className="w-3 h-3" />
               </Button>
             </span>
           ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { StarFilledIcon, StarIcon } from "@radix-ui/react-icons";
 import { RatingSelector } from "./RatingSelector";
 import { TagSelector } from "./TagSelector";
 import type { RecipeVersion } from "@/types/recipes";
@@ -75,27 +76,45 @@ export function SuccessMetrics({
             {tasteRating && (
               <div className="text-sm">
                 <div className="text-gray-600">Taste</div>
-                <div className="text-xl">
-                  {"★".repeat(tasteRating)}
-                  {"☆".repeat(5 - tasteRating)}
+                <div className="flex gap-0.5 text-amber-500">
+                  {Array.from({ length: tasteRating }).map((_, i) => (
+                    <StarFilledIcon key={`filled-${i}`} className="w-5 h-5" />
+                  ))}
+                  <span className="text-gray-300 flex gap-0.5">
+                    {Array.from({ length: 5 - tasteRating }).map((_, i) => (
+                      <StarIcon key={`empty-${i}`} className="w-5 h-5" />
+                    ))}
+                  </span>
                 </div>
               </div>
             )}
             {visualRating && (
               <div className="text-sm">
                 <div className="text-gray-600">Visual</div>
-                <div className="text-xl">
-                  {"★".repeat(visualRating)}
-                  {"☆".repeat(5 - visualRating)}
+                <div className="flex gap-0.5 text-amber-500">
+                  {Array.from({ length: visualRating }).map((_, i) => (
+                    <StarFilledIcon key={`filled-${i}`} className="w-5 h-5" />
+                  ))}
+                  <span className="text-gray-300 flex gap-0.5">
+                    {Array.from({ length: 5 - visualRating }).map((_, i) => (
+                      <StarIcon key={`empty-${i}`} className="w-5 h-5" />
+                    ))}
+                  </span>
                 </div>
               </div>
             )}
             {textureRating && (
               <div className="text-sm">
                 <div className="text-gray-600">Texture</div>
-                <div className="text-xl">
-                  {"★".repeat(textureRating)}
-                  {"☆".repeat(5 - textureRating)}
+                <div className="flex gap-0.5 text-amber-500">
+                  {Array.from({ length: textureRating }).map((_, i) => (
+                    <StarFilledIcon key={`filled-${i}`} className="w-5 h-5" />
+                  ))}
+                  <span className="text-gray-300 flex gap-0.5">
+                    {Array.from({ length: 5 - textureRating }).map((_, i) => (
+                      <StarIcon key={`empty-${i}`} className="w-5 h-5" />
+                    ))}
+                  </span>
                 </div>
               </div>
             )}

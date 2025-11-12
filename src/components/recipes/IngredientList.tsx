@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Checkbox, Spinner, Button, TextField, Select } from "@radix-ui/themes";
+import { ChevronDownIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
 import type { Ingredient, RecipeVersion, Recipe } from "@/types/recipes";
 import { IngredientListItem } from "./IngredientListItem";
@@ -472,7 +473,7 @@ export function IngredientList({
                 radius="full"
               >
                 {IngredientRoleLabels[draft.role]}
-                <span className="text-[10px] ml-1">▾</span>
+                <ChevronDownIcon className="w-3 h-3 ml-1" />
               </Button>
               {showRoleSelector && (
                 <div className="flex flex-wrap gap-1">

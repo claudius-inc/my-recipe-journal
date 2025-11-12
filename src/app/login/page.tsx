@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Box, Button, TextField, Text, Heading } from "@radix-ui/themes";
+import { CheckCircledIcon } from "@radix-ui/react-icons";
 import { Header } from "@/components/layout/Header";
 
 export default function LoginPage() {
@@ -62,7 +63,7 @@ export default function LoginPage() {
           {isEmailSent ? (
             <Box style={{ textAlign: "center" }}>
               <Heading size="5" style={{ marginBottom: "1rem", color: "#4caf50" }}>
-                ✅ Magic link sent!
+                <CheckCircledIcon className="w-6 h-6 inline mr-2" /> Magic link sent!
               </Heading>
               <Text as="div" style={{ color: "#666", fontSize: "14px" }}>
                 Check your email at <strong>{email}</strong> for a sign-in link.

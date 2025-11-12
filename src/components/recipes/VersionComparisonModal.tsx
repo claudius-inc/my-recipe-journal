@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Button, Dialog, Tooltip } from "@radix-ui/themes";
+import { ArrowUpIcon, ArrowDownIcon, ArrowRightIcon } from "@radix-ui/react-icons";
 import type { RecipeVersion, Ingredient } from "@/types/recipes";
 
 interface VersionComparisonModalProps {
@@ -98,11 +99,11 @@ export function VersionComparisonModal({
     return "";
   };
 
-  const getChangeArrow = (percent: number | undefined): string => {
-    if (percent === undefined) return "";
-    if (percent > 0) return "↑";
-    if (percent < 0) return "↓";
-    return "";
+  const getChangeArrow = (percent: number | undefined): React.ReactNode => {
+    if (percent === undefined) return null;
+    if (percent > 0) return <ArrowUpIcon className="w-3 h-3 inline" />;
+    if (percent < 0) return <ArrowDownIcon className="w-3 h-3 inline" />;
+    return null;
   };
 
   const getBakersPercentage = (ingredient: Ingredient): string => {
@@ -116,7 +117,8 @@ export function VersionComparisonModal({
       <Dialog.Content className="max-w-4xl max-h-[90vh] overflow-auto">
         <Dialog.Title>Version Comparison</Dialog.Title>
         <Dialog.Description>
-          Comparing: <span className="font-medium">{baseVersion.title}</span> →{" "}
+          Comparing: <span className="font-medium">{baseVersion.title}</span>{" "}
+          <ArrowRightIcon className="w-3 h-3 inline" />{" "}
           <span className="font-medium">{comparisonVersion.title}</span>
         </Dialog.Description>
 

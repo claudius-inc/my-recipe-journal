@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { TextField } from "@radix-ui/themes";
+import { CheckIcon, Cross2Icon } from "@radix-ui/react-icons";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "../ui/SaveIndicator";
 
@@ -99,14 +100,14 @@ export function InteractivePercentageEditor({
           disabled={isSaving || !percentageInput || isNaN(Number(percentageInput))}
           className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-700 dark:hover:bg-blue-600"
         >
-          ✓
+          <CheckIcon className="w-3 h-3" />
         </button>
         <button
           onClick={handleCancel}
           disabled={isSaving}
           className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600"
         >
-          ✕
+          <Cross2Icon className="w-3 h-3" />
         </button>
       </div>
     );

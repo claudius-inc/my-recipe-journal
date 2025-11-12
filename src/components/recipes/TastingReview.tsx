@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Button, TextArea } from "@radix-ui/themes";
+import { StarFilledIcon, StarIcon } from "@radix-ui/react-icons";
 import { RatingSelector } from "./RatingSelector";
 import { TagSelector } from "./TagSelector";
 import type { RecipeVersion } from "@/types/recipes";
@@ -89,10 +90,14 @@ export function TastingReview({ version, onSave, isSaving = false }: TastingRevi
                     <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
                       Taste
                     </div>
-                    <div className="mt-1 text-xl text-amber-500">
-                      {"★".repeat(tasteRating)}
-                      <span className="text-neutral-300 dark:text-neutral-600">
-                        {"★".repeat(5 - tasteRating)}
+                    <div className="mt-1 flex gap-0.5 justify-center text-amber-500">
+                      {Array.from({ length: tasteRating }).map((_, i) => (
+                        <StarFilledIcon key={`filled-${i}`} className="w-5 h-5" />
+                      ))}
+                      <span className="text-neutral-300 dark:text-neutral-600 flex gap-0.5">
+                        {Array.from({ length: 5 - tasteRating }).map((_, i) => (
+                          <StarIcon key={`empty-${i}`} className="w-5 h-5" />
+                        ))}
                       </span>
                     </div>
                   </div>
@@ -102,10 +107,14 @@ export function TastingReview({ version, onSave, isSaving = false }: TastingRevi
                     <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
                       Visual
                     </div>
-                    <div className="mt-1 text-xl text-amber-500">
-                      {"★".repeat(visualRating)}
-                      <span className="text-neutral-300 dark:text-neutral-600">
-                        {"★".repeat(5 - visualRating)}
+                    <div className="mt-1 flex gap-0.5 justify-center text-amber-500">
+                      {Array.from({ length: visualRating }).map((_, i) => (
+                        <StarFilledIcon key={`filled-${i}`} className="w-5 h-5" />
+                      ))}
+                      <span className="text-neutral-300 dark:text-neutral-600 flex gap-0.5">
+                        {Array.from({ length: 5 - visualRating }).map((_, i) => (
+                          <StarIcon key={`empty-${i}`} className="w-5 h-5" />
+                        ))}
                       </span>
                     </div>
                   </div>
@@ -115,10 +124,14 @@ export function TastingReview({ version, onSave, isSaving = false }: TastingRevi
                     <div className="text-xs font-medium text-neutral-600 dark:text-neutral-400">
                       Texture
                     </div>
-                    <div className="mt-1 text-xl text-amber-500">
-                      {"★".repeat(textureRating)}
-                      <span className="text-neutral-300 dark:text-neutral-600">
-                        {"★".repeat(5 - textureRating)}
+                    <div className="mt-1 flex gap-0.5 justify-center text-amber-500">
+                      {Array.from({ length: textureRating }).map((_, i) => (
+                        <StarFilledIcon key={`filled-${i}`} className="w-5 h-5" />
+                      ))}
+                      <span className="text-neutral-300 dark:text-neutral-600 flex gap-0.5">
+                        {Array.from({ length: 5 - textureRating }).map((_, i) => (
+                          <StarIcon key={`empty-${i}`} className="w-5 h-5" />
+                        ))}
                       </span>
                     </div>
                   </div>

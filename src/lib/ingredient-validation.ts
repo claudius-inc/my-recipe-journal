@@ -132,13 +132,8 @@ export function getValidationColor(severity: ValidationWarning["severity"]): str
 /**
  * Get validation icon
  */
-export function getValidationIcon(severity: ValidationWarning["severity"]): string {
-  switch (severity) {
-    case "error":
-      return "⚠️";
-    case "warning":
-      return "⚠";
-    case "info":
-      return "ℹ️";
-  }
+export function getValidationIconType(
+  severity: ValidationWarning["severity"],
+): "error" | "warning" | "info" {
+  return severity;
 }

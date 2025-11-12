@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
+import { ChevronRightIcon, CheckIcon } from "@radix-ui/react-icons";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -25,7 +26,7 @@ export function CollapsibleSection({
   const getBadgeIcon = () => {
     switch (badge) {
       case "complete":
-        return "✓";
+        return <CheckIcon className="w-3 h-3" />;
       case "partial":
         return "○";
       case "empty":
@@ -48,14 +49,12 @@ export function CollapsibleSection({
         className="flex w-full items-center justify-between p-4 text-left transition hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
       >
         <div className="flex items-center gap-3">
-          <span
+          <ChevronRightIcon
             className={cn(
-              "text-sm transition-transform",
+              "w-4 h-4 transition-transform",
               isOpen ? "rotate-90" : "rotate-0",
             )}
-          >
-            ▶
-          </span>
+          />
           <div>
             <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
               {title}

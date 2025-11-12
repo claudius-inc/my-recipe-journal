@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button, IconButton, Select, TextField, Tooltip } from "@radix-ui/themes";
+import { Cross2Icon, CameraIcon } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
 import { CATEGORY_CONFIGS, type RecipeCategory } from "@/types/recipes";
@@ -187,7 +188,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
               onClick={onClose}
               aria-label="Close recipes panel"
             >
-              ×
+              <Cross2Icon className="w-4 h-4" />
             </IconButton>
           </Tooltip>
         </div>
@@ -230,7 +231,8 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                     disabled={isScanning}
                     className="hidden"
                   />
-                  {isScanning ? "📸 Scanning…" : "📸 Scan"}
+                  <CameraIcon className="w-4 h-4 inline mr-1" />
+                  {isScanning ? "Scanning…" : "Scan"}
                 </label>
               </Button>
             </div>

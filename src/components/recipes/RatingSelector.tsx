@@ -2,6 +2,7 @@
 
 import React from "react";
 import { IconButton, Tooltip } from "@radix-ui/themes";
+import { StarIcon, StarFilledIcon } from "@radix-ui/react-icons";
 
 interface RatingSelectorProps {
   label: string;
@@ -25,7 +26,7 @@ export function RatingSelector({
             <IconButton
               variant="ghost"
               size="1"
-              className={`!p-1 !h-auto text-2xl transition-colors ${
+              className={`!p-1 !h-auto transition-colors ${
                 star <= (value ?? 0)
                   ? "text-yellow-400 hover:text-yellow-500"
                   : "text-gray-300 hover:text-yellow-300"
@@ -34,7 +35,11 @@ export function RatingSelector({
               disabled={disabled}
               aria-label={`${star} star${star !== 1 ? "s" : ""}`}
             >
-              ★
+              {star <= (value ?? 0) ? (
+                <StarFilledIcon className="w-5 h-5" />
+              ) : (
+                <StarIcon className="w-5 h-5" />
+              )}
             </IconButton>
           </Tooltip>
         ))}

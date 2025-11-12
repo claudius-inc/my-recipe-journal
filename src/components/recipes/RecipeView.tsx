@@ -21,7 +21,7 @@ import {
 import {
   validateIngredients,
   getValidationColor,
-  getValidationIcon,
+  getValidationIconType,
 } from "@/lib/ingredient-validation";
 import { IterationIntentModal } from "./IterationIntentModal";
 import { IterationTracking } from "./IterationTracking";
@@ -48,7 +48,13 @@ import {
   Spinner,
   Tooltip,
 } from "@radix-ui/themes";
-import { PlusCircledIcon, PlusIcon } from "@radix-ui/react-icons";
+import {
+  PlusCircledIcon,
+  PlusIcon,
+  ChevronDownIcon,
+  ExclamationTriangleIcon,
+  InfoCircledIcon,
+} from "@radix-ui/react-icons";
 
 interface RecipeViewProps {
   onOpenSidebar: () => void;
@@ -1446,7 +1452,13 @@ function IngredientEditor({
                     : "border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-900/20"
               }`}
             >
-              <span>{getValidationIcon(warning.severity)}</span>
+              <span>
+                {warning.severity === "info" ? (
+                  <InfoCircledIcon className="w-4 h-4" />
+                ) : (
+                  <ExclamationTriangleIcon className="w-4 h-4" />
+                )}
+              </span>
               <p className={getValidationColor(warning.severity)}>{warning.message}</p>
             </div>
           ))}
@@ -1656,7 +1668,7 @@ function IngredientRow({
               className="flex min-h-9 w-full items-center justify-center gap-1"
             >
               <span className="truncate">{IngredientRoleLabels[state.role]}</span>
-              <span className="text-[10px]">▾</span>
+              <ChevronDownIcon className="w-3 h-3" />
             </Button>
             {showRoleSelector && (
               <div className="absolute left-0 right-0 top-full z-10 mt-1 flex flex-wrap gap-1 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">

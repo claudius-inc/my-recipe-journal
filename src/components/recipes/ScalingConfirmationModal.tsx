@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Button, Dialog } from "@radix-ui/themes";
+import { ArrowRightIcon } from "@radix-ui/react-icons";
 import type { Ingredient } from "@/types/recipes";
 
 interface ScalingConfirmationModalProps {
@@ -50,7 +51,7 @@ export function ScalingConfirmationModal({
                   <span className="font-mono whitespace-nowrap">
                     {ingredient.originalQuantity.toFixed(1)} {ingredient.unit}
                   </span>
-                  <span className="text-neutral-400 dark:text-neutral-500">→</span>
+                  <ArrowRightIcon className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
                   <span className="font-mono font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                     {ingredient.newQuantity.toFixed(1)} {ingredient.unit}
                   </span>
