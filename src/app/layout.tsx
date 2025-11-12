@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 
 import "@radix-ui/themes/styles.css";
@@ -12,6 +12,13 @@ export const metadata: Metadata = {
   title: "My Recipe Log",
   description:
     "Mobile-first journal for iterating on bread, drinks, and experimental recipes.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

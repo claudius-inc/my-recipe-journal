@@ -10,6 +10,7 @@ import {
 } from "@/lib/gemini-assistant";
 import type { Recipe, RecipeVersion, Ingredient } from "@/types/recipes";
 import { useToast } from "@/context/ToastContext";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 
 interface RecipeAIAssistantProps {
   recipe: Recipe;
@@ -35,6 +36,7 @@ export function RecipeAIAssistant({
   onApplyChanges,
 }: RecipeAIAssistantProps) {
   const { addToast } = useToast();
+  const { keyboardHeight, isKeyboardVisible } = useKeyboardHeight();
   const [panelState, setPanelState] = useState<PanelState>("partial");
   const [messages, setMessages] = useState<
     (ChatMessageType & { changes?: AIAssistantResponse["changes"] })[]
@@ -47,12 +49,16 @@ export function RecipeAIAssistant({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const dragStartY = useRef<number>(0);
-  const dragStartHeight = useRef<number>(0);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (but not when actively typing)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Only auto-scroll if user is not currently typing
+    if (!inputRef.current || document.activeElement !== inputRef.current) {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }
   }, [messages]);
 
   // Focus input when opened
@@ -66,6 +72,20 @@ export function RecipeAIAssistant({
   useEffect(() => {
     setMessages([]);
   }, [version.id]);
+
+  // Scroll input into view when keyboard appears
+  useEffect(() => {
+    if (isKeyboardVisible && document.activeElement === inputRef.current) {
+      // Wait for keyboard animation to complete
+      setTimeout(() => {
+        inputRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+          inline: "nearest",
+        });
+      }, 300);
+    }
+  }, [isKeyboardVisible]);
 
   const handleSendMessage = useCallback(
     async (message: string) => {
@@ -178,40 +198,6 @@ export function RecipeAIAssistant({
     [inputValue, handleSendMessage],
   );
 
-  const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    dragStartY.current = clientY;
-    dragStartHeight.current = panelRef.current?.offsetHeight || 0;
-  }, []);
-
-  const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
-    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
-    const deltaY = dragStartY.current - clientY;
-    const newHeight = dragStartHeight.current + deltaY;
-
-    // Snap to states based on height
-    if (newHeight < window.innerHeight * 0.3) {
-      setPanelState("minimized");
-    } else if (newHeight < window.innerHeight * 0.65) {
-      setPanelState("partial");
-    } else {
-      setPanelState("expanded");
-    }
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    document.removeEventListener("mousemove", handleDragMove);
-    document.removeEventListener("mouseup", handleDragEnd);
-    document.removeEventListener("touchmove", handleDragMove);
-    document.removeEventListener("touchend", handleDragEnd);
-  }, [handleDragMove]);
-
-  useEffect(() => {
-    return () => {
-      handleDragEnd();
-    };
-  }, [handleDragEnd]);
-
   if (!isOpen) {
     return null;
   }
@@ -220,7 +206,10 @@ export function RecipeAIAssistant({
     return null;
   }
 
-  const heightClass = panelState === "partial" ? "h-[50vh]" : "h-[80vh]";
+  const heightClass =
+    panelState === "partial"
+      ? "h-[50vh] supports-[height:50dvh]:h-[50dvh]"
+      : "h-[80vh] supports-[height:80dvh]:h-[80dvh]";
 
   return (
     <div
@@ -263,23 +252,6 @@ export function RecipeAIAssistant({
             </IconButton>
           </Tooltip>
         </div>
-      </div>
-
-      {/* Drag Handle (Mobile) */}
-      <div
-        className="flex cursor-ns-resize justify-center py-2 sm:hidden"
-        onMouseDown={handleDragStart}
-        onTouchStart={handleDragStart}
-        onMouseMove={(e) => {
-          if (e.buttons === 1) {
-            handleDragMove(e.nativeEvent);
-          }
-        }}
-        onTouchMove={(e) => handleDragMove(e.nativeEvent)}
-        onMouseUp={handleDragEnd}
-        onTouchEnd={handleDragEnd}
-      >
-        <div className="h-1 w-12 rounded-full bg-neutral-300 dark:bg-neutral-600"></div>
       </div>
 
       {/* Messages Area */}
