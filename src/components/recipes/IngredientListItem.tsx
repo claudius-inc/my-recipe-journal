@@ -139,11 +139,11 @@ export function IngredientListItem({
   return (
     <div
       className={cn(
-        "rounded-md border bg-white text-sm transition-all dark:bg-neutral-950",
+        "rounded-md bg-white text-sm transition-all dark:bg-neutral-950",
         isChecked
-          ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+          ? "bg-green-50 dark:bg-green-900/20"
           : isExpanded
-            ? "border-neutral-200 dark:border-blue-600"
+            ? ""
             : "border-transparent hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-900/50",
       )}
     >

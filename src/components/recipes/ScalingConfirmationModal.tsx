@@ -41,17 +41,17 @@ export function ScalingConfirmationModal({
             {scaledIngredients.map((ingredient) => (
               <div
                 key={ingredient.id}
-                className="grid grid-cols-3 gap-4 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800/50"
+                className="grid grid-cols-3 gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm dark:border-neutral-700 dark:bg-neutral-800/50"
               >
                 <div className="col-span-3 font-medium text-neutral-900 dark:text-neutral-100 sm:col-span-1">
                   {ingredient.name}
                 </div>
-                <div className="flex items-center justify-between gap-2 text-neutral-600 dark:text-neutral-400 sm:col-span-2">
-                  <span className="font-mono">
+                <div className="flex items-center justify-between gap-2 text-neutral-600 dark:text-neutral-400 sm:col-span-2 flex-nowrap">
+                  <span className="font-mono whitespace-nowrap">
                     {ingredient.originalQuantity.toFixed(1)} {ingredient.unit}
                   </span>
                   <span className="text-neutral-400 dark:text-neutral-500">→</span>
-                  <span className="font-mono font-semibold text-blue-600 dark:text-blue-400">
+                  <span className="font-mono font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                     {ingredient.newQuantity.toFixed(1)} {ingredient.unit}
                   </span>
                 </div>

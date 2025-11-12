@@ -61,7 +61,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         {/* Logo/Title */}
         <Heading size="4" style={{ margin: 0, fontWeight: 600 }}>
-          🥖 Recipe Journal
+          My Recipe Journal
         </Heading>
       </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Checkbox, Spinner, Button, TextField } from "@radix-ui/themes";
+import { Checkbox, Spinner, Button, TextField, Select } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient, RecipeVersion, Recipe } from "@/types/recipes";
 import { IngredientListItem } from "./IngredientListItem";
@@ -80,6 +80,15 @@ interface IngredientListProps {
   onToggleAllIngredients?: () => void;
   pendingIngredients?: PendingIngredient[];
   onPendingIngredientsChange?: (pending: PendingIngredient[]) => void;
+  // Scaling props
+  isScalingOpen?: boolean;
+  onToggleScaling?: () => void;
+  selectedScalingIngredient?: string;
+  onSelectScalingIngredient?: (value: string) => void;
+  targetQuantity?: string;
+  onTargetQuantityChange?: (value: string) => void;
+  onPreviewScaling?: () => void;
+  isPreviewingScaling?: boolean;
 }
 
 export function IngredientList({
@@ -99,6 +108,15 @@ export function IngredientList({
   onToggleAllIngredients,
   pendingIngredients = [],
   onPendingIngredientsChange,
+  // Scaling props
+  isScalingOpen = false,
+  onToggleScaling,
+  selectedScalingIngredient = "",
+  onSelectScalingIngredient,
+  targetQuantity = "",
+  onTargetQuantityChange,
+  onPreviewScaling,
+  isPreviewingScaling = false,
 }: IngredientListProps) {
   const { addToast } = useToast();
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -339,6 +357,85 @@ export function IngredientList({
               </span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Scaling Controls */}
+      {enableBakersPercent && version.ingredients.length > 0 && (
+        <div className="mt-4">
+          <Button
+            type="button"
+            onClick={onToggleScaling}
+            variant="soft"
+            size="2"
+            className="w-full"
+          >
+            {isScalingOpen ? "Hide scaling tools" : "Scale ingredients"}
+          </Button>
+          {isScalingOpen && (
+            <div className="mt-3 space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs dark:border-neutral-700 dark:bg-neutral-900/60">
+              <div>
+                <label className="mb-1 block text-neutral-500 dark:text-neutral-400">
+                  Scale by ingredient
+                </label>
+                <Select.Root
+                  value={selectedScalingIngredient}
+                  onValueChange={(value) => onSelectScalingIngredient?.(value)}
+                >
+                  <Select.Trigger className="w-full" placeholder="Select ingredient..." />
+                  <Select.Content>
+                    {version.ingredients.map((ing) => (
+                      <Select.Item key={ing.id} value={ing.id}>
+                        {ing.name}
+                      </Select.Item>
+                    ))}
+                  </Select.Content>
+                </Select.Root>
+              </div>
+              {selectedScalingIngredient && (
+                <div>
+                  <label className="mb-1 block text-neutral-500 dark:text-neutral-400">
+                    Target amount (
+                    {
+                      version.ingredients.find(
+                        (ing) => ing.id === selectedScalingIngredient,
+                      )?.unit
+                    }
+                    )
+                  </label>
+                  <div className="flex gap-2">
+                    <TextField.Root
+                      type="number"
+                      value={targetQuantity}
+                      onChange={(event) => onTargetQuantityChange?.(event.target.value)}
+                      placeholder={`Current: ${
+                        version.ingredients
+                          .find((ing) => ing.id === selectedScalingIngredient)
+                          ?.quantity.toFixed(1) ?? ""
+                      }`}
+                      className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                    />
+                    <Button
+                      type="button"
+                      onClick={onPreviewScaling}
+                      disabled={
+                        !targetQuantity ||
+                        Number(targetQuantity) <= 0 ||
+                        isPreviewingScaling
+                      }
+                      variant="solid"
+                      size="2"
+                    >
+                      {isPreviewingScaling ? "..." : "Preview"}
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                    All other ingredients will be scaled proportionally
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

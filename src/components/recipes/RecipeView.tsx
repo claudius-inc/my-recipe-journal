@@ -911,19 +911,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                 <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                   Description
                 </span>
-                <div className="flex items-center gap-2">
-                  <SaveIndicator isSaving={savingRecipeDescription} />
-                  {selectedVersion.ingredients.length > 0 && (
-                    <Button
-                      onClick={handleGenerateDescription}
-                      disabled={isGeneratingDescription}
-                      variant="ghost"
-                      size="1"
-                    >
-                      {isGeneratingDescription ? "Generating..." : "✨ Generate with AI"}
-                    </Button>
-                  )}
-                </div>
+                <SaveIndicator isSaving={savingRecipeDescription} />
               </div>
               <TextArea
                 value={recipeDescription}
@@ -933,11 +921,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                 rows={3}
                 className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
               />
-              {showGenerationTimeout && isGeneratingDescription && (
-                <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
-                  ⏱ Generation is taking longer than expected. Please wait...
-                </div>
-              )}
             </div>
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-center gap-3">
@@ -1008,6 +991,14 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           pendingIngredients={pendingIngredients}
           onPendingIngredientsChange={setPendingIngredients}
           onAddIngredient={addIngredient}
+          isScalingOpen={isScalingOpen}
+          onToggleScaling={() => setIsScalingOpen(!isScalingOpen)}
+          selectedScalingIngredient={selectedScalingIngredient}
+          onSelectScalingIngredient={setSelectedScalingIngredient}
+          targetQuantity={targetQuantity}
+          onTargetQuantityChange={setTargetQuantity}
+          onPreviewScaling={handlePreviewScaling}
+          isPreviewingScaling={isPreviewingScaling}
         />
 
         {categoryConfig?.fields?.length ? (
@@ -1097,7 +1088,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                   selectedVersion.ingredients.find(
                     (i) => i.id === selectedScalingIngredient,
                   )?.name
-                } to ${targetQuantity}`
+                } to ${targetQuantity} ${
+                  selectedVersion.ingredients.find(
+                    (i) => i.id === selectedScalingIngredient,
+                  )?.unit
+                }`
               : ""
           }
           onConfirm={handleConfirmScaling}
