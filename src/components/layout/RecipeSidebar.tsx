@@ -15,6 +15,7 @@ import {
   CameraIcon,
   ArchiveIcon,
   DotsVerticalIcon,
+  ArrowLeftIcon,
 } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
@@ -79,6 +80,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const handleToggleArchive = async (recipeId: string, isArchived: boolean) => {
     try {
@@ -97,14 +99,22 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+
+    // First filter by archived status
+    const byArchiveStatus = recipes.filter((recipe) => {
+      const isArchived = !!recipe.archivedAt;
+      return showArchived ? isArchived : !isArchived;
+    });
+
+    // Then filter by search query
     if (!normalized) {
-      return recipes;
+      return byArchiveStatus;
     }
-    return recipes.filter((recipe) => {
+    return byArchiveStatus.filter((recipe) => {
       const haystack = [recipe.name, recipe.description ?? "", ...(recipe.tags ?? [])];
       return haystack.some((value) => value.toLowerCase().includes(normalized));
     });
-  }, [recipes, query]);
+  }, [recipes, query, showArchived]);
 
   const persistRecipe = async () => {
     if (!draftName.trim() || isSaving) {
@@ -202,37 +212,38 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between gap-2 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">Recipes</h1>
-          </div>
-          <Tooltip content="Close">
-            <IconButton
-              variant="ghost"
-              size="2"
-              className="rounded-full md:hidden"
-              onClick={onClose}
-              aria-label="Close recipes panel"
-            >
-              <Cross2Icon className="w-4 h-4" />
-            </IconButton>
-          </Tooltip>
-        </div>
-
-        <div className="space-y-4 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
-          {(loading || error) && (
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
-              {loading ? "Syncing recipes…" : error}
-            </div>
-          )}
-          <div className="relative">
+        <div className="space-y-3 border-b border-neutral-200 px-5 py-3 dark:border-neutral-800">
+          {/* Row 1: Title, Search, Close */}
+          <div className="flex items-center gap-3">
+            <h1 className="text-base font-semibold tracking-tight shrink-0">Recipes</h1>
             <TextField.Root
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search recipes"
+              className="flex-1"
             />
+            <Tooltip content="Close">
+              <IconButton
+                variant="ghost"
+                size="2"
+                className="rounded-full md:hidden"
+                onClick={onClose}
+                aria-label="Close recipes panel"
+              >
+                <Cross2Icon className="w-4 h-4" />
+              </IconButton>
+            </Tooltip>
           </div>
+
+          {/* Loading/Error message */}
+          {(loading || error) && (
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
+              {loading ? "Syncing recipes…" : error}
+            </div>
+          )}
+
+          {/* Row 2: Action buttons */}
           <div>
             <div className="flex gap-2">
               <Button
@@ -260,6 +271,18 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                   {isScanning ? "Scanning…" : "Scan"}
                 </label>
               </Button>
+              <Tooltip
+                content={showArchived ? "Show active recipes" : "Show archived recipes"}
+              >
+                <IconButton
+                  variant={showArchived ? "solid" : "outline"}
+                  size="2"
+                  onClick={() => setShowArchived(!showArchived)}
+                  aria-label="Toggle archived recipes view"
+                >
+                  <ArchiveIcon className="w-4 h-4" />
+                </IconButton>
+              </Tooltip>
             </div>
             {scanError && (
               <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
@@ -325,6 +348,18 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           </div>
         </div>
 
+        {showArchived && (
+          <Button
+            variant="soft"
+            size="2"
+            className="w-full rounded-none py-5"
+            onClick={() => setShowArchived(false)}
+          >
+            <ArrowLeftIcon className="w-4 h-4 inline mr-2" />
+            Back to active recipes
+          </Button>
+        )}
+
         <div className="flex-1 overflow-y-auto px-2 py-4">
           {loading && filtered.length === 0 ? (
             <div className="space-y-2">
@@ -334,7 +369,9 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
             </div>
           ) : filtered.length === 0 ? (
             <p className="px-3 text-sm text-neutral-500 dark:text-neutral-400">
-              No recipes yet. Create one to get started.
+              {showArchived
+                ? "No archived recipes."
+                : "No recipes yet. Create one to get started."}
             </p>
           ) : (
             <>
