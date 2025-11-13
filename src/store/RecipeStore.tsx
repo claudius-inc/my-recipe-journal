@@ -65,6 +65,8 @@ interface RecipeStoreValue {
   ) => Promise<void>;
   archiveRecipe: (recipeId: string) => Promise<void>;
   unarchiveRecipe: (recipeId: string) => Promise<void>;
+  pinRecipe: (recipeId: string) => Promise<void>;
+  unpinRecipe: (recipeId: string) => Promise<void>;
   createVersion: (
     recipeId: string,
     payload: {
@@ -489,6 +491,82 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  const pinRecipe = useCallback<RecipeStoreValue["pinRecipe"]>(
+    async (recipeId) => {
+      // Optimistic update
+      const previousData =
+        queryClient.getQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY);
+
+      // Update cache optimistically
+      if (previousData) {
+        queryClient.setQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY, {
+          ...previousData,
+          pages: previousData.pages.map((page) => ({
+            ...page,
+            data: page.data.map((recipe) =>
+              recipe.id === recipeId
+                ? { ...recipe, pinnedAt: new Date().toISOString() }
+                : recipe,
+            ),
+          })),
+        });
+      }
+
+      try {
+        await requestJson<Recipe>(`/api/recipes/${recipeId}/pin`, {
+          method: "PATCH",
+        });
+
+        // Refetch to ensure data consistency
+        await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      } catch (error) {
+        // Rollback on error
+        if (previousData) {
+          queryClient.setQueryData(RECIPES_QUERY_KEY, previousData);
+        }
+        throw error;
+      }
+    },
+    [queryClient],
+  );
+
+  const unpinRecipe = useCallback<RecipeStoreValue["unpinRecipe"]>(
+    async (recipeId) => {
+      // Optimistic update
+      const previousData =
+        queryClient.getQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY);
+
+      // Update cache optimistically
+      if (previousData) {
+        queryClient.setQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY, {
+          ...previousData,
+          pages: previousData.pages.map((page) => ({
+            ...page,
+            data: page.data.map((recipe) =>
+              recipe.id === recipeId ? { ...recipe, pinnedAt: null } : recipe,
+            ),
+          })),
+        });
+      }
+
+      try {
+        await requestJson<Recipe>(`/api/recipes/${recipeId}/unpin`, {
+          method: "PATCH",
+        });
+
+        // Refetch to ensure data consistency
+        await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      } catch (error) {
+        // Rollback on error
+        if (previousData) {
+          queryClient.setQueryData(RECIPES_QUERY_KEY, previousData);
+        }
+        throw error;
+      }
+    },
+    [queryClient],
+  );
+
   const createVersion = useCallback<RecipeStoreValue["createVersion"]>(
     async (recipeId, payload) => {
       const recipe = await requestJson<Recipe>(`/api/recipes/${recipeId}/versions`, {
@@ -661,6 +739,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       updateRecipe,
       archiveRecipe,
       unarchiveRecipe,
+      pinRecipe,
+      unpinRecipe,
       createVersion,
       updateVersion,
       deleteVersion,
@@ -689,6 +769,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       updateRecipe,
       archiveRecipe,
       unarchiveRecipe,
+      pinRecipe,
+      unpinRecipe,
       createVersion,
       updateVersion,
       deleteVersion,

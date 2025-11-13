@@ -16,6 +16,8 @@ import {
   ArchiveIcon,
   DotsVerticalIcon,
   ArrowLeftIcon,
+  DrawingPinIcon,
+  DrawingPinFilledIcon,
 } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
@@ -66,6 +68,8 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
     createRecipeWithData,
     archiveRecipe,
     unarchiveRecipe,
+    pinRecipe,
+    unpinRecipe,
     loading,
     error,
     hasMore,
@@ -84,6 +88,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [animatingOut, setAnimatingOut] = useState<string | null>(null);
   const [justMoved, setJustMoved] = useState<string | null>(null);
   const [archivingInProgress, setArchivingInProgress] = useState<Set<string>>(new Set());
+  const [pinningInProgress, setPinningInProgress] = useState<Set<string>>(new Set());
 
   const handleToggleArchive = async (recipeId: string, isArchived: boolean) => {
     // Prevent overlapping archive/unarchive actions on the same recipe
@@ -159,6 +164,34 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
     }
   };
 
+  const handleTogglePin = async (recipeId: string, isPinned: boolean) => {
+    // Prevent overlapping pin/unpin actions
+    if (pinningInProgress.has(recipeId)) {
+      return;
+    }
+
+    setPinningInProgress((prev) => new Set(prev).add(recipeId));
+
+    try {
+      if (isPinned) {
+        await unpinRecipe(recipeId);
+        addToast("Recipe unpinned", "success");
+      } else {
+        await pinRecipe(recipeId);
+        addToast("Recipe pinned", "success");
+      }
+    } catch (error) {
+      console.error("Failed to toggle pin:", error);
+      addToast("Failed to pin/unpin recipe", "error");
+    } finally {
+      setPinningInProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(recipeId);
+        return next;
+      });
+    }
+  };
+
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
@@ -169,12 +202,26 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
     });
 
     // Then filter by search query
-    if (!normalized) {
-      return byArchiveStatus;
+    let result = byArchiveStatus;
+    if (normalized) {
+      result = byArchiveStatus.filter((recipe) => {
+        const haystack = [recipe.name, recipe.description ?? "", ...(recipe.tags ?? [])];
+        return haystack.some((value) => value.toLowerCase().includes(normalized));
+      });
     }
-    return byArchiveStatus.filter((recipe) => {
-      const haystack = [recipe.name, recipe.description ?? "", ...(recipe.tags ?? [])];
-      return haystack.some((value) => value.toLowerCase().includes(normalized));
+
+    // Sort: pinned recipes first, then by updated date
+    return result.sort((a, b) => {
+      // Pinned recipes always come first
+      if (a.pinnedAt && !b.pinnedAt) return -1;
+      if (!a.pinnedAt && b.pinnedAt) return 1;
+
+      // Both pinned or both not pinned: sort by pinnedAt or updatedAt
+      if (a.pinnedAt && b.pinnedAt) {
+        return new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime();
+      }
+
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
   }, [recipes, query, showArchived]);
 
@@ -442,6 +489,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                   const isAnimatingOut = animatingOut === recipe.id;
                   const isJustMoved = justMoved === recipe.id;
                   const isArchiveInProgress = archivingInProgress.has(recipe.id);
+                  const isPinInProgress = pinningInProgress.has(recipe.id);
 
                   return (
                     <li
@@ -472,6 +520,11 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                         <div className="space-y-2">
                           <div className="flex flex-col gap-2 items-start">
                             <div className="flex items-center gap-2">
+                              {recipe.pinnedAt && (
+                                <Tooltip content="Pinned">
+                                  <DrawingPinFilledIcon className="h-4 w-4 text-blue-500" />
+                                </Tooltip>
+                              )}
                               <span className="text-base font-semibold leading-tight md:text-sm">
                                 {recipe.name}
                               </span>
@@ -503,36 +556,67 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                           </p>
                         </div>
                       </Button>
-                      <DropdownMenu.Root>
-                        <DropdownMenu.Trigger>
+                      <div className="flex flex-col items-center gap-2">
+                        <DropdownMenu.Root>
+                          <DropdownMenu.Trigger>
+                            <IconButton
+                              variant="soft"
+                              size="3"
+                              className={cn(
+                                "rounded-lg",
+                                recipe.id === selectedRecipeId
+                                  ? ""
+                                  : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+                              )}
+                              aria-label="Recipe options"
+                              disabled={isAnimatingOut || isArchiveInProgress}
+                            >
+                              <DotsVerticalIcon />
+                            </IconButton>
+                          </DropdownMenu.Trigger>
+                          <DropdownMenu.Content>
+                            <DropdownMenu.Item
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleArchive(recipe.id, !!recipe.archivedAt);
+                              }}
+                              disabled={isAnimatingOut || isArchiveInProgress}
+                            >
+                              <ArchiveIcon />
+                              {recipe.archivedAt ? "Unarchive" : "Archive"}
+                            </DropdownMenu.Item>
+                          </DropdownMenu.Content>
+                        </DropdownMenu.Root>
+                        <Tooltip
+                          content={recipe.pinnedAt ? "Unpin recipe" : "Pin recipe"}
+                        >
                           <IconButton
                             variant="soft"
                             size="3"
+                            color={recipe.pinnedAt ? "blue" : undefined}
                             className={cn(
                               "rounded-lg",
                               recipe.id === selectedRecipeId
                                 ? ""
                                 : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
                             )}
-                            aria-label="Recipe options"
-                            disabled={isAnimatingOut || isArchiveInProgress}
-                          >
-                            <DotsVerticalIcon />
-                          </IconButton>
-                        </DropdownMenu.Trigger>
-                        <DropdownMenu.Content>
-                          <DropdownMenu.Item
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleToggleArchive(recipe.id, !!recipe.archivedAt);
+                              handleTogglePin(recipe.id, !!recipe.pinnedAt);
                             }}
-                            disabled={isAnimatingOut || isArchiveInProgress}
+                            disabled={
+                              isAnimatingOut || isArchiveInProgress || isPinInProgress
+                            }
+                            aria-label={recipe.pinnedAt ? "Unpin recipe" : "Pin recipe"}
                           >
-                            <ArchiveIcon />
-                            {recipe.archivedAt ? "Unarchive" : "Archive"}
-                          </DropdownMenu.Item>
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Root>
+                            {recipe.pinnedAt ? (
+                              <DrawingPinFilledIcon />
+                            ) : (
+                              <DrawingPinIcon />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                      </div>
                     </li>
                   );
                 })}

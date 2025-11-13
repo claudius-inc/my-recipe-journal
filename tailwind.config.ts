@@ -39,7 +39,7 @@ const config: Config = {
         fadeOut: "fadeOut 500ms ease-out forwards",
         fadeIn: "fadeIn 400ms ease-out forwards",
         slideUp: "slideUp 300ms ease-out forwards",
-        shimmer: "shimmer 2s infinite",
+        shimmer: "shimmer 3s ease-in-out infinite",
       },
       backgroundSize: {
         shimmer: "1000px 100%",

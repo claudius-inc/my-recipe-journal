@@ -101,11 +101,13 @@ model Recipe {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   archivedAt      DateTime?
+  pinnedAt        DateTime?
   activeVersionId String?           @unique
   activeVersion   RecipeVersion?    @relation("ActiveRecipeVersion", fields: [activeVersionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   versions        RecipeVersion[]
 
   @@index([userId])
+  @@index([pinnedAt])
 }
 
 model RecipeVersion {

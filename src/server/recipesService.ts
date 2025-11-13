@@ -483,3 +483,23 @@ export async function unarchiveRecipe(recipeId: string): Promise<Recipe> {
 
   return toRecipe(updated);
 }
+
+export async function pinRecipe(recipeId: string): Promise<Recipe> {
+  const updated = await prisma.recipe.update({
+    where: { id: recipeId },
+    data: { pinnedAt: new Date() },
+    include: recipeWithRelations,
+  });
+
+  return toRecipe(updated);
+}
+
+export async function unpinRecipe(recipeId: string): Promise<Recipe> {
+  const updated = await prisma.recipe.update({
+    where: { id: recipeId },
+    data: { pinnedAt: null },
+    include: recipeWithRelations,
+  });
+
+  return toRecipe(updated);
+}

@@ -69,4 +69,5 @@ export interface Recipe {
   createdAt: string;
   updatedAt: string;
   archivedAt: string | null;
+  pinnedAt: string | null;
 }
