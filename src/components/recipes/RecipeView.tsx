@@ -337,17 +337,24 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     if (!selectedRecipe) {
       return;
     }
-    try {
-      if (selectedRecipe.archivedAt) {
-        await unarchiveRecipe(selectedRecipe.id);
-        addToast("Recipe unarchived", "success");
-      } else {
-        await archiveRecipe(selectedRecipe.id);
-        addToast("Recipe archived", "success");
-      }
-    } catch (error) {
-      console.error("Failed to toggle archive:", error);
-      addToast("Failed to archive/unarchive recipe", "error");
+
+    const isArchiving = !selectedRecipe.archivedAt;
+
+    // Show toast immediately for instant feedback
+    if (isArchiving) {
+      addToast("Recipe archived", "success");
+      // Call API in background with optimistic update
+      archiveRecipe(selectedRecipe.id).catch((error) => {
+        console.error("Failed to archive:", error);
+        addToast("Failed to archive recipe", "error");
+      });
+    } else {
+      addToast("Recipe unarchived", "success");
+      // Call API in background with optimistic update
+      unarchiveRecipe(selectedRecipe.id).catch((error) => {
+        console.error("Failed to unarchive:", error);
+        addToast("Failed to unarchive recipe", "error");
+      });
     }
   }, [selectedRecipe, archiveRecipe, unarchiveRecipe, addToast]);
 

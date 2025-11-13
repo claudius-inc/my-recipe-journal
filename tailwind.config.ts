@@ -22,6 +22,14 @@ const config: Config = {
           "0%": { opacity: "1" },
           "100%": { opacity: "0" },
         },
+        fadeIn: {
+          "0%": { opacity: "0", transform: "scale(0.98)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        slideUp: {
+          "0%": { transform: "translateY(0)", opacity: "1" },
+          "100%": { transform: "translateY(-10px)", opacity: "0" },
+        },
         shimmer: {
           "0%": { backgroundPosition: "-1000px 0" },
           "100%": { backgroundPosition: "1000px 0" },
@@ -29,6 +37,8 @@ const config: Config = {
       },
       animation: {
         fadeOut: "fadeOut 500ms ease-out forwards",
+        fadeIn: "fadeIn 400ms ease-out forwards",
+        slideUp: "slideUp 300ms ease-out forwards",
         shimmer: "shimmer 2s infinite",
       },
       backgroundSize: {

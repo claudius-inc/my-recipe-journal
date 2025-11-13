@@ -81,19 +81,81 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [animatingOut, setAnimatingOut] = useState<string | null>(null);
+  const [justMoved, setJustMoved] = useState<string | null>(null);
+  const [archivingInProgress, setArchivingInProgress] = useState<Set<string>>(new Set());
 
   const handleToggleArchive = async (recipeId: string, isArchived: boolean) => {
+    // Prevent overlapping archive/unarchive actions on the same recipe
+    if (archivingInProgress.has(recipeId)) {
+      return;
+    }
+
+    // Mark this recipe as having an in-progress archive action
+    setArchivingInProgress((prev) => new Set(prev).add(recipeId));
+
+    // Start exit animation
+    setAnimatingOut(recipeId);
+
+    // Wait for animation to complete
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
     try {
       if (isArchived) {
-        await unarchiveRecipe(recipeId);
+        // Unarchiving flow
+        // 1. Show toast immediately
         addToast("Recipe unarchived", "success");
+
+        // 2. Call API with optimistic update and wait for completion
+        try {
+          await unarchiveRecipe(recipeId);
+        } catch (error) {
+          console.error("Failed to unarchive:", error);
+          addToast("Failed to unarchive recipe", "error");
+          throw error; // Re-throw to hit outer catch
+        }
+
+        // 3. Immediately switch view and highlight (optimistic update makes recipe available)
+        setAnimatingOut(null);
+        setShowArchived(false);
+
+        // 4. Small delay to let React render, then highlight
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        setJustMoved(recipeId);
+        setTimeout(() => setJustMoved(null), 2000);
       } else {
-        await archiveRecipe(recipeId);
+        // Archiving flow
+        // 1. Show toast immediately
         addToast("Recipe archived", "success");
+
+        // 2. Call API with optimistic update and wait for completion
+        try {
+          await archiveRecipe(recipeId);
+        } catch (error) {
+          console.error("Failed to archive:", error);
+          addToast("Failed to archive recipe", "error");
+          throw error; // Re-throw to hit outer catch
+        }
+
+        // 3. Clear animation immediately (optimistic update makes recipe available in archive list)
+        setAnimatingOut(null);
+
+        // Optional: Uncomment to automatically show archived list
+        // setShowArchived(true);
+        // await new Promise((resolve) => setTimeout(resolve, 50));
+        // setJustMoved(recipeId);
+        // setTimeout(() => setJustMoved(null), 2000);
       }
     } catch (error) {
       console.error("Failed to toggle archive:", error);
-      addToast("Failed to archive/unarchive recipe", "error");
+      setAnimatingOut(null);
+    } finally {
+      // Always clear the in-progress flag when done
+      setArchivingInProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(recipeId);
+        return next;
+      });
     }
   };
 
@@ -376,85 +438,104 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           ) : (
             <>
               <ul className="space-y-3">
-                {filtered.map((recipe) => (
-                  <li key={recipe.id} className="flex items-stretch gap-2">
-                    <Button
-                      variant={recipe.id === selectedRecipeId ? "solid" : "soft"}
-                      size="3"
+                {filtered.map((recipe) => {
+                  const isAnimatingOut = animatingOut === recipe.id;
+                  const isJustMoved = justMoved === recipe.id;
+                  const isArchiveInProgress = archivingInProgress.has(recipe.id);
+
+                  return (
+                    <li
+                      key={recipe.id}
                       className={cn(
-                        "flex-1 h-auto rounded-lg px-4 py-4 text-left transition-shadow justify-start",
-                        recipe.id === selectedRecipeId
-                          ? "shadow-sm"
-                          : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+                        "flex items-stretch gap-2 transition-all",
+                        isAnimatingOut && "animate-slideUp",
+                        isJustMoved &&
+                          "animate-fadeIn ring-2 ring-blue-400 dark:ring-blue-600 rounded-lg",
                       )}
-                      onClick={() => {
-                        selectRecipe(recipe.id);
-                        onClose();
-                      }}
                     >
-                      <div className="space-y-2">
-                        <div className="flex flex-col gap-2 items-start">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base font-semibold leading-tight md:text-sm">
-                              {recipe.name}
-                            </span>
-                            {recipe.archivedAt && (
-                              <Tooltip content="Archived">
-                                <ArchiveIcon className="h-4 w-4 text-orange-500" />
-                              </Tooltip>
-                            )}
+                      <Button
+                        variant={recipe.id === selectedRecipeId ? "solid" : "soft"}
+                        size="3"
+                        className={cn(
+                          "flex-1 h-auto rounded-lg px-4 py-4 text-left transition-shadow justify-start",
+                          recipe.id === selectedRecipeId
+                            ? "shadow-sm"
+                            : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+                          isAnimatingOut && "pointer-events-none opacity-50",
+                        )}
+                        onClick={() => {
+                          selectRecipe(recipe.id);
+                          onClose();
+                        }}
+                        disabled={isAnimatingOut}
+                      >
+                        <div className="space-y-2">
+                          <div className="flex flex-col gap-2 items-start">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base font-semibold leading-tight md:text-sm">
+                                {recipe.name}
+                              </span>
+                              {recipe.archivedAt && (
+                                <Tooltip content="Archived">
+                                  <ArchiveIcon className="h-4 w-4 text-orange-500" />
+                                </Tooltip>
+                              )}
+                            </div>
+                            <Badge
+                              color={recipe.id === selectedRecipeId ? "gray" : "gold"}
+                              variant="soft"
+                              className={recipe.id === selectedRecipeId ? "bg-white" : ""}
+                            >
+                              {RECIPE_CATEGORIES.find(
+                                (c) => c === recipe.category,
+                              )?.toLocaleUpperCase() ??
+                                recipe.category.toLocaleUpperCase()}
+                            </Badge>
                           </div>
-                          <Badge
-                            color={recipe.id === selectedRecipeId ? "gray" : "gold"}
-                            variant="soft"
-                            className={recipe.id === selectedRecipeId ? "bg-white" : ""}
+                          <p
+                            className={cn(
+                              "text-xs text-neutral-400 dark:text-neutral-500",
+                              recipe.id === selectedRecipeId &&
+                                "text-white dark:text-neutral-100 font-medium",
+                            )}
                           >
-                            {RECIPE_CATEGORIES.find(
-                              (c) => c === recipe.category,
-                            )?.toLocaleUpperCase() ?? recipe.category.toLocaleUpperCase()}
-                          </Badge>
+                            Last updated {formatRelativeTime(recipe.updatedAt)}
+                          </p>
                         </div>
-                        <p
-                          className={cn(
-                            "text-xs text-neutral-400 dark:text-neutral-500",
-                            recipe.id === selectedRecipeId &&
-                              "text-white dark:text-neutral-100 font-medium",
-                          )}
-                        >
-                          Last updated {formatRelativeTime(recipe.updatedAt)}
-                        </p>
-                      </div>
-                    </Button>
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger>
-                        <IconButton
-                          variant="soft"
-                          size="3"
-                          className={cn(
-                            "rounded-lg",
-                            recipe.id === selectedRecipeId
-                              ? ""
-                              : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
-                          )}
-                          aria-label="Recipe options"
-                        >
-                          <DotsVerticalIcon />
-                        </IconButton>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content>
-                        <DropdownMenu.Item
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleArchive(recipe.id, !!recipe.archivedAt);
-                          }}
-                        >
-                          <ArchiveIcon />
-                          {recipe.archivedAt ? "Unarchive" : "Archive"}
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  </li>
-                ))}
+                      </Button>
+                      <DropdownMenu.Root>
+                        <DropdownMenu.Trigger>
+                          <IconButton
+                            variant="soft"
+                            size="3"
+                            className={cn(
+                              "rounded-lg",
+                              recipe.id === selectedRecipeId
+                                ? ""
+                                : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+                            )}
+                            aria-label="Recipe options"
+                            disabled={isAnimatingOut || isArchiveInProgress}
+                          >
+                            <DotsVerticalIcon />
+                          </IconButton>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content>
+                          <DropdownMenu.Item
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleArchive(recipe.id, !!recipe.archivedAt);
+                            }}
+                            disabled={isAnimatingOut || isArchiveInProgress}
+                          >
+                            <ArchiveIcon />
+                            {recipe.archivedAt ? "Unarchive" : "Archive"}
+                          </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Root>
+                    </li>
+                  );
+                })}
               </ul>
               {hasMore && (
                 <div className="mt-4 px-3">

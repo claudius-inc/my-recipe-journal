@@ -415,22 +415,76 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
 
   const archiveRecipe = useCallback<RecipeStoreValue["archiveRecipe"]>(
     async (recipeId) => {
-      await requestJson<Recipe>(`/api/recipes/${recipeId}/archive`, {
-        method: "PATCH",
-      });
+      // Optimistic update
+      const previousData =
+        queryClient.getQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY);
 
-      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      // Update cache optimistically
+      if (previousData) {
+        queryClient.setQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY, {
+          ...previousData,
+          pages: previousData.pages.map((page) => ({
+            ...page,
+            data: page.data.map((recipe) =>
+              recipe.id === recipeId
+                ? { ...recipe, archivedAt: new Date().toISOString() }
+                : recipe,
+            ),
+          })),
+        });
+      }
+
+      try {
+        await requestJson<Recipe>(`/api/recipes/${recipeId}/archive`, {
+          method: "PATCH",
+        });
+
+        // Refetch to ensure data consistency
+        await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      } catch (error) {
+        // Rollback on error
+        if (previousData) {
+          queryClient.setQueryData(RECIPES_QUERY_KEY, previousData);
+        }
+        throw error;
+      }
     },
     [queryClient],
   );
 
   const unarchiveRecipe = useCallback<RecipeStoreValue["unarchiveRecipe"]>(
     async (recipeId) => {
-      await requestJson<Recipe>(`/api/recipes/${recipeId}/unarchive`, {
-        method: "PATCH",
-      });
+      // Optimistic update
+      const previousData =
+        queryClient.getQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY);
 
-      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      // Update cache optimistically
+      if (previousData) {
+        queryClient.setQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY, {
+          ...previousData,
+          pages: previousData.pages.map((page) => ({
+            ...page,
+            data: page.data.map((recipe) =>
+              recipe.id === recipeId ? { ...recipe, archivedAt: null } : recipe,
+            ),
+          })),
+        });
+      }
+
+      try {
+        await requestJson<Recipe>(`/api/recipes/${recipeId}/unarchive`, {
+          method: "PATCH",
+        });
+
+        // Refetch to ensure data consistency
+        await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      } catch (error) {
+        // Rollback on error
+        if (previousData) {
+          queryClient.setQueryData(RECIPES_QUERY_KEY, previousData);
+        }
+        throw error;
+      }
     },
     [queryClient],
   );
