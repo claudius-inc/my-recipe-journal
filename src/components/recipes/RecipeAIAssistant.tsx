@@ -11,6 +11,7 @@ import {
 import type { Recipe, RecipeVersion, Ingredient } from "@/types/recipes";
 import { useToast } from "@/context/ToastContext";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
+import { Cross2Icon } from "@radix-ui/react-icons";
 
 interface RecipeAIAssistantProps {
   recipe: Recipe;
@@ -25,8 +26,6 @@ interface RecipeAIAssistantProps {
   onApplyChanges: (changes: AIAssistantResponse["changes"]) => Promise<void>;
 }
 
-type PanelState = "minimized" | "partial" | "expanded";
-
 export function RecipeAIAssistant({
   recipe,
   version,
@@ -37,7 +36,6 @@ export function RecipeAIAssistant({
 }: RecipeAIAssistantProps) {
   const { addToast } = useToast();
   const { keyboardHeight, isKeyboardVisible } = useKeyboardHeight();
-  const [panelState, setPanelState] = useState<PanelState>("partial");
   const [messages, setMessages] = useState<
     (ChatMessageType & { changes?: AIAssistantResponse["changes"] })[]
   >([]);
@@ -63,10 +61,10 @@ export function RecipeAIAssistant({
 
   // Focus input when opened
   useEffect(() => {
-    if (isOpen && panelState !== "minimized") {
+    if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, panelState]);
+  }, [isOpen]);
 
   // Clear messages when version changes
   useEffect(() => {
@@ -202,60 +200,31 @@ export function RecipeAIAssistant({
     return null;
   }
 
-  if (panelState === "minimized") {
-    return null;
-  }
-
-  const heightClass =
-    panelState === "partial"
-      ? "h-[50vh] supports-[height:50dvh]:h-[50dvh]"
-      : "h-[80vh] supports-[height:80dvh]:h-[80dvh]";
-
   return (
     <div
       ref={panelRef}
-      className={`fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-3xl border-t border-neutral-200 bg-white shadow-2xl transition-all duration-300 dark:border-neutral-700 dark:bg-neutral-900 sm:inset-x-auto sm:right-6 sm:w-[400px] sm:rounded-3xl sm:border ${heightClass}`}
+      className="fixed inset-x-0 bottom-0 z-50 flex h-[90vh] flex-col rounded-t-lg border-t border-neutral-200 bg-white shadow-2xl transition-all duration-300 supports-[height:90dvh]:h-[90dvh] dark:border-neutral-700 dark:bg-neutral-900 sm:inset-x-auto sm:right-6 sm:w-[480px] sm:rounded-lg sm:border"
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 dark:border-neutral-700">
-        <div className="flex flex-col">
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            Recipe Assistant
-          </h3>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            {recipe.name} - {version.title || "Current Version"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Tooltip content={panelState === "expanded" ? "Minimize" : "Maximize"}>
-            <IconButton
-              type="button"
-              onClick={() =>
-                setPanelState((prev) => (prev === "expanded" ? "partial" : "expanded"))
-              }
-              variant="ghost"
-              size="2"
-              aria-label={panelState === "expanded" ? "Minimize" : "Maximize"}
-            >
-              {panelState === "expanded" ? "−" : "□"}
-            </IconButton>
-          </Tooltip>
-          <Tooltip content="Close">
-            <IconButton
-              type="button"
-              onClick={onClose}
-              variant="ghost"
-              size="2"
-              aria-label="Close"
-            >
-              ✕
-            </IconButton>
-          </Tooltip>
-        </div>
+      <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3 dark:border-neutral-700">
+        <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          Recipe Assistant
+        </h3>
+        <Tooltip content="Close">
+          <IconButton
+            type="button"
+            onClick={onClose}
+            variant="ghost"
+            size="2"
+            aria-label="Close"
+          >
+            <Cross2Icon className="h-4 w-4" />
+          </IconButton>
+        </Tooltip>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 scrollbar-thin">
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3 scrollbar-thin">
         {messages.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
             <div className="text-4xl">✨</div>
@@ -267,12 +236,12 @@ export function RecipeAIAssistant({
                 Ask me about ingredients, techniques, or improvements
               </p>
             </div>
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <div className="mt-4 flex flex-wrap justify-center gap-2.5">
               <Button
                 type="button"
                 onClick={() => handleQuickPrompt(QUICK_PROMPTS.tooSweet)}
                 variant="outline"
-                size="1"
+                size="2"
                 radius="full"
               >
                 Too sweet?
@@ -281,7 +250,7 @@ export function RecipeAIAssistant({
                 type="button"
                 onClick={() => handleQuickPrompt(QUICK_PROMPTS.improveTexture)}
                 variant="outline"
-                size="1"
+                size="2"
                 radius="full"
               >
                 Improve texture
@@ -290,10 +259,19 @@ export function RecipeAIAssistant({
                 type="button"
                 onClick={() => handleQuickPrompt(QUICK_PROMPTS.suggestVariations)}
                 variant="outline"
-                size="1"
+                size="2"
                 radius="full"
               >
                 Suggest variations
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleQuickPrompt(QUICK_PROMPTS.balancePercentages)}
+                variant="outline"
+                size="2"
+                radius="full"
+              >
+                Balance percentages
               </Button>
             </div>
           </div>

@@ -522,7 +522,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                             <div className="flex items-center gap-2">
                               {recipe.pinnedAt && (
                                 <Tooltip content="Pinned">
-                                  <DrawingPinFilledIcon className="h-4 w-4 text-blue-500" />
+                                  <DrawingPinFilledIcon className="h-4 w-4 text-white" />
                                 </Tooltip>
                               )}
                               <span className="text-base font-semibold leading-tight md:text-sm">
