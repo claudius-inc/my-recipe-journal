@@ -1,4 +1,4 @@
-# My Recipe Log
+# My Recipe Journal
 
 Mobile-first recipe journaling app for bakers and beverage creatives. Track iterations, capture tasting notes, manage ingredients with autocomplete, and store everything in a Prisma-backed database.
 

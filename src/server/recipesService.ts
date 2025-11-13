@@ -404,6 +404,42 @@ export async function updateIngredientDetails(
   return recipe;
 }
 
+export async function batchUpdateIngredients(
+  recipeId: string,
+  updates: Array<{
+    id: string;
+    quantity?: number;
+    name?: string;
+    unit?: string;
+    role?: IngredientRole;
+    notes?: string | null;
+    sortOrder?: number;
+  }>,
+): Promise<Recipe> {
+  // Use Prisma transaction to update all ingredients atomically
+  await prisma.$transaction(
+    updates.map((update) =>
+      prisma.ingredient.update({
+        where: { id: update.id },
+        data: {
+          ...(update.quantity !== undefined && { quantity: update.quantity }),
+          ...(update.name !== undefined && { name: update.name }),
+          ...(update.unit !== undefined && { unit: update.unit }),
+          ...(update.role !== undefined && { role: update.role }),
+          ...(update.notes !== undefined && { notes: update.notes }),
+          ...(update.sortOrder !== undefined && { sortOrder: update.sortOrder }),
+        },
+      }),
+    ),
+  );
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) {
+    throw new Error("Recipe not found after batch ingredient update");
+  }
+  return recipe;
+}
+
 export async function deleteIngredient(
   recipeId: string,
   ingredientId: string,
@@ -426,4 +462,24 @@ export async function getIngredientSuggestions(recipeId?: string): Promise<strin
   const names = ingredients.map((item: { name: string }) => item.name);
   const unique = Array.from(new Set<string>(names));
   return unique.sort((a, b) => a.localeCompare(b));
+}
+
+export async function archiveRecipe(recipeId: string): Promise<Recipe> {
+  const updated = await prisma.recipe.update({
+    where: { id: recipeId },
+    data: { archivedAt: new Date() },
+    include: recipeWithRelations,
+  });
+
+  return toRecipe(updated);
+}
+
+export async function unarchiveRecipe(recipeId: string): Promise<Recipe> {
+  const updated = await prisma.recipe.update({
+    where: { id: recipeId },
+    data: { archivedAt: null },
+    include: recipeWithRelations,
+  });
+
+  return toRecipe(updated);
 }

@@ -1,13 +1,27 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge, Button, IconButton, Select, TextField, Tooltip } from "@radix-ui/themes";
-import { Cross2Icon, CameraIcon } from "@radix-ui/react-icons";
+import {
+  Badge,
+  Button,
+  DropdownMenu,
+  IconButton,
+  Select,
+  TextField,
+  Tooltip,
+} from "@radix-ui/themes";
+import {
+  Cross2Icon,
+  CameraIcon,
+  ArchiveIcon,
+  DotsVerticalIcon,
+} from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
 import { RECIPE_CATEGORIES, type RecipeCategory } from "@/types/recipes";
 import { useRecipeStore } from "@/store/RecipeStore";
 import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
+import { useToast } from "@/context/ToastContext";
 
 interface RecipeSidebarProps {
   isOpen: boolean;
@@ -42,12 +56,15 @@ const formatRelativeTime = (iso: string) => {
 };
 
 export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
+  const { addToast } = useToast();
   const {
     recipes,
     selectedRecipeId,
     selectRecipe,
     createRecipe,
     createRecipeWithData,
+    archiveRecipe,
+    unarchiveRecipe,
     loading,
     error,
     hasMore,
@@ -62,6 +79,21 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+
+  const handleToggleArchive = async (recipeId: string, isArchived: boolean) => {
+    try {
+      if (isArchived) {
+        await unarchiveRecipe(recipeId);
+        addToast("Recipe unarchived", "success");
+      } else {
+        await archiveRecipe(recipeId);
+        addToast("Recipe archived", "success");
+      }
+    } catch (error) {
+      console.error("Failed to toggle archive:", error);
+      addToast("Failed to archive/unarchive recipe", "error");
+    }
+  };
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -172,10 +204,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
       >
         <div className="flex items-center justify-between gap-2 border-b border-neutral-200 px-5 py-4 dark:border-neutral-800">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Recipe Log</h1>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Capture iterations and improve every batch.
-            </p>
+            <h1 className="text-lg font-semibold tracking-tight">Recipes</h1>
           </div>
           <Tooltip content="Close">
             <IconButton
@@ -238,7 +267,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
               </div>
             )}
             {isCreating && (
-              <div className="mt-4 space-y-3 rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900">
+              <div className="mt-4 space-y-3 rounded-lg border border-neutral-200 bg-white p-4 dark:border-neutral-700 dark:bg-neutral-900">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     Recipe name
@@ -311,12 +340,12 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
             <>
               <ul className="space-y-3">
                 {filtered.map((recipe) => (
-                  <li key={recipe.id}>
+                  <li key={recipe.id} className="flex items-stretch gap-2">
                     <Button
                       variant={recipe.id === selectedRecipeId ? "solid" : "soft"}
                       size="3"
                       className={cn(
-                        "w-full h-auto rounded-xl px-4 py-4 text-left transition-shadow justify-start",
+                        "flex-1 h-auto rounded-lg px-4 py-4 text-left transition-shadow justify-start",
                         recipe.id === selectedRecipeId
                           ? "shadow-sm"
                           : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
@@ -328,9 +357,16 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                     >
                       <div className="space-y-2">
                         <div className="flex flex-col gap-2 items-start">
-                          <span className="text-base font-semibold leading-tight md:text-sm">
-                            {recipe.name}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-semibold leading-tight md:text-sm">
+                              {recipe.name}
+                            </span>
+                            {recipe.archivedAt && (
+                              <Tooltip content="Archived">
+                                <ArchiveIcon className="h-4 w-4 text-orange-500" />
+                              </Tooltip>
+                            )}
+                          </div>
                           <Badge
                             color={recipe.id === selectedRecipeId ? "gray" : "gold"}
                             variant="soft"
@@ -345,13 +381,41 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                           className={cn(
                             "text-xs text-neutral-400 dark:text-neutral-500",
                             recipe.id === selectedRecipeId &&
-                              "text-neutral-100 dark:text-neutral-100 font-medium",
+                              "text-white dark:text-neutral-100 font-medium",
                           )}
                         >
-                          Updated {formatRelativeTime(recipe.updatedAt)}
+                          Last updated {formatRelativeTime(recipe.updatedAt)}
                         </p>
                       </div>
                     </Button>
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger>
+                        <IconButton
+                          variant="soft"
+                          size="3"
+                          className={cn(
+                            "rounded-lg",
+                            recipe.id === selectedRecipeId
+                              ? ""
+                              : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+                          )}
+                          aria-label="Recipe options"
+                        >
+                          <DotsVerticalIcon />
+                        </IconButton>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        <DropdownMenu.Item
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleArchive(recipe.id, !!recipe.archivedAt);
+                          }}
+                        >
+                          <ArchiveIcon />
+                          {recipe.archivedAt ? "Unarchive" : "Archive"}
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
                   </li>
                 ))}
               </ul>

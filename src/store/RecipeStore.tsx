@@ -63,6 +63,8 @@ interface RecipeStoreValue {
       tags: string[] | null;
     }>,
   ) => Promise<void>;
+  archiveRecipe: (recipeId: string) => Promise<void>;
+  unarchiveRecipe: (recipeId: string) => Promise<void>;
   createVersion: (
     recipeId: string,
     payload: {
@@ -115,6 +117,19 @@ interface RecipeStoreValue {
       role: IngredientRole;
       notes: string | null;
       sortOrder: number;
+    }>,
+  ) => Promise<void>;
+  batchUpdateIngredients: (
+    recipeId: string,
+    versionId: string,
+    updates: Array<{
+      id: string;
+      quantity?: number;
+      name?: string;
+      unit?: string;
+      role?: IngredientRole;
+      notes?: string | null;
+      sortOrder?: number;
     }>,
   ) => Promise<void>;
   deleteIngredient: (
@@ -398,6 +413,28 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  const archiveRecipe = useCallback<RecipeStoreValue["archiveRecipe"]>(
+    async (recipeId) => {
+      await requestJson<Recipe>(`/api/recipes/${recipeId}/archive`, {
+        method: "PATCH",
+      });
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+    },
+    [queryClient],
+  );
+
+  const unarchiveRecipe = useCallback<RecipeStoreValue["unarchiveRecipe"]>(
+    async (recipeId) => {
+      await requestJson<Recipe>(`/api/recipes/${recipeId}/unarchive`, {
+        method: "PATCH",
+      });
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+    },
+    [queryClient],
+  );
+
   const createVersion = useCallback<RecipeStoreValue["createVersion"]>(
     async (recipeId, payload) => {
       const recipe = await requestJson<Recipe>(`/api/recipes/${recipeId}/versions`, {
@@ -461,8 +498,10 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
         },
       );
 
-      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
-      await queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
+      // Invalidate cache in background without awaiting to avoid blocking/interrupting user input
+      // The optimistic UI in IngredientList handles immediate feedback
+      queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
     },
     [queryClient],
   );
@@ -474,6 +513,22 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
         {
           method: "PATCH",
           body: JSON.stringify(payload),
+        },
+      );
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
+    },
+    [queryClient],
+  );
+
+  const batchUpdateIngredients = useCallback<RecipeStoreValue["batchUpdateIngredients"]>(
+    async (recipeId, versionId, updates) => {
+      await requestJson<Recipe>(
+        `/api/recipes/${recipeId}/versions/${versionId}/ingredients`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ updates }),
         },
       );
 
@@ -550,11 +605,14 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       createRecipe,
       createRecipeWithData,
       updateRecipe,
+      archiveRecipe,
+      unarchiveRecipe,
       createVersion,
       updateVersion,
       deleteVersion,
       addIngredient,
       updateIngredient,
+      batchUpdateIngredients,
       deleteIngredient,
       getIngredientSuggestions,
     }),
@@ -575,11 +633,14 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       createRecipe,
       createRecipeWithData,
       updateRecipe,
+      archiveRecipe,
+      unarchiveRecipe,
       createVersion,
       updateVersion,
       deleteVersion,
       addIngredient,
       updateIngredient,
+      batchUpdateIngredients,
       deleteIngredient,
       getIngredientSuggestions,
     ],

@@ -9,7 +9,7 @@ import { AppProviders } from "@/components/providers/AppProviders";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "My Recipe Log",
+  title: "My Recipe Journal",
   description:
     "Mobile-first journal for iterating on bread, drinks, and experimental recipes.",
 };

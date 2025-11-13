@@ -51,6 +51,7 @@ import {
   InfoCircledIcon,
   StarFilledIcon,
   StarIcon,
+  ArchiveIcon,
 } from "@radix-ui/react-icons";
 
 interface RecipeViewProps {
@@ -154,8 +155,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     deleteVersion,
     addIngredient,
     updateIngredient,
+    batchUpdateIngredients,
     deleteIngredient,
     updateRecipe,
+    archiveRecipe,
+    unarchiveRecipe,
     getIngredientSuggestions,
   } = useRecipeStore();
 
@@ -329,6 +333,24 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     [category, recipeDescription, recipeName, selectedRecipe, updateRecipe],
   );
 
+  const handleToggleArchive = useCallback(async () => {
+    if (!selectedRecipe) {
+      return;
+    }
+    try {
+      if (selectedRecipe.archivedAt) {
+        await unarchiveRecipe(selectedRecipe.id);
+        addToast("Recipe unarchived", "success");
+      } else {
+        await archiveRecipe(selectedRecipe.id);
+        addToast("Recipe archived", "success");
+      }
+    } catch (error) {
+      console.error("Failed to toggle archive:", error);
+      addToast("Failed to archive/unarchive recipe", "error");
+    }
+  }, [selectedRecipe, archiveRecipe, unarchiveRecipe, addToast]);
+
   const handleNotesSave = useCallback(
     async (field: keyof typeof notesDraft, value: string) => {
       if (!selectedRecipe || !selectedVersion) {
@@ -406,12 +428,15 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
 
     setIsApplyingScaling(true);
     try {
-      // Update each ingredient with new quantity
-      for (const ingredient of scaledIngredients) {
-        await updateIngredient(selectedRecipe.id, selectedVersion.id, ingredient.id, {
+      // Update all ingredients with new quantities in a single batch request
+      await batchUpdateIngredients(
+        selectedRecipe.id,
+        selectedVersion.id,
+        scaledIngredients.map((ingredient) => ({
+          id: ingredient.id,
           quantity: ingredient.newQuantity,
-        });
-      }
+        })),
+      );
 
       setIsScalingModalOpen(false);
       setIsScalingOpen(false);
@@ -421,7 +446,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     } finally {
       setIsApplyingScaling(false);
     }
-  }, [selectedRecipe, selectedVersion, scaledIngredients, updateIngredient]);
+  }, [selectedRecipe, selectedVersion, scaledIngredients, batchUpdateIngredients]);
 
   const handleCancelScaling = useCallback(() => {
     setIsScalingModalOpen(false);
@@ -810,14 +835,18 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-5 py-6">
         <section className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
           <div className="flex flex-col gap-2">
-            <EditableField
-              label="Recipe name"
-              value={recipeName}
-              onChange={setRecipeName}
-              placeholder="e.g. Country loaf"
-              onBlur={() => handleRecipeBlur("name")}
-              isSaving={savingRecipeName}
-            />
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <EditableField
+                  label="Recipe name"
+                  value={recipeName}
+                  onChange={setRecipeName}
+                  placeholder="e.g. Country loaf"
+                  onBlur={() => handleRecipeBlur("name")}
+                  isSaving={savingRecipeName}
+                />
+              </div>
+            </div>
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
@@ -835,27 +864,29 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-                  Category
-                  <Select.Root
-                    value={category}
-                    onValueChange={(value) => {
-                      setCategory(value as Recipe["category"]);
-                      handleRecipeBlur("category");
-                    }}
-                  >
-                    <Select.Trigger />
-                    <Select.Content>
-                      <Select.Item value="bread">Bread</Select.Item>
-                      <Select.Item value="dessert">Dessert</Select.Item>
-                      <Select.Item value="drink">Drink</Select.Item>
-                      <Select.Item value="main">Main</Select.Item>
-                      <Select.Item value="sauce">Sauce</Select.Item>
-                      <Select.Item value="other">Other</Select.Item>
-                    </Select.Content>
-                  </Select.Root>
-                </label>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex gap-2">
+                  <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                    Category
+                    <Select.Root
+                      value={category}
+                      onValueChange={(value) => {
+                        setCategory(value as Recipe["category"]);
+                        handleRecipeBlur("category");
+                      }}
+                    >
+                      <Select.Trigger />
+                      <Select.Content>
+                        <Select.Item value="bread">Bread</Select.Item>
+                        <Select.Item value="dessert">Dessert</Select.Item>
+                        <Select.Item value="drink">Drink</Select.Item>
+                        <Select.Item value="main">Main</Select.Item>
+                        <Select.Item value="sauce">Sauce</Select.Item>
+                        <Select.Item value="other">Other</Select.Item>
+                      </Select.Content>
+                    </Select.Root>
+                  </label>
+                </div>
               </div>
               <span className="text-xs text-neutral-400 dark:text-neutral-500">
                 Last updated {formatDateTime(selectedRecipe.updatedAt)}
@@ -934,6 +965,16 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           textureRating={selectedVersion.textureRating}
           onRatingChange={handleRatingChange}
         />
+
+        <Button
+          size="2"
+          variant="soft"
+          color={selectedRecipe?.archivedAt ? "orange" : "gray"}
+          onClick={handleToggleArchive}
+        >
+          <ArchiveIcon />
+          {selectedRecipe?.archivedAt ? "Unarchive recipe" : "Archive recipe"}
+        </Button>
 
         <IterationIntentModal
           isOpen={isIntentModalOpen}

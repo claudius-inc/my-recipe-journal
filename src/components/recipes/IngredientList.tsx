@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Checkbox, Spinner, Button, TextField, Select } from "@radix-ui/themes";
 import { ChevronDownIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
@@ -133,6 +133,9 @@ export function IngredientList({
     PendingIngredient[]
   >([]);
 
+  // Ref for ingredient name input to restore focus after submission
+  const ingredientNameInputRef = useRef<HTMLInputElement>(null);
+
   const handleToggleExpand = useCallback((id: string) => {
     setExpandedId((current) => (current === id ? null : id));
   }, []);
@@ -220,6 +223,11 @@ export function IngredientList({
     setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
     setShowRoleSelector(false);
 
+    // Restore focus to ingredient name input for quick consecutive entries
+    setTimeout(() => {
+      ingredientNameInputRef.current?.focus();
+    }, 0);
+
     try {
       // Fire the API call asynchronously
       await onAddIngredient(recipeId, version.id, payload);
@@ -252,8 +260,9 @@ export function IngredientList({
     checkedIngredients.has(ing.id),
   ).length;
 
-  // Merge external and local pending ingredients
-  const allPendingIngredients = [...pendingIngredients, ...localPendingIngredients];
+  // Use only local pending ingredients (they're already synced to parent via useEffect)
+  // Merging with pendingIngredients from parent would create duplicates
+  const allPendingIngredients = localPendingIngredients;
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
@@ -449,6 +458,7 @@ export function IngredientList({
           <div className="flex flex-col gap-2">
             <div className="relative">
               <TextField.Root
+                ref={ingredientNameInputRef}
                 list="ingredient-suggestions"
                 value={draft.name}
                 onChange={(event) => handleNameChange(event.target.value)}

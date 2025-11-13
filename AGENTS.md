@@ -1,4 +1,4 @@
-# Agent Guidelines for My Recipe Log
+# Agent Guidelines for My Recipe Journal
 
 This document provides essential context for AI agents working on this codebase.
 

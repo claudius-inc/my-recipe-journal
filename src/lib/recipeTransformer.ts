@@ -49,6 +49,7 @@ type PrismaRecipeRecord = {
   activeVersionId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  archivedAt: Date | null;
   versions: PrismaRecipeVersionRecord[];
 };
 
@@ -94,6 +95,7 @@ export const toRecipe = (recipe: PrismaRecipeRecord): Recipe => ({
   activeVersionId: recipe.activeVersionId,
   createdAt: recipe.createdAt.toISOString(),
   updatedAt: recipe.updatedAt.toISOString(),
+  archivedAt: recipe.archivedAt ? recipe.archivedAt.toISOString() : null,
 });
 
 export const toRecipes = (recipes: PrismaRecipeRecord[]): Recipe[] =>

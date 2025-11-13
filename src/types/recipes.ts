@@ -68,4 +68,5 @@ export interface Recipe {
   activeVersionId: string | null;
   createdAt: string;
   updatedAt: string;
+  archivedAt: string | null;
 }
