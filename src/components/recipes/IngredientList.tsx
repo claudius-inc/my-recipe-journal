@@ -157,6 +157,23 @@ export function IngredientList({
     setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
   }, [version.id]);
 
+  // Auto-remove pending ingredients when they appear in version.ingredients
+  useEffect(() => {
+    setLocalPendingIngredients((currentPending) => {
+      // Filter out pending ingredients that now exist in the actual ingredient list
+      // Match by name, quantity, and unit to ensure we're removing the right one
+      return currentPending.filter((pending) => {
+        const existsInActual = version.ingredients.some(
+          (actual) =>
+            actual.name.toLowerCase().trim() === pending.name.toLowerCase().trim() &&
+            Math.abs(actual.quantity - pending.quantity) < 0.001 && // Account for floating point
+            actual.unit.toLowerCase().trim() === pending.unit.toLowerCase().trim(),
+        );
+        return !existsInActual;
+      });
+    });
+  }, [version.ingredients]);
+
   // Auto-suggest role and unit when ingredient name changes
   const handleNameChange = (name: string) => {
     const defaults = suggestIngredientDefaults(name);
@@ -231,8 +248,8 @@ export function IngredientList({
     try {
       // Fire the API call asynchronously
       await onAddIngredient(recipeId, version.id, payload);
-      // Remove from pending once confirmed
-      setLocalPendingIngredients((prev) => prev.filter((ing) => ing.tempId !== tempId));
+      // Note: Don't remove from pending here - the useEffect will automatically
+      // remove it when the ingredient appears in version.ingredients
     } catch (error) {
       console.error("Failed to add ingredient:", error);
       // Remove from pending on error
