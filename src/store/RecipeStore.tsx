@@ -15,6 +15,7 @@ import type { InfiniteData } from "@tanstack/react-query";
 import {
   INGREDIENT_ROLES,
   RECIPE_CATEGORIES,
+  type DuplicateRecipeData,
   type IngredientRole,
   type Recipe,
   type RecipeCategory,
@@ -67,6 +68,7 @@ interface RecipeStoreValue {
   unarchiveRecipe: (recipeId: string) => Promise<void>;
   pinRecipe: (recipeId: string) => Promise<void>;
   unpinRecipe: (recipeId: string) => Promise<void>;
+  duplicateRecipe: (recipeId: string, data: DuplicateRecipeData) => Promise<void>;
   createVersion: (
     recipeId: string,
     payload: {
@@ -567,6 +569,27 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  const duplicateRecipe = useCallback<RecipeStoreValue["duplicateRecipe"]>(
+    async (recipeId, data) => {
+      const newRecipe = await requestJson<Recipe>(`/api/recipes/${recipeId}/duplicate`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
+
+      // Select the newly created recipe
+      setSelectedRecipeId(newRecipe.id);
+      setSelectedVersionId(
+        newRecipe.activeVersionId ?? newRecipe.versions[0]?.id ?? null,
+      );
+      // Persist selection to localStorage
+      setLastViewedRecipe(newRecipe.id);
+    },
+    [queryClient],
+  );
+
   const createVersion = useCallback<RecipeStoreValue["createVersion"]>(
     async (recipeId, payload) => {
       const recipe = await requestJson<Recipe>(`/api/recipes/${recipeId}/versions`, {
@@ -741,6 +764,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       unarchiveRecipe,
       pinRecipe,
       unpinRecipe,
+      duplicateRecipe,
       createVersion,
       updateVersion,
       deleteVersion,
@@ -771,6 +795,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       unarchiveRecipe,
       pinRecipe,
       unpinRecipe,
+      duplicateRecipe,
       createVersion,
       updateVersion,
       deleteVersion,

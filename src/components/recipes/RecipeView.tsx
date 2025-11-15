@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   INGREDIENT_ROLES,
+  type DuplicateRecipeData,
   type Ingredient,
   type Recipe,
   type RecipeVersion,
@@ -25,6 +26,7 @@ import { IterationIntentModal } from "./IterationIntentModal";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
 import { VersionComparisonModal } from "./VersionComparisonModal";
 import { ScalingConfirmationModal } from "./ScalingConfirmationModal";
+import { DuplicateRecipeModal } from "./DuplicateRecipeModal";
 import { SaveIndicator } from "../ui/SaveIndicator";
 import { UploadProgress } from "../ui/UploadProgress";
 import { useToast } from "@/context/ToastContext";
@@ -160,6 +162,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     updateRecipe,
     archiveRecipe,
     unarchiveRecipe,
+    duplicateRecipe,
     getIngredientSuggestions,
   } = useRecipeStore();
 
@@ -201,6 +204,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [showGenerationTimeout, setShowGenerationTimeout] = useState(false);
   // AI Assistant state
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
+  // Duplicate modal state
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
   // SaveIndicator states for auto-save fields
   const [savingRecipeName, setSavingRecipeName] = useState(false);
   const [savingRecipeDescription, setSavingRecipeDescription] = useState(false);
@@ -807,6 +813,27 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     [selectedRecipe, selectedVersion, updateIngredient, updateRecipe, updateVersion],
   );
 
+  const handleConfirmDuplicate = useCallback(
+    async (data: DuplicateRecipeData) => {
+      if (!selectedRecipe) {
+        return;
+      }
+
+      setIsDuplicating(true);
+      try {
+        await duplicateRecipe(selectedRecipe.id, data);
+        addToast("Recipe duplicated successfully", "success");
+        setIsDuplicateModalOpen(false);
+      } catch (error) {
+        console.error("Failed to duplicate recipe:", error);
+        addToast("Failed to duplicate recipe", "error");
+      } finally {
+        setIsDuplicating(false);
+      }
+    },
+    [selectedRecipe, duplicateRecipe, addToast],
+  );
+
   if (!selectedRecipe || !selectedVersion) {
     // Show loading state while recipes are being fetched
     const isLoadingRecipes = loading && recipes.length === 0;
@@ -973,15 +1000,35 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onRatingChange={handleRatingChange}
         />
 
-        <Button
-          size="2"
-          variant="soft"
-          color={selectedRecipe?.archivedAt ? "orange" : "gray"}
-          onClick={handleToggleArchive}
-        >
-          <ArchiveIcon />
-          {selectedRecipe?.archivedAt ? "Unarchive recipe" : "Archive recipe"}
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            size="2"
+            variant="soft"
+            color="gray"
+            onClick={() => setIsDuplicateModalOpen(true)}
+            className="flex-1"
+          >
+            Duplicate recipe
+          </Button>
+          <Button
+            size="2"
+            variant="soft"
+            color={selectedRecipe?.archivedAt ? "orange" : "gray"}
+            onClick={handleToggleArchive}
+            className="flex-1"
+          >
+            <ArchiveIcon />
+            {selectedRecipe?.archivedAt ? "Unarchive recipe" : "Archive recipe"}
+          </Button>
+        </div>
+
+        <DuplicateRecipeModal
+          isOpen={isDuplicateModalOpen}
+          sourceRecipe={selectedRecipe}
+          onConfirm={handleConfirmDuplicate}
+          onCancel={() => setIsDuplicateModalOpen(false)}
+          isLoading={isDuplicating}
+        />
 
         <IterationIntentModal
           isOpen={isIntentModalOpen}

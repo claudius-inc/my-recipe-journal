@@ -21,10 +21,16 @@ import {
 } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
-import { RECIPE_CATEGORIES, type RecipeCategory } from "@/types/recipes";
+import {
+  RECIPE_CATEGORIES,
+  type Recipe,
+  type RecipeCategory,
+  type DuplicateRecipeData,
+} from "@/types/recipes";
 import { useRecipeStore } from "@/store/RecipeStore";
 import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
 import { useToast } from "@/context/ToastContext";
+import { DuplicateRecipeModal } from "@/components/recipes/DuplicateRecipeModal";
 
 interface RecipeSidebarProps {
   isOpen: boolean;
@@ -70,6 +76,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
     unarchiveRecipe,
     pinRecipe,
     unpinRecipe,
+    duplicateRecipe,
     loading,
     error,
     hasMore,
@@ -89,6 +96,8 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [justMoved, setJustMoved] = useState<string | null>(null);
   const [archivingInProgress, setArchivingInProgress] = useState<Set<string>>(new Set());
   const [pinningInProgress, setPinningInProgress] = useState<Set<string>>(new Set());
+  const [duplicateModalRecipe, setDuplicateModalRecipe] = useState<Recipe | null>(null);
+  const [isDuplicating, setIsDuplicating] = useState(false);
 
   const handleToggleArchive = async (recipeId: string, isArchived: boolean) => {
     // Prevent overlapping archive/unarchive actions on the same recipe
@@ -189,6 +198,25 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
         next.delete(recipeId);
         return next;
       });
+    }
+  };
+
+  const handleConfirmDuplicate = async (data: DuplicateRecipeData) => {
+    if (!duplicateModalRecipe) {
+      return;
+    }
+
+    setIsDuplicating(true);
+    try {
+      await duplicateRecipe(duplicateModalRecipe.id, data);
+      addToast("Recipe duplicated successfully", "success");
+      setDuplicateModalRecipe(null);
+      onClose();
+    } catch (error) {
+      console.error("Failed to duplicate recipe:", error);
+      addToast("Failed to duplicate recipe", "error");
+    } finally {
+      setIsDuplicating(false);
     }
   };
 
@@ -578,6 +606,16 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                             <DropdownMenu.Item
                               onClick={(e) => {
                                 e.stopPropagation();
+                                setDuplicateModalRecipe(recipe);
+                              }}
+                              disabled={isAnimatingOut}
+                            >
+                              Duplicate
+                            </DropdownMenu.Item>
+                            <DropdownMenu.Separator />
+                            <DropdownMenu.Item
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleToggleArchive(recipe.id, !!recipe.archivedAt);
                               }}
                               disabled={isAnimatingOut || isArchiveInProgress}
@@ -638,6 +676,16 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           )}
         </div>
       </aside>
+
+      {duplicateModalRecipe && (
+        <DuplicateRecipeModal
+          isOpen={!!duplicateModalRecipe}
+          sourceRecipe={duplicateModalRecipe}
+          onConfirm={handleConfirmDuplicate}
+          onCancel={() => setDuplicateModalRecipe(null)}
+          isLoading={isDuplicating}
+        />
+      )}
     </>
   );
 }

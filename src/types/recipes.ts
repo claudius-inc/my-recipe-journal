@@ -71,3 +71,12 @@ export interface Recipe {
   archivedAt: string | null;
   pinnedAt: string | null;
 }
+
+export interface DuplicateRecipeData {
+  name: string;
+  category: RecipeCategory;
+  copyTags: boolean;
+  copyIngredients: boolean;
+  copyNotes: boolean;
+  copyRatings: boolean;
+}

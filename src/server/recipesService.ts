@@ -503,3 +503,106 @@ export async function unpinRecipe(recipeId: string): Promise<Recipe> {
 
   return toRecipe(updated);
 }
+
+export interface DuplicateRecipeInput {
+  userId: string;
+  sourceRecipeId: string;
+  name: string;
+  category: RecipeCategory;
+  copyTags: boolean;
+  copyIngredients: boolean;
+  copyNotes: boolean;
+  copyRatings: boolean;
+}
+
+export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Recipe> {
+  // Fetch source recipe with active version and ingredients
+  const sourceRecipe = await prisma.recipe.findUnique({
+    where: { id: input.sourceRecipeId },
+    include: {
+      versions: {
+        include: {
+          ingredients: {
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      },
+    },
+  });
+
+  if (!sourceRecipe) {
+    throw new Error("Source recipe not found");
+  }
+
+  // Verify user owns the source recipe
+  if (sourceRecipe.userId !== input.userId) {
+    throw new Error("Unauthorized to duplicate this recipe");
+  }
+
+  // Find the active version
+  const activeVersion = sourceRecipe.versions.find(
+    (v) => v.id === sourceRecipe.activeVersionId,
+  );
+
+  if (!activeVersion) {
+    throw new Error("Source recipe has no active version");
+  }
+
+  // Create new recipe in a transaction
+  const newRecipeId = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    // Create the new recipe
+    const newRecipe = await tx.recipe.create({
+      data: {
+        userId: input.userId,
+        name: input.name.trim(),
+        category: input.category,
+        description: sourceRecipe.description,
+        tags: input.copyTags && sourceRecipe.tags ? sourceRecipe.tags : undefined,
+      },
+    });
+
+    // Create the initial version with data from source's active version
+    const newVersion = await tx.recipeVersion.create({
+      data: {
+        recipeId: newRecipe.id,
+        title: "Ver. 1",
+        notes: input.copyNotes ? activeVersion.notes : "",
+        nextSteps: input.copyNotes ? activeVersion.nextSteps : "",
+        tasteRating: input.copyRatings ? activeVersion.tasteRating : null,
+        visualRating: input.copyRatings ? activeVersion.visualRating : null,
+        textureRating: input.copyRatings ? activeVersion.textureRating : null,
+        tasteNotes: input.copyRatings ? activeVersion.tasteNotes : null,
+        visualNotes: input.copyRatings ? activeVersion.visualNotes : null,
+        textureNotes: input.copyRatings ? activeVersion.textureNotes : null,
+        ingredients: input.copyIngredients
+          ? {
+              create: activeVersion.ingredients.map((ingredient) => ({
+                name: ingredient.name,
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+                role: ingredient.role,
+                notes: ingredient.notes,
+                sortOrder: ingredient.sortOrder,
+              })),
+            }
+          : undefined,
+      },
+    });
+
+    // Set the active version
+    await tx.recipe.update({
+      where: { id: newRecipe.id },
+      data: { activeVersionId: newVersion.id },
+    });
+
+    return newRecipe.id;
+  });
+
+  // Fetch and return the complete new recipe
+  const newRecipe = await getRecipe(newRecipeId);
+  if (!newRecipe) {
+    throw new Error("Recipe not found after duplication");
+  }
+
+  return newRecipe;
+}
