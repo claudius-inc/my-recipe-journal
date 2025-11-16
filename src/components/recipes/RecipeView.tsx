@@ -2204,7 +2204,16 @@ function VersionNotes({
                       );
                     })}
                   </div>
-                  {savingRating === ratingField && <Spinner size="1" />}
+                  {/* Fixed space for spinner - prevents layout shift */}
+                  <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                    <Spinner
+                      size="1"
+                      className={cn(
+                        "transition-opacity duration-200",
+                        savingRating === ratingField ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                  </div>
                   {/* Note Button */}
                   {!note && editingRatingNote !== key && (
                     <Button
