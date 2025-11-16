@@ -214,6 +214,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   // SaveIndicator states for auto-save fields
   const [savingRecipeName, setSavingRecipeName] = useState(false);
   const [savingRecipeDescription, setSavingRecipeDescription] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
   const [savingNotes, setSavingNotes] = useState<Record<string, boolean>>({});
   const [savingIngredient, setSavingIngredient] = useState<Record<string, boolean>>({});
   // Photo upload progress
@@ -917,13 +918,26 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                   <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                     Category
                   </label>
-                  <CategorySelector
-                    value={category}
-                    onChange={(newCategory) => {
-                      setCategory(newCategory);
-                      handleRecipeBlur("category");
-                    }}
-                  />
+                  <div className="flex items-center gap-2">
+                    <CategorySelector
+                      value={category}
+                      onChange={async (newCategory) => {
+                        setCategory(newCategory);
+                        // Pass the new value directly instead of reading from state
+                        if (selectedRecipe && newCategory !== selectedRecipe.category) {
+                          setSavingCategory(true);
+                          try {
+                            await updateRecipe(selectedRecipe.id, {
+                              category: newCategory,
+                            });
+                          } finally {
+                            setSavingCategory(false);
+                          }
+                        }
+                      }}
+                    />
+                    <SaveIndicator isSaving={savingCategory} />
+                  </div>
                 </div>
               </div>
               <span className="text-xs text-neutral-400 dark:text-neutral-500">
