@@ -1,4 +1,5 @@
 import { Button, Tooltip } from "@radix-ui/themes";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 
 interface AIAssistantButtonProps {
   onClick: () => void;
@@ -6,6 +7,8 @@ interface AIAssistantButtonProps {
 }
 
 export function AIAssistantButton({ onClick, badge }: AIAssistantButtonProps) {
+  const { isKeyboardVisible } = useKeyboardHeight();
+
   return (
     <Button
       type="button"
@@ -13,16 +16,18 @@ export function AIAssistantButton({ onClick, badge }: AIAssistantButtonProps) {
       variant="solid"
       size="3"
       radius="full"
-      className="group fixed bottom-6 right-6 z-40 flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 dark:from-purple-500 dark:to-blue-500"
-      aria-label="Open AI Assistant"
+      className={`group fixed z-40 flex items-center gap-2 bg-neutral-800 hover:bg-neutral-900 dark:bg-neutral-200 dark:hover:bg-neutral-100 text-white dark:text-neutral-900 border border-neutral-700 dark:border-neutral-300 shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95 pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] ${
+        isKeyboardVisible ? "top-4 right-4" : "bottom-6 right-6"
+      }`}
+      aria-label="Open Recipe Helper"
     >
-      <Tooltip content="Open AI Assistant">
+      <Tooltip content="Open Recipe Helper">
         <span className="flex items-center gap-2">
-          <span className="text-lg">✨</span>
-          <span className="hidden sm:inline">AI Assistant</span>
-          <span className="sm:hidden">AI</span>
+          <span className="text-lg">🍳</span>
+          <span className="hidden sm:inline">Recipe Helper</span>
+          <span className="sm:hidden">Help</span>
           {badge && badge > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white dark:text-neutral-900">
               {badge > 9 ? "9+" : badge}
             </span>
           )}
