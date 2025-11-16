@@ -30,9 +30,9 @@ export type SecondaryCategoryKey =
   | "pastries"
   | "pies"
   // Cooking subcategories
-  | "main-dish"
+  | "main_dish"
   | "appetizer"
-  | "side-dish"
+  | "side_dish"
   | "sauce"
   | "condiment"
   // Beverages subcategories
@@ -52,7 +52,7 @@ export interface RecipeCategory {
 // Category hierarchy mapping
 export const CATEGORY_HIERARCHY: Record<PrimaryCategoryKey, SecondaryCategoryKey[]> = {
   baking: ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"],
-  cooking: ["main-dish", "appetizer", "side-dish", "sauce", "condiment"],
+  cooking: ["main_dish", "appetizer", "side_dish", "sauce", "condiment"],
   beverages: ["coffee", "tea", "cocktail", "smoothie", "fermented"],
   other: ["other"],
 };
@@ -72,9 +72,9 @@ export const SECONDARY_LABELS: Record<SecondaryCategoryKey, string> = {
   cakes: "Cakes",
   pastries: "Pastries",
   pies: "Pies & Tarts",
-  "main-dish": "Main Dishes",
+  main_dish: "Main Dishes",
   appetizer: "Appetizers",
-  "side-dish": "Side Dishes",
+  side_dish: "Side Dishes",
   sauce: "Sauces & Gravies",
   condiment: "Condiments",
   coffee: "Coffee",
@@ -145,7 +145,7 @@ export interface RecipeVersion {
 export interface Recipe {
   id: string;
   name: string;
-  category: RecipeCategory;
+  category: RecipeCategory; // Now hierarchical: { primary, secondary }
   description?: string;
   tags?: string[];
   versions: RecipeVersion[];

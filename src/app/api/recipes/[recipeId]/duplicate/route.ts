@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { duplicateRecipe } from "@/server/recipesService";
 import type { RecipeCategory } from "@/types/recipes";
+import { isValidCategory } from "@/types/recipes";
 import { requireAuth } from "@/lib/auth-utils";
 
 export async function POST(
@@ -21,7 +22,7 @@ export async function POST(
       return NextResponse.json({ error: "Recipe name is required" }, { status: 400 });
     }
 
-    if (!category || typeof category !== "string") {
+    if (!category || typeof category !== "object" || !isValidCategory(category)) {
       return NextResponse.json({ error: "Recipe category is required" }, { status: 400 });
     }
 
@@ -39,7 +40,7 @@ export async function POST(
       userId,
       sourceRecipeId: params.recipeId,
       name: name.trim(),
-      category: category as RecipeCategory,
+      category: category,
       copyTags,
       copyIngredients,
       copyNotes,

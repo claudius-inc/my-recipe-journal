@@ -14,7 +14,7 @@ import type { InfiniteData } from "@tanstack/react-query";
 
 import {
   INGREDIENT_ROLES,
-  RECIPE_CATEGORIES,
+  isValidCategory,
   type DuplicateRecipeData,
   type IngredientRole,
   type Recipe,
@@ -322,7 +322,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       if (!name.trim()) {
         throw new Error("Recipe name is required");
       }
-      if (!RECIPE_CATEGORIES.includes(category)) {
+      if (!isValidCategory(category)) {
         throw new Error("Invalid recipe category");
       }
 
@@ -352,7 +352,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       if (!name.trim()) {
         throw new Error("Recipe name is required");
       }
-      if (!RECIPE_CATEGORIES.includes(category)) {
+      if (!isValidCategory(category)) {
         throw new Error("Invalid recipe category");
       }
 

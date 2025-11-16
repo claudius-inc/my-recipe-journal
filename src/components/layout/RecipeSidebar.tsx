@@ -6,7 +6,6 @@ import {
   Button,
   DropdownMenu,
   IconButton,
-  Select,
   TextField,
   Tooltip,
 } from "@radix-ui/themes";
@@ -22,15 +21,17 @@ import {
 
 import { cn } from "@/lib/utils";
 import {
-  RECIPE_CATEGORIES,
+  LEGACY_RECIPE_CATEGORIES,
   type Recipe,
   type RecipeCategory,
   type DuplicateRecipeData,
+  formatCategoryLabel,
 } from "@/types/recipes";
 import { useRecipeStore } from "@/store/RecipeStore";
 import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
 import { useToast } from "@/context/ToastContext";
 import { DuplicateRecipeModal } from "@/components/recipes/DuplicateRecipeModal";
+import { CategorySelector } from "@/components/recipes/CategorySelector";
 
 interface RecipeSidebarProps {
   isOpen: boolean;
@@ -86,7 +87,10 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [query, setQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
-  const [draftCategory, setDraftCategory] = useState<RecipeCategory>("bread");
+  const [draftCategory, setDraftCategory] = useState<RecipeCategory>({
+    primary: "baking",
+    secondary: "bread",
+  });
   const [creationError, setCreationError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -281,7 +285,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
       }
 
       setDraftName("");
-      setDraftCategory("bread");
+      setDraftCategory({ primary: "baking", secondary: "bread" });
       setIsCreating(false);
       onClose();
     } catch (err) {
@@ -319,7 +323,9 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
 
       // Populate form with extracted data
       setDraftName(extractedData.name || "");
-      setDraftCategory(extractedData.category || "bread");
+      setDraftCategory(
+        extractedData.category || { primary: "baking", secondary: "bread" },
+      );
       setIsCreating(true);
       onOpen();
 
@@ -443,19 +449,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                   <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     Category
                   </label>
-                  <Select.Root
-                    value={draftCategory}
-                    onValueChange={(value) => setDraftCategory(value as RecipeCategory)}
-                  >
-                    <Select.Trigger className="w-full" />
-                    <Select.Content>
-                      {RECIPE_CATEGORIES.map((category) => (
-                        <Select.Item key={category} value={category}>
-                          {category}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select.Root>
+                  <CategorySelector value={draftCategory} onChange={setDraftCategory} />
                 </div>
                 {creationError && <p className="text-xs text-red-500">{creationError}</p>}
                 <div className="flex gap-2">
@@ -567,10 +561,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                               variant="soft"
                               className={recipe.id === selectedRecipeId ? "bg-white" : ""}
                             >
-                              {RECIPE_CATEGORIES.find(
-                                (c) => c === recipe.category,
-                              )?.toLocaleUpperCase() ??
-                                recipe.category.toLocaleUpperCase()}
+                              {formatCategoryLabel(recipe.category)}
                             </Badge>
                           </div>
                           <p

@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { RECIPE_CATEGORIES, type RecipeCategory } from "@/types/recipes";
+import { isValidCategory, type RecipeCategory } from "@/types/recipes";
 import {
   getRecipe,
   setActiveVersion,
   updateRecipeDetails,
 } from "@/server/recipesService";
-
-const allowedCategories = RECIPE_CATEGORIES;
 
 export async function GET(
   _request: Request,
@@ -56,7 +54,7 @@ export async function PATCH(
   }
 
   if (payload.category) {
-    if (!allowedCategories.includes(payload.category)) {
+    if (!isValidCategory(payload.category)) {
       return NextResponse.json({ error: "Invalid recipe category" }, { status: 400 });
     }
     updateData.category = payload.category;

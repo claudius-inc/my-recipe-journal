@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import {
+  Prisma,
+  PrimaryCategory,
+  SecondaryCategory,
+  RecipeCategory as PrismaRecipeCategory,
+} from "@prisma/client";
 import {
   recipeWithRelations,
   toRecipe,
@@ -95,7 +100,9 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
       data: {
         userId: input.userId,
         name: input.name.trim(),
-        category: input.category,
+        category: PrismaRecipeCategory.other, // Legacy field, will be removed
+        primaryCategory: input.category.primary as PrimaryCategory,
+        secondaryCategory: input.category.secondary as SecondaryCategory,
         description: input.description?.trim() || null,
         tags: input.tags?.length ? input.tags : undefined,
       },
@@ -132,7 +139,9 @@ export async function updateRecipeDetails(
   const payload: {
     name?: string;
     description?: string | null;
-    category?: RecipeCategory;
+    category?: PrismaRecipeCategory;
+    primaryCategory?: PrimaryCategory;
+    secondaryCategory?: SecondaryCategory;
     tags?: string[];
   } = {};
 
@@ -148,7 +157,9 @@ export async function updateRecipeDetails(
   }
 
   if (data.category !== undefined) {
-    payload.category = data.category;
+    payload.category = PrismaRecipeCategory.other; // Legacy field
+    payload.primaryCategory = data.category.primary as PrimaryCategory;
+    payload.secondaryCategory = data.category.secondary as SecondaryCategory;
   }
 
   if (data.tags !== undefined) {
@@ -555,7 +566,9 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
       data: {
         userId: input.userId,
         name: input.name.trim(),
-        category: input.category,
+        category: PrismaRecipeCategory.other, // Legacy field
+        primaryCategory: input.category.primary as PrimaryCategory,
+        secondaryCategory: input.category.secondary as SecondaryCategory,
         description: sourceRecipe.description,
         tags: input.copyTags && sourceRecipe.tags ? sourceRecipe.tags : undefined,
       },

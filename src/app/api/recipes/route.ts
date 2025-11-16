@@ -1,14 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 
-import { RECIPE_CATEGORIES, type RecipeCategory } from "@/types/recipes";
+import { isValidCategory, type RecipeCategory } from "@/types/recipes";
 import {
   createRecipe,
   listRecipes,
   type ListRecipesOptions,
 } from "@/server/recipesService";
 import { requireAuth } from "@/lib/auth-utils";
-
-const allowedCategories = RECIPE_CATEGORIES;
 
 export async function GET(request: NextRequest) {
   const { userId, error, status } = await requireAuth(request);
@@ -49,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
 
-  if (!payload.category || !allowedCategories.includes(payload.category)) {
+  if (!payload.category || !isValidCategory(payload.category)) {
     return NextResponse.json({ error: "Invalid recipe category" }, { status: 400 });
   }
 

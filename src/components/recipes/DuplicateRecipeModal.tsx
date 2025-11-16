@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, Button, TextField, Select, Checkbox, Badge } from "@radix-ui/themes";
+import { Dialog, Button, TextField, Checkbox, Badge } from "@radix-ui/themes";
 import type { Recipe, RecipeCategory, DuplicateRecipeData } from "@/types/recipes";
-import { RECIPE_CATEGORIES } from "@/types/recipes";
+import { formatCategoryLabel } from "@/types/recipes";
+import { CategorySelector } from "./CategorySelector";
 
 interface DuplicateRecipeModalProps {
   isOpen: boolean;
@@ -105,7 +106,7 @@ export function DuplicateRecipeModal({
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge color="gold" variant="soft">
-                {sourceRecipe.category.toUpperCase()}
+                {formatCategoryLabel(sourceRecipe.category)}
               </Badge>
               {tagCount > 0 && (
                 <Badge color="gray" variant="soft">
@@ -140,19 +141,7 @@ export function DuplicateRecipeModal({
             <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
               Category
             </label>
-            <Select.Root
-              value={category}
-              onValueChange={(value) => setCategory(value as RecipeCategory)}
-            >
-              <Select.Trigger className="w-full" />
-              <Select.Content>
-                {RECIPE_CATEGORIES.map((cat) => (
-                  <Select.Item key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select.Root>
+            <CategorySelector value={category} onChange={setCategory} />
           </div>
 
           {/* What to Copy Section */}

@@ -107,46 +107,159 @@ const INGREDIENT_DATABASE: IngredientDefinition[] = [
     name: "All-purpose flour",
     role: "flour",
     unit: "g",
-    categories: ["bread", "dessert"],
+    categories: [
+      { primary: "baking", secondary: "bread" },
+      { primary: "baking", secondary: "cookies" },
+    ],
   },
-  { name: "Bread flour", role: "flour", unit: "g", categories: ["bread"] },
-  { name: "Whole wheat flour", role: "flour", unit: "g", categories: ["bread"] },
-  { name: "Rye flour", role: "flour", unit: "g", categories: ["bread"] },
-  { name: "Spelt flour", role: "flour", unit: "g", categories: ["bread"] },
-  { name: "Cake flour", role: "flour", unit: "g", categories: ["dessert"] },
-  { name: "Pastry flour", role: "flour", unit: "g", categories: ["dessert"] },
+  {
+    name: "Bread flour",
+    role: "flour",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Whole wheat flour",
+    role: "flour",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Rye flour",
+    role: "flour",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Spelt flour",
+    role: "flour",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Cake flour",
+    role: "flour",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cakes" }],
+  },
+  {
+    name: "Pastry flour",
+    role: "flour",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "pastries" }],
+  },
 
   // Liquids
   { name: "Water", role: "liquid", unit: "g" },
   { name: "Milk", role: "liquid", unit: "g" },
   { name: "Whole milk", role: "liquid", unit: "g" },
-  { name: "Buttermilk", role: "liquid", unit: "g", categories: ["bread", "dessert"] },
-  { name: "Heavy cream", role: "liquid", unit: "g", categories: ["dessert", "sauce"] },
-  { name: "Sour cream", role: "liquid", unit: "g", categories: ["dessert"] },
-  { name: "Vegetable stock", role: "liquid", unit: "ml", categories: ["main", "sauce"] },
-  { name: "Chicken stock", role: "liquid", unit: "ml", categories: ["main", "sauce"] },
+  {
+    name: "Buttermilk",
+    role: "liquid",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "bread" },
+      { primary: "baking", secondary: "cookies" },
+    ],
+  },
+  {
+    name: "Heavy cream",
+    role: "liquid",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "cakes" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Sour cream",
+    role: "liquid",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
+  {
+    name: "Vegetable stock",
+    role: "liquid",
+    unit: "ml",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Chicken stock",
+    role: "liquid",
+    unit: "ml",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
 
   // Preferments
-  { name: "Sourdough starter", role: "preferment", unit: "g", categories: ["bread"] },
-  { name: "Levain", role: "preferment", unit: "g", categories: ["bread"] },
-  { name: "Poolish", role: "preferment", unit: "g", categories: ["bread"] },
-  { name: "Biga", role: "preferment", unit: "g", categories: ["bread"] },
+  {
+    name: "Sourdough starter",
+    role: "preferment",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "sourdough" }],
+  },
+  {
+    name: "Levain",
+    role: "preferment",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "sourdough" }],
+  },
+  {
+    name: "Poolish",
+    role: "preferment",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Biga",
+    role: "preferment",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
 
   // Fats
   { name: "Butter", role: "fat", unit: "g" },
   { name: "Unsalted butter", role: "fat", unit: "g" },
   { name: "Olive oil", role: "fat", unit: "g" },
   { name: "Vegetable oil", role: "fat", unit: "g" },
-  { name: "Coconut oil", role: "fat", unit: "g", categories: ["dessert"] },
+  {
+    name: "Coconut oil",
+    role: "fat",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
   { name: "Canola oil", role: "fat", unit: "g" },
 
   // Sweeteners
   { name: "Sugar", role: "sweetener", unit: "g" },
   { name: "White sugar", role: "sweetener", unit: "g" },
-  { name: "Brown sugar", role: "sweetener", unit: "g", categories: ["dessert"] },
+  {
+    name: "Brown sugar",
+    role: "sweetener",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
   { name: "Honey", role: "sweetener", unit: "g" },
-  { name: "Maple syrup", role: "sweetener", unit: "g", categories: ["dessert"] },
-  { name: "Molasses", role: "sweetener", unit: "g", categories: ["bread", "dessert"] },
+  {
+    name: "Maple syrup",
+    role: "sweetener",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
+  {
+    name: "Molasses",
+    role: "sweetener",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "bread" },
+      { primary: "baking", secondary: "cookies" },
+    ],
+  },
 
   // Salt
   { name: "Salt", role: "salt", unit: "g" },
@@ -154,85 +267,381 @@ const INGREDIENT_DATABASE: IngredientDefinition[] = [
   { name: "Kosher salt", role: "salt", unit: "g" },
 
   // Yeast & Leaveners
-  { name: "Active dry yeast", role: "other", unit: "g", categories: ["bread"] },
-  { name: "Instant yeast", role: "other", unit: "g", categories: ["bread"] },
-  { name: "Fresh yeast", role: "other", unit: "g", categories: ["bread"] },
-  { name: "Baking powder", role: "other", unit: "g", categories: ["dessert", "bread"] },
-  { name: "Baking soda", role: "other", unit: "g", categories: ["dessert", "bread"] },
+  {
+    name: "Active dry yeast",
+    role: "other",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Instant yeast",
+    role: "other",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Fresh yeast",
+    role: "other",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Baking powder",
+    role: "other",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "cookies" },
+      { primary: "baking", secondary: "bread" },
+    ],
+  },
+  {
+    name: "Baking soda",
+    role: "other",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "cookies" },
+      { primary: "baking", secondary: "bread" },
+    ],
+  },
 
   // Eggs & Dairy
   { name: "Eggs", role: "other", unit: "g" },
-  { name: "Egg yolks", role: "fat", unit: "g", categories: ["dessert"] },
-  { name: "Egg whites", role: "other", unit: "g", categories: ["dessert"] },
-  { name: "Yogurt", role: "liquid", unit: "g", categories: ["dessert", "sauce"] },
-  { name: "Greek yogurt", role: "liquid", unit: "g", categories: ["dessert", "sauce"] },
-  { name: "Cream cheese", role: "fat", unit: "g", categories: ["dessert"] },
+  {
+    name: "Egg yolks",
+    role: "fat",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cakes" }],
+  },
+  {
+    name: "Egg whites",
+    role: "other",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cakes" }],
+  },
+  {
+    name: "Yogurt",
+    role: "liquid",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "cakes" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Greek yogurt",
+    role: "liquid",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "cakes" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Cream cheese",
+    role: "fat",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cakes" }],
+  },
 
   // Nuts & Seeds
   { name: "Walnuts", role: "add_in", unit: "g" },
   { name: "Almonds", role: "add_in", unit: "g" },
-  { name: "Pecans", role: "add_in", unit: "g", categories: ["dessert"] },
-  { name: "Sunflower seeds", role: "add_in", unit: "g", categories: ["bread"] },
-  { name: "Sesame seeds", role: "add_in", unit: "g", categories: ["bread"] },
-  { name: "Pumpkin seeds", role: "add_in", unit: "g", categories: ["bread"] },
-  { name: "Flax seeds", role: "add_in", unit: "g", categories: ["bread"] },
-  { name: "Chia seeds", role: "add_in", unit: "g", categories: ["bread", "drink"] },
+  {
+    name: "Pecans",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "pies" }],
+  },
+  {
+    name: "Sunflower seeds",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Sesame seeds",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Pumpkin seeds",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Flax seeds",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "bread" }],
+  },
+  {
+    name: "Chia seeds",
+    role: "add_in",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "bread" },
+      { primary: "beverages", secondary: "smoothie" },
+    ],
+  },
 
   // Chocolate & Cocoa
-  { name: "Cocoa powder", role: "other", unit: "g", categories: ["dessert", "drink"] },
-  { name: "Chocolate chips", role: "add_in", unit: "g", categories: ["dessert"] },
-  { name: "Dark chocolate", role: "add_in", unit: "g", categories: ["dessert"] },
-  { name: "Milk chocolate", role: "add_in", unit: "g", categories: ["dessert"] },
+  {
+    name: "Cocoa powder",
+    role: "other",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "cookies" },
+      { primary: "beverages", secondary: "coffee" },
+    ],
+  },
+  {
+    name: "Chocolate chips",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
+  {
+    name: "Dark chocolate",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
+  {
+    name: "Milk chocolate",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
 
   // Fruits
-  { name: "Raisins", role: "add_in", unit: "g", categories: ["dessert", "bread"] },
+  {
+    name: "Raisins",
+    role: "add_in",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "cookies" },
+      { primary: "baking", secondary: "bread" },
+    ],
+  },
   {
     name: "Dried cranberries",
     role: "add_in",
     unit: "g",
-    categories: ["dessert", "bread"],
+    categories: [
+      { primary: "baking", secondary: "cookies" },
+      { primary: "baking", secondary: "bread" },
+    ],
   },
-  { name: "Dried apricots", role: "add_in", unit: "g", categories: ["dessert"] },
-  { name: "Blueberries", role: "add_in", unit: "g", categories: ["dessert"] },
-  { name: "Strawberries", role: "add_in", unit: "g", categories: ["dessert"] },
-  { name: "Lemon juice", role: "other", unit: "ml", categories: ["dessert", "sauce"] },
-  { name: "Lemon zest", role: "spice", unit: "g", categories: ["dessert"] },
+  {
+    name: "Dried apricots",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
+  {
+    name: "Blueberries",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
+  {
+    name: "Strawberries",
+    role: "add_in",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cakes" }],
+  },
+  {
+    name: "Lemon juice",
+    role: "other",
+    unit: "ml",
+    categories: [
+      { primary: "baking", secondary: "pies" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Lemon zest",
+    role: "spice",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cakes" }],
+  },
 
   // Spices & Flavorings
-  { name: "Cinnamon", role: "spice", unit: "g", categories: ["dessert", "bread"] },
-  { name: "Vanilla extract", role: "spice", unit: "ml", categories: ["dessert"] },
-  { name: "Nutmeg", role: "spice", unit: "g", categories: ["dessert"] },
+  {
+    name: "Cinnamon",
+    role: "spice",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "cookies" },
+      { primary: "baking", secondary: "bread" },
+    ],
+  },
+  {
+    name: "Vanilla extract",
+    role: "spice",
+    unit: "ml",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
+  {
+    name: "Nutmeg",
+    role: "spice",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
   {
     name: "Cardamom",
     role: "spice",
     unit: "g",
-    categories: ["dessert", "bread", "drink"],
+    categories: [
+      { primary: "baking", secondary: "cookies" },
+      { primary: "baking", secondary: "bread" },
+      { primary: "beverages", secondary: "coffee" },
+    ],
   },
   { name: "Ginger", role: "spice", unit: "g" },
-  { name: "Cloves", role: "spice", unit: "g", categories: ["dessert"] },
-  { name: "Black pepper", role: "spice", unit: "g", categories: ["main", "sauce"] },
-  { name: "Paprika", role: "spice", unit: "g", categories: ["main"] },
-  { name: "Cumin", role: "spice", unit: "g", categories: ["main"] },
-  { name: "Coriander", role: "spice", unit: "g", categories: ["main"] },
+  {
+    name: "Cloves",
+    role: "spice",
+    unit: "g",
+    categories: [{ primary: "baking", secondary: "cookies" }],
+  },
+  {
+    name: "Black pepper",
+    role: "spice",
+    unit: "g",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Paprika",
+    role: "spice",
+    unit: "g",
+    categories: [{ primary: "cooking", secondary: "main_dish" }],
+  },
+  {
+    name: "Cumin",
+    role: "spice",
+    unit: "g",
+    categories: [{ primary: "cooking", secondary: "main_dish" }],
+  },
+  {
+    name: "Coriander",
+    role: "spice",
+    unit: "g",
+    categories: [{ primary: "cooking", secondary: "main_dish" }],
+  },
 
   // Herbs
-  { name: "Rosemary", role: "spice", unit: "g", categories: ["bread", "main"] },
-  { name: "Thyme", role: "spice", unit: "g", categories: ["main"] },
-  { name: "Basil", role: "spice", unit: "g", categories: ["main", "sauce"] },
-  { name: "Oregano", role: "spice", unit: "g", categories: ["main", "sauce"] },
-  { name: "Parsley", role: "spice", unit: "g", categories: ["main"] },
+  {
+    name: "Rosemary",
+    role: "spice",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "bread" },
+      { primary: "cooking", secondary: "main_dish" },
+    ],
+  },
+  {
+    name: "Thyme",
+    role: "spice",
+    unit: "g",
+    categories: [{ primary: "cooking", secondary: "main_dish" }],
+  },
+  {
+    name: "Basil",
+    role: "spice",
+    unit: "g",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Oregano",
+    role: "spice",
+    unit: "g",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Parsley",
+    role: "spice",
+    unit: "g",
+    categories: [{ primary: "cooking", secondary: "main_dish" }],
+  },
 
   // Main dish ingredients
-  { name: "Onion", role: "add_in", unit: "g", categories: ["main", "sauce"] },
-  { name: "Garlic", role: "spice", unit: "g", categories: ["main", "sauce"] },
-  { name: "Tomato paste", role: "add_in", unit: "g", categories: ["main", "sauce"] },
-  { name: "Tomatoes", role: "add_in", unit: "g", categories: ["main", "sauce"] },
-  { name: "Olives", role: "add_in", unit: "g", categories: ["bread", "main"] },
+  {
+    name: "Onion",
+    role: "add_in",
+    unit: "g",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Garlic",
+    role: "spice",
+    unit: "g",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Tomato paste",
+    role: "add_in",
+    unit: "g",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Tomatoes",
+    role: "add_in",
+    unit: "g",
+    categories: [
+      { primary: "cooking", secondary: "main_dish" },
+      { primary: "cooking", secondary: "sauce" },
+    ],
+  },
+  {
+    name: "Olives",
+    role: "add_in",
+    unit: "g",
+    categories: [
+      { primary: "baking", secondary: "bread" },
+      { primary: "cooking", secondary: "main_dish" },
+    ],
+  },
 
   // Drink ingredients
-  { name: "Coffee beans", role: "other", unit: "g", categories: ["drink"] },
-  { name: "Tea leaves", role: "other", unit: "g", categories: ["drink"] },
-  { name: "Ice", role: "other", unit: "g", categories: ["drink"] },
+  {
+    name: "Coffee beans",
+    role: "other",
+    unit: "g",
+    categories: [{ primary: "beverages", secondary: "coffee" }],
+  },
+  {
+    name: "Tea leaves",
+    role: "other",
+    unit: "g",
+    categories: [{ primary: "beverages", secondary: "tea" }],
+  },
+  {
+    name: "Ice",
+    role: "other",
+    unit: "g",
+    categories: [{ primary: "beverages", secondary: "coffee" }],
+  },
 ];
 
 /**

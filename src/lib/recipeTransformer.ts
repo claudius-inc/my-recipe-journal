@@ -4,7 +4,10 @@ import type {
   Recipe,
   RecipeCategory,
   RecipeVersion,
+  PrimaryCategoryKey,
+  SecondaryCategoryKey,
 } from "@/types/recipes";
+import type { PrimaryCategory, SecondaryCategory } from "@prisma/client";
 
 export const recipeWithRelations = {
   versions: {
@@ -43,7 +46,8 @@ type PrismaRecipeVersionRecord = {
 type PrismaRecipeRecord = {
   id: string;
   name: string;
-  category: RecipeCategory;
+  primaryCategory: PrimaryCategory | null;
+  secondaryCategory: SecondaryCategory | null;
   description: string | null;
   tags: unknown;
   activeVersionId: string | null;
@@ -83,22 +87,30 @@ export const toRecipeVersion = (version: PrismaRecipeVersionRecord): RecipeVersi
   textureNotes: version.textureNotes ?? undefined,
 });
 
-export const toRecipe = (recipe: PrismaRecipeRecord): Recipe => ({
-  id: recipe.id,
-  name: recipe.name,
-  category: recipe.category,
-  description: recipe.description ?? undefined,
-  tags: (recipe.tags as string[] | null) ?? undefined,
-  versions: recipe.versions
-    .slice()
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .map((version) => toRecipeVersion(version)),
-  activeVersionId: recipe.activeVersionId,
-  createdAt: recipe.createdAt.toISOString(),
-  updatedAt: recipe.updatedAt.toISOString(),
-  archivedAt: recipe.archivedAt ? recipe.archivedAt.toISOString() : null,
-  pinnedAt: recipe.pinnedAt ? recipe.pinnedAt.toISOString() : null,
-});
+export const toRecipe = (recipe: PrismaRecipeRecord): Recipe => {
+  // Convert Prisma enum categories to hierarchical TypeScript type
+  const category: RecipeCategory = {
+    primary: (recipe.primaryCategory as PrimaryCategoryKey) || "other",
+    secondary: (recipe.secondaryCategory as SecondaryCategoryKey) || "other",
+  };
+
+  return {
+    id: recipe.id,
+    name: recipe.name,
+    category,
+    description: recipe.description ?? undefined,
+    tags: (recipe.tags as string[] | null) ?? undefined,
+    versions: recipe.versions
+      .slice()
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((version) => toRecipeVersion(version)),
+    activeVersionId: recipe.activeVersionId,
+    createdAt: recipe.createdAt.toISOString(),
+    updatedAt: recipe.updatedAt.toISOString(),
+    archivedAt: recipe.archivedAt ? recipe.archivedAt.toISOString() : null,
+    pinnedAt: recipe.pinnedAt ? recipe.pinnedAt.toISOString() : null,
+  };
+};
 
 export const toRecipes = (recipes: PrismaRecipeRecord[]): Recipe[] =>
   recipes.map((recipe) => toRecipe(recipe));

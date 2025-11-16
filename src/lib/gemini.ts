@@ -107,17 +107,25 @@ export async function extractRecipeFromPhoto(
       throw new Error("Invalid response structure from Gemini");
     }
 
-    // Ensure category is valid
-    const validCategories: RecipeCategory[] = [
-      "bread",
-      "dessert",
-      "drink",
-      "main",
-      "sauce",
-      "other",
-    ];
-    if (!validCategories.includes(parsed.category)) {
-      parsed.category = "other";
+    // Ensure category is valid - map legacy string to hierarchical category
+    const validCategoryStrings = ["bread", "dessert", "drink", "main", "sauce", "other"];
+    const categoryMap: Record<string, RecipeCategory> = {
+      bread: { primary: "baking", secondary: "bread" },
+      dessert: { primary: "baking", secondary: "cookies" },
+      drink: { primary: "beverages", secondary: "coffee" },
+      main: { primary: "cooking", secondary: "main_dish" },
+      sauce: { primary: "cooking", secondary: "sauce" },
+      other: { primary: "other", secondary: "other" },
+    };
+
+    // If category is a string (legacy), convert to hierarchical
+    if (typeof parsed.category === "string") {
+      parsed.category = categoryMap[parsed.category] || {
+        primary: "other",
+        secondary: "other",
+      };
+    } else if (!parsed.category.primary || !parsed.category.secondary) {
+      parsed.category = { primary: "other", secondary: "other" };
     }
 
     return parsed;

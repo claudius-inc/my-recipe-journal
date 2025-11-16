@@ -9,6 +9,7 @@ import {
   type Ingredient,
   type Recipe,
   type RecipeVersion,
+  type RecipeCategory,
 } from "@/types/recipes";
 import { useRecipeStore } from "@/store/RecipeStore";
 import {
@@ -34,6 +35,7 @@ import { AIAssistantButton } from "./AIAssistantButton";
 import { RecipeAIAssistant } from "./RecipeAIAssistant";
 import type { AIAssistantResponse } from "@/lib/gemini-assistant";
 import { IngredientList } from "./IngredientList";
+import { CategorySelector } from "./CategorySelector";
 import {
   Button,
   Checkbox,
@@ -168,7 +170,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
 
   const [recipeName, setRecipeName] = useState("");
   const [recipeDescription, setRecipeDescription] = useState("");
-  const [category, setCategory] = useState(selectedRecipe?.category ?? "bread");
+  const [category, setCategory] = useState<RecipeCategory>(
+    selectedRecipe?.category ?? { primary: "baking", secondary: "bread" },
+  );
   const [notesDraft, setNotesDraft] = useState({
     notes: "",
     nextSteps: "",
@@ -909,27 +913,17 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             </div>
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex gap-2">
-                  <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
                     Category
-                    <Select.Root
-                      value={category}
-                      onValueChange={(value) => {
-                        setCategory(value as Recipe["category"]);
-                        handleRecipeBlur("category");
-                      }}
-                    >
-                      <Select.Trigger />
-                      <Select.Content>
-                        <Select.Item value="bread">Bread</Select.Item>
-                        <Select.Item value="dessert">Dessert</Select.Item>
-                        <Select.Item value="drink">Drink</Select.Item>
-                        <Select.Item value="main">Main</Select.Item>
-                        <Select.Item value="sauce">Sauce</Select.Item>
-                        <Select.Item value="other">Other</Select.Item>
-                      </Select.Content>
-                    </Select.Root>
                   </label>
+                  <CategorySelector
+                    value={category}
+                    onChange={(newCategory) => {
+                      setCategory(newCategory);
+                      handleRecipeBlur("category");
+                    }}
+                  />
                 </div>
               </div>
               <span className="text-xs text-neutral-400 dark:text-neutral-500">
@@ -968,7 +962,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onDeleteIngredient={(ingredientId) =>
             deleteIngredient(selectedRecipe.id, selectedVersion.id, ingredientId)
           }
-          enableBakersPercent={["bread", "dessert"].includes(selectedRecipe.category)}
+          enableBakersPercent={
+            selectedRecipe.category.primary === "baking" &&
+            ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"].includes(
+              selectedRecipe.category.secondary,
+            )
+          }
           flourTotal={flourTotal}
           savingIngredient={savingIngredient}
           suggestions={ingredientSuggestions}
@@ -1092,7 +1091,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         recipe={selectedRecipe}
         version={selectedVersion}
         bakerPercentages={
-          ["bread", "dessert"].includes(selectedRecipe.category)
+          selectedRecipe.category.primary === "baking"
             ? { flourTotal, hydration: hydrationPercent, totalWeight }
             : undefined
         }
