@@ -18,9 +18,93 @@ export interface Ingredient {
   notes?: string;
 }
 
-export type RecipeCategory = "bread" | "dessert" | "drink" | "main" | "sauce" | "other";
+// Hierarchical category types
+export type PrimaryCategoryKey = "baking" | "cooking" | "beverages" | "other";
 
-export const RECIPE_CATEGORIES: RecipeCategory[] = [
+export type SecondaryCategoryKey =
+  // Baking subcategories
+  | "bread"
+  | "sourdough"
+  | "cookies"
+  | "cakes"
+  | "pastries"
+  | "pies"
+  // Cooking subcategories
+  | "main-dish"
+  | "appetizer"
+  | "side-dish"
+  | "sauce"
+  | "condiment"
+  // Beverages subcategories
+  | "coffee"
+  | "tea"
+  | "cocktail"
+  | "smoothie"
+  | "fermented"
+  // Other
+  | "other";
+
+export interface RecipeCategory {
+  primary: PrimaryCategoryKey;
+  secondary: SecondaryCategoryKey;
+}
+
+// Category hierarchy mapping
+export const CATEGORY_HIERARCHY: Record<PrimaryCategoryKey, SecondaryCategoryKey[]> = {
+  baking: ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"],
+  cooking: ["main-dish", "appetizer", "side-dish", "sauce", "condiment"],
+  beverages: ["coffee", "tea", "cocktail", "smoothie", "fermented"],
+  other: ["other"],
+};
+
+// Human-readable labels
+export const PRIMARY_LABELS: Record<PrimaryCategoryKey, string> = {
+  baking: "Baking",
+  cooking: "Cooking",
+  beverages: "Beverages",
+  other: "Other",
+};
+
+export const SECONDARY_LABELS: Record<SecondaryCategoryKey, string> = {
+  bread: "Bread",
+  sourdough: "Sourdough",
+  cookies: "Cookies",
+  cakes: "Cakes",
+  pastries: "Pastries",
+  pies: "Pies & Tarts",
+  "main-dish": "Main Dishes",
+  appetizer: "Appetizers",
+  "side-dish": "Side Dishes",
+  sauce: "Sauces & Gravies",
+  condiment: "Condiments",
+  coffee: "Coffee",
+  tea: "Tea",
+  cocktail: "Cocktails",
+  smoothie: "Smoothies",
+  fermented: "Fermented Drinks",
+  other: "Miscellaneous",
+};
+
+// Helper functions
+export function formatCategoryLabel(category: RecipeCategory): string {
+  return `${PRIMARY_LABELS[category.primary]} → ${SECONDARY_LABELS[category.secondary]}`;
+}
+
+export function isValidCategory(category: RecipeCategory): boolean {
+  const validSecondaries = CATEGORY_HIERARCHY[category.primary];
+  return validSecondaries?.includes(category.secondary) ?? false;
+}
+
+// Legacy support (deprecated - will be removed after migration)
+export type LegacyRecipeCategory =
+  | "bread"
+  | "dessert"
+  | "drink"
+  | "main"
+  | "sauce"
+  | "other";
+
+export const LEGACY_RECIPE_CATEGORIES: LegacyRecipeCategory[] = [
   "bread",
   "dessert",
   "drink",

@@ -227,6 +227,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       role: Ingredient["role"];
     }>
   >([]);
+  // Star rating states
+  const [savingRating, setSavingRating] = useState<string | null>(null);
+  const [hoverRating, setHoverRating] = useState<{
+    field: string | null;
+    value: number | null;
+  }>({ field: null, value: null });
 
   useEffect(() => {
     if (selectedRecipe) {
@@ -385,13 +391,17 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       if (!selectedRecipe || !selectedVersion) {
         return;
       }
+      setSavingRating(field);
       try {
         await updateVersion(selectedRecipe.id, selectedVersion.id, { [field]: value });
       } catch (error) {
         console.error("Failed to save rating:", error);
+        addToast("Failed to save rating", "error");
+      } finally {
+        setSavingRating(null);
       }
     },
-    [selectedRecipe, selectedVersion, updateVersion],
+    [selectedRecipe, selectedVersion, updateVersion, addToast],
   );
 
   const handlePreviewScaling = useCallback(() => {
@@ -866,7 +876,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
 
   return (
     <div className="flex-1 overflow-y-auto bg-surface">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-5 py-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-6">
         <section className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
           <div className="flex flex-col gap-2">
             <div className="flex items-start justify-between gap-2">
@@ -958,7 +968,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onDeleteIngredient={(ingredientId) =>
             deleteIngredient(selectedRecipe.id, selectedVersion.id, ingredientId)
           }
-          enableBakersPercent={selectedRecipe.category === "bread"}
+          enableBakersPercent={["bread", "dessert"].includes(selectedRecipe.category)}
           flourTotal={flourTotal}
           savingIngredient={savingIngredient}
           suggestions={ingredientSuggestions}
@@ -998,6 +1008,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           visualRating={selectedVersion.visualRating}
           textureRating={selectedVersion.textureRating}
           onRatingChange={handleRatingChange}
+          savingRating={savingRating}
+          hoverRating={hoverRating}
+          setHoverRating={setHoverRating}
         />
 
         <div className="flex gap-3">
@@ -1079,7 +1092,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         recipe={selectedRecipe}
         version={selectedVersion}
         bakerPercentages={
-          selectedRecipe.category === "bread"
+          ["bread", "dessert"].includes(selectedRecipe.category)
             ? { flourTotal, hydration: hydrationPercent, totalWeight }
             : undefined
         }
@@ -1809,8 +1822,8 @@ function BreadTools({
 
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-2 flex-1">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+        <div className="space-y-2 lg:flex-1 lg:max-w-xl">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
               Baker&apos;s percentages
@@ -1901,7 +1914,7 @@ function BreadTools({
             })}
           </ul>
         </div>
-        <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm dark:border-neutral-700 dark:bg-neutral-900/60">
+        <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm lg:w-72 lg:flex-shrink-0 dark:border-neutral-700 dark:bg-neutral-900/60">
           <p className="flex items-center justify-between">
             <span className="text-neutral-500 dark:text-neutral-400">Total flour</span>
             <span className="font-semibold text-neutral-800 dark:text-neutral-100">
@@ -2001,6 +2014,12 @@ interface VersionNotesProps {
   onChange: (value: VersionNotesProps["notesDraft"]) => void;
   onSave: (field: keyof VersionNotesProps["notesDraft"], value: string) => Promise<void>;
   savingNotes?: Record<string, boolean>;
+  savingRating: string | null;
+  hoverRating: {
+    field: string | null;
+    value: number | null;
+  };
+  setHoverRating: (value: { field: string | null; value: number | null }) => void;
 }
 
 function VersionNotes({
@@ -2012,6 +2031,9 @@ function VersionNotes({
   visualRating,
   textureRating,
   onRatingChange,
+  savingRating,
+  hoverRating,
+  setHoverRating,
 }: VersionNotesProps) {
   const [editingRatingNote, setEditingRatingNote] = useState<
     "taste" | "visual" | "texture" | null
@@ -2117,21 +2139,59 @@ function VersionNotes({
                 <div className="flex items-center gap-2">
                   {/* Star Rating */}
                   <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => onRatingChange(ratingField, i + 1)}
-                        className="cursor-pointer text-amber-500 hover:scale-110 transition-transform"
-                      >
-                        {i < (rating || 0) ? (
-                          <StarFilledIcon className="w-5 h-5" />
-                        ) : (
-                          <StarIcon className="w-5 h-5" />
-                        )}
-                      </button>
-                    ))}
+                    {Array.from({ length: 5 }).map((_, i) => {
+                      const isLoading = savingRating === ratingField;
+                      const displayRating =
+                        hoverRating.field === ratingField && hoverRating.value !== null
+                          ? hoverRating.value
+                          : (rating ?? 0);
+                      const isFilled = i < displayRating;
+
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          disabled={isLoading}
+                          onMouseEnter={() =>
+                            setHoverRating({ field: ratingField, value: i + 1 })
+                          }
+                          onMouseLeave={() =>
+                            setHoverRating({ field: null, value: null })
+                          }
+                          onClick={() => {
+                            const newRating = i + 1;
+                            // Toggle to clear: if clicking current rating, set to 0
+                            if (rating === newRating) {
+                              onRatingChange(ratingField, 0);
+                            } else {
+                              onRatingChange(ratingField, newRating);
+                            }
+                          }}
+                          className={cn(
+                            "p-2 -m-2 touch-manipulation cursor-pointer transition-all duration-200",
+                            "focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 rounded",
+                            isLoading && "opacity-50 cursor-wait",
+                            !isLoading && "hover:scale-110",
+                          )}
+                          aria-label={`Rate ${label} ${i + 1} out of 5 stars${
+                            rating === i + 1 ? ". Click again to clear rating" : ""
+                          }`}
+                        >
+                          {isFilled ? (
+                            <StarFilledIcon
+                              className={cn(
+                                "w-6 h-6 text-amber-500 transition-all duration-200",
+                                isLoading && "animate-pulse",
+                              )}
+                            />
+                          ) : (
+                            <StarIcon className="w-6 h-6 text-amber-500 opacity-40 transition-all duration-200" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {savingRating === ratingField && <Spinner size="1" />}
                   {/* Note Button */}
                   {!note && editingRatingNote !== key && (
                     <Button
@@ -2290,22 +2350,26 @@ function PhotoSection({
 
       {version.photoUrl ? (
         <div className="mt-4 space-y-2">
-          <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
             <img
               src={version.photoUrl}
               alt="Recipe result"
-              className="h-auto w-full object-cover"
+              loading="lazy"
+              decoding="async"
+              className="h-auto w-full object-cover max-h-[500px] object-center"
             />
           </div>
-          <Button
-            onClick={onRemove}
-            disabled={isRemoving}
-            variant="ghost"
-            color="red"
-            size="1"
-          >
-            {isRemoving ? "Removing…" : "Remove photo"}
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              onClick={onRemove}
+              disabled={isRemoving}
+              variant="ghost"
+              color="red"
+              size="1"
+            >
+              {isRemoving ? "Removing…" : "Remove photo"}
+            </Button>
+          </div>
         </div>
       ) : (
         <p className="mt-4 text-sm text-neutral-500 dark:text-neutral-400">

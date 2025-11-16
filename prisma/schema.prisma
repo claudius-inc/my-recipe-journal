@@ -10,12 +10,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Legacy enum - deprecated, will be removed after migration
 enum RecipeCategory {
   bread
   dessert
   drink
   main
   sauce
+  other
+}
+
+enum PrimaryCategory {
+  baking
+  cooking
+  beverages
+  other
+}
+
+enum SecondaryCategory {
+  // Baking
+  bread
+  sourdough
+  cookies
+  cakes
+  pastries
+  pies
+  // Cooking
+  main_dish
+  appetizer
+  side_dish
+  sauce
+  condiment
+  // Beverages
+  coffee
+  tea
+  cocktail
+  smoothie
+  fermented
+  // Other
   other
 }
 
@@ -91,23 +123,28 @@ model Verification {
 }
 
 model Recipe {
-  id              String            @id @default(cuid())
-  userId          String
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name            String
-  category        RecipeCategory
-  description     String?
-  tags            Json?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  archivedAt      DateTime?
-  pinnedAt        DateTime?
-  activeVersionId String?           @unique
-  activeVersion   RecipeVersion?    @relation("ActiveRecipeVersion", fields: [activeVersionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  versions        RecipeVersion[]
+  id                String             @id @default(cuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String
+  // Legacy category field - will be removed after migration
+  category          RecipeCategory
+  // New hierarchical category fields
+  primaryCategory   PrimaryCategory?
+  secondaryCategory SecondaryCategory?
+  description       String?
+  tags              Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  archivedAt        DateTime?
+  pinnedAt          DateTime?
+  activeVersionId   String?            @unique
+  activeVersion     RecipeVersion?     @relation("ActiveRecipeVersion", fields: [activeVersionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  versions          RecipeVersion[]
 
   @@index([userId])
   @@index([pinnedAt])
+  @@index([primaryCategory, secondaryCategory])
 }
 
 model RecipeVersion {
