@@ -87,6 +87,9 @@ export default function LoginPage() {
                 </Text>
                 <TextField.Root
                   type="email"
+                  name="email"
+                  id="email"
+                  autoComplete="email"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
