@@ -46,7 +46,7 @@ export async function POST(
       copyRatings,
     });
 
-    return NextResponse.json(newRecipe, { status: 201 });
+    return NextResponse.json({ data: newRecipe }, { status: 201 });
   } catch (error) {
     console.error("Error duplicating recipe:", error);
 
