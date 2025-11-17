@@ -31,6 +31,7 @@ export async function PATCH(
     tasteNotes?: string;
     visualNotes?: string;
     textureNotes?: string;
+    steps?: Array<{ order: number; text: string }>;
   };
 
   const updateData: Parameters<typeof updateVersionDetails>[2] = {};
@@ -64,6 +65,9 @@ export async function PATCH(
   }
   if (payload.textureNotes !== undefined) {
     updateData.textureNotes = payload.textureNotes;
+  }
+  if (payload.steps !== undefined) {
+    updateData.steps = payload.steps;
   }
 
   const updatedRecipe = await updateVersionDetails(recipeId, versionId, updateData);

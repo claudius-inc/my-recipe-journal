@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -395,21 +395,43 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     [selectedRecipe, selectedVersion, updateVersion],
   );
 
+  const saveStepsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleStepsUpdate = useCallback(
-    async (steps: RecipeStep[]) => {
+    (steps: RecipeStep[]) => {
       if (!selectedRecipe || !selectedVersion) {
         return;
       }
+
+      // Update local state immediately for responsive UI
       setStepsDraft(steps);
-      try {
-        await updateVersion(selectedRecipe.id, selectedVersion.id, { steps });
-        addToast("Recipe steps updated", "success");
-      } catch (error) {
-        addToast("Failed to update steps", "error");
+
+      // Cancel any pending save
+      if (saveStepsTimeoutRef.current) {
+        clearTimeout(saveStepsTimeoutRef.current);
       }
+
+      // Debounce the actual save operation
+      saveStepsTimeoutRef.current = setTimeout(async () => {
+        try {
+          await updateVersion(selectedRecipe.id, selectedVersion.id, { steps });
+          addToast("Recipe steps updated", "success");
+        } catch (error) {
+          addToast("Failed to update steps", "error");
+        }
+      }, 500);
     },
     [selectedRecipe, selectedVersion, updateVersion, addToast],
   );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveStepsTimeoutRef.current) {
+        clearTimeout(saveStepsTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleRatingChange = useCallback(
     async (field: "tasteRating" | "visualRating" | "textureRating", value: number) => {

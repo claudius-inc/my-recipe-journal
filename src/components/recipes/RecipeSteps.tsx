@@ -81,11 +81,6 @@ export function RecipeSteps({
 
       const updatedSteps = [...steps, ...newSteps];
       onUpdate(updatedSteps);
-
-      addToast(
-        `${parsedSteps.length} step${parsedSteps.length > 1 ? "s" : ""} added`,
-        "success",
-      );
     } catch (error) {
       // Handle clipboard permission errors or other failures
       if (error instanceof Error) {
