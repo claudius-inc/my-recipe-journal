@@ -28,6 +28,7 @@ export interface ExtractedRecipeData {
   cookTime?: string;
   servings?: number;
   metadata?: Record<string, string | number>;
+  imageUrl?: string;
 }
 
 const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Analyze this recipe image and extract structured data.

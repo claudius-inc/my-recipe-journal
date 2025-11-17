@@ -41,6 +41,7 @@ createRecipeWithData()
   - Ingredients (with quantities, units, and roles)
   - Instructions (step-by-step)
   - Servings
+  - Main recipe photo (NEW)
 
 **Example URL**: https://www.cotta.jp/recipe/recipe.php?recipeid=00016428
 
@@ -50,8 +51,23 @@ createRecipeWithData()
 - **Method**: Fetches HTML → Sends to Gemini → Parses structured response
 - **Retry Logic**: Up to 2 retries with exponential backoff
 - **Timeout**: 30 seconds per request
+- **Image Extraction**: Extracts main recipe photo from meta tags or content
 
-### 3. Rate Limiting
+### 3. Image Processing
+
+When a recipe image is found:
+
+1. **Download**: Image is fetched from source URL (10s timeout)
+2. **Optimization**:
+   - Resize to max 1200px width (maintains aspect ratio)
+   - Convert to WebP format for better compression
+   - Compress to ~80% quality
+   - Ensure final size < 5MB
+3. **Preview**: Converted to base64 data URI for user preview
+4. **Storage**: Stored as base64 in database (photoUrl field)
+5. **Error Handling**: If download/optimization fails, import continues without image
+
+### 4. Rate Limiting
 
 - **Limit**: 10 imports per hour per user (IP-based)
 - **Window**: 1 hour rolling window
@@ -90,7 +106,8 @@ createRecipeWithData()
   ],
   "instructions": "1. 下準備\n\n2. チョコは湯煎で...",
   "servings": 13,
-  "sourceUrl": "https://www.cotta.jp/recipe/recipe.php?recipeid=00016428"
+  "sourceUrl": "https://www.cotta.jp/recipe/recipe.php?recipeid=00016428",
+  "imageUrl": "data:image/webp;base64,..." // Base64-encoded optimized image
 }
 ```
 
@@ -123,15 +140,12 @@ Users can create recipes via:
 
 **Step 2: Preview & Edit**
 
-- Shows extracted data
-- User can edit:
-  - Recipe name
-  - Category
-  - Description
-- Shows read-only preview of:
-  - Ingredients list
-  - Instructions
-  - Source URL
+- Shows extracted data including recipe photo (if available)
+- User can:
+  - Edit recipe name, category, and description
+  - View and remove the imported photo
+  - Preview ingredients list and instructions (read-only)
+  - See source URL attribution
 - Click "Save Recipe" to create
 
 ### 3. Error Handling
@@ -146,27 +160,28 @@ Users can create recipes via:
 ```
 src/
 ├── lib/
-│   └── recipe-importers/
-│       ├── base/
-│       │   ├── types.ts              # Interfaces
-│       │   └── RecipeImporter.ts     # Base class
-│       ├── adapters/
-│       │   └── CottaJpImporter.ts    # Cotta.jp adapter
-│       ├── gemini/
-│       │   └── GeminiImporter.ts     # AI fallback
-│       └── importerFactory.ts        # Factory pattern
+│   ├── recipe-importers/
+│   │   ├── base/
+│   │   │   ├── types.ts              # Interfaces (includes imageUrl)
+│   │   │   └── RecipeImporter.ts     # Base class
+│   │   ├── adapters/
+│   │   │   └── CottaJpImporter.ts    # Cotta.jp adapter (with image extraction)
+│   │   ├── gemini/
+│   │   │   └── GeminiImporter.ts     # AI fallback (with image extraction)
+│   │   └── importerFactory.ts        # Factory pattern
+│   └── imageOptimizer.ts             # NEW: Image download & optimization
 ├── app/
 │   └── api/
 │       └── recipes/
 │           └── from-url/
-│               └── route.ts          # API route
+│               └── route.ts          # API route (with image processing)
 ├── components/
 │   ├── recipes/
-│   │   └── ImportFromUrlModal.tsx   # UI component
+│   │   └── ImportFromUrlModal.tsx   # UI component (with image preview)
 │   └── layout/
 │       └── RecipeSidebar.tsx        # Updated with dropdown
 └── store/
-    └── RecipeStore.tsx              # Uses existing createRecipeWithData()
+    └── RecipeStore.tsx              # createRecipeWithData() (supports imageUrl)
 ```
 
 ## Adding New Adapters
@@ -200,6 +215,7 @@ export class MySiteImporter extends RecipeImporter {
       category: { primary: "baking", secondary: "bread" },
       ingredients: [...],
       instructions: "...",
+      imageUrl: "https://...", // Optional: URL to main recipe photo
       sourceUrl: url,
     };
   }
@@ -253,9 +269,10 @@ npm run typecheck
 
 ## Dependencies
 
-- `cheerio` (^1.0.0) - HTML parsing
-- `@types/cheerio` (^0.22.0) - TypeScript types
-- `@google/generative-ai` (existing) - Gemini AI
+- `cheerio` (^1.1.2) - HTML parsing
+- `@types/cheerio` (^0.22.35) - TypeScript types
+- `@google/generative-ai` (^0.24.1) - Gemini AI
+- `sharp` (latest) - Image optimization (NEW)
 
 ## Environment Variables
 
@@ -289,6 +306,10 @@ npm run typecheck
 
 7. **Browser Extension**: Chrome extension for one-click import
 
+8. **R2 Storage for Images**: Upload optimized images to Cloudflare R2 instead of base64 storage
+
+9. **Multiple Images**: Support importing multiple recipe photos (step-by-step images)
+
 ## Troubleshooting
 
 ### Issue: "Recipe extraction service not configured"
@@ -314,6 +335,18 @@ npm run typecheck
 1. Check if site has a specific adapter (only Cotta.jp for now)
 2. For other sites, Gemini fallback may vary in quality
 3. Consider adding a site-specific adapter
+
+### Issue: Image failed to download or optimize
+
+**Symptoms**: Recipe imports successfully but without photo
+
+**Solution**:
+
+1. This is expected behavior - image failures are non-blocking
+2. Check console logs for specific error (timeout, invalid format, etc.)
+3. Verify image URL is accessible and not behind authentication
+4. Images larger than ~10MB before optimization may fail
+5. Can manually upload photo after import using the photo upload feature
 
 ## License
 

@@ -242,6 +242,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
     steps?: Array<{ order: number; text: string }>;
     instructions?: string;
     sourceUrl: string;
+    imageUrl?: string;
   }) => {
     try {
       await createRecipeWithData({
@@ -251,6 +252,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
         ingredients: data.ingredients,
         steps: data.steps,
         instructions: data.instructions,
+        imageUrl: data.imageUrl,
       });
       addToast("Recipe imported successfully", "success");
       setShowImportModal(false);

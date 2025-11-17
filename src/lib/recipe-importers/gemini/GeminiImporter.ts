@@ -32,7 +32,8 @@ Return ONLY valid JSON matching this exact schema:
     }
   ],
   "instructions": "Combined process steps (optional)",
-  "servings": numeric value (optional)
+  "servings": numeric value (optional),
+  "imageUrl": "URL of the main recipe photo (optional)"
 }
 
 Rules:
@@ -42,9 +43,11 @@ Rules:
 4. Assign appropriate ingredient roles based on their function
 5. Extract step-by-step instructions if available
 6. Infer the most appropriate category based on the recipe type
-7. Only include fields that have data - omit optional fields if not found
-8. Return ONLY the JSON object, no markdown formatting or explanations
-9. If the page doesn't contain a recipe, return an error in this format: {"error": "No recipe found on this page"}`;
+7. Extract the main recipe photo URL from og:image, twitter:image meta tags, or the primary recipe image in the content
+8. Only extract ONE main photo URL - prefer meta tags (og:image, twitter:image) over content images
+9. Only include fields that have data - omit optional fields if not found
+10. Return ONLY the JSON object, no markdown formatting or explanations
+11. If the page doesn't contain a recipe, return an error in this format: {"error": "No recipe found on this page"}`;
 
 /**
  * Fallback importer using Gemini AI for any website
@@ -136,6 +139,7 @@ export class GeminiImporter extends RecipeImporter {
             }>;
             instructions?: string;
             servings?: number;
+            imageUrl?: string;
           };
 
       // Check if Gemini returned an error

@@ -53,6 +53,7 @@ export class CottaJpImporter extends RecipeImporter {
     const category = this.extractCategory($);
     const servings = this.extractServings($);
     const description = this.extractDescription($);
+    const imageUrl = this.extractImageUrl($);
 
     return {
       name: title,
@@ -61,6 +62,7 @@ export class CottaJpImporter extends RecipeImporter {
       ingredients,
       steps,
       servings,
+      imageUrl,
       sourceUrl: url,
     };
   }
@@ -118,6 +120,7 @@ export class CottaJpImporter extends RecipeImporter {
           "@type": string;
           text: string;
         }>;
+        image?: string | string[] | { "@type": string; url: string };
       };
 
       if (schema["@type"] !== "Recipe") {
@@ -161,6 +164,19 @@ export class CottaJpImporter extends RecipeImporter {
         }
       }
 
+      // Extract image URL
+      let imageUrl: string | undefined;
+      if (schema.image) {
+        if (typeof schema.image === "string") {
+          imageUrl = schema.image;
+        } else if (Array.isArray(schema.image)) {
+          // Take the first image if it's an array
+          imageUrl = schema.image[0];
+        } else if (schema.image["@type"] === "ImageObject" && schema.image.url) {
+          imageUrl = schema.image.url;
+        }
+      }
+
       return {
         name: schema.name,
         category: this.inferCategoryFromName(schema.name),
@@ -168,6 +184,7 @@ export class CottaJpImporter extends RecipeImporter {
         ingredients,
         steps,
         servings,
+        imageUrl,
       };
     } catch (error) {
       console.warn("Failed to extract from schema:", error);
@@ -573,5 +590,61 @@ export class CottaJpImporter extends RecipeImporter {
     }
 
     return undefined;
+  }
+
+  private extractImageUrl($: ReturnType<typeof cheerio.load>): string | undefined {
+    // Try multiple sources for recipe image
+    // 1. Open Graph image
+    const ogImage = $('meta[property="og:image"]').attr("content");
+    if (ogImage && this.isValidImageUrl(ogImage)) {
+      return ogImage;
+    }
+
+    // 2. Twitter card image
+    const twitterImage = $('meta[name="twitter:image"]').attr("content");
+    if (twitterImage && this.isValidImageUrl(twitterImage)) {
+      return twitterImage;
+    }
+
+    // 3. Recipe-specific image containers
+    const recipeImage = $(".recipe-image img, .recipe-photo img, img.recipe")
+      .first()
+      .attr("src");
+    if (recipeImage && this.isValidImageUrl(recipeImage)) {
+      return this.normalizeImageUrl(recipeImage);
+    }
+
+    // 4. First large image in content area
+    const contentImage = $("article img, .recipe img, main img").first().attr("src");
+    if (contentImage && this.isValidImageUrl(contentImage)) {
+      return this.normalizeImageUrl(contentImage);
+    }
+
+    return undefined;
+  }
+
+  private isValidImageUrl(url: string | undefined): boolean {
+    if (!url) return false;
+    // Filter out common non-recipe images
+    const invalidPatterns = [
+      /logo/i,
+      /icon/i,
+      /button/i,
+      /banner/i,
+      /avatar/i,
+      /profile/i,
+    ];
+    return !invalidPatterns.some((pattern) => pattern.test(url));
+  }
+
+  private normalizeImageUrl(url: string): string {
+    // Convert relative URLs to absolute
+    if (url.startsWith("//")) {
+      return `https:${url}`;
+    }
+    if (url.startsWith("/")) {
+      return `https://www.cotta.jp${url}`;
+    }
+    return url;
   }
 }

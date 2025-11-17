@@ -21,6 +21,7 @@ interface ExtractedRecipeData {
   instructions?: string;
   servings?: number;
   sourceUrl: string;
+  imageUrl?: string;
 }
 
 interface ImportFromUrlModalProps {
@@ -47,6 +48,7 @@ export function ImportFromUrlModal({
     secondary: "bread",
   });
   const [editableDescription, setEditableDescription] = useState("");
+  const [editableImageUrl, setEditableImageUrl] = useState<string | undefined>();
 
   const handleExtract = async () => {
     if (!url.trim()) {
@@ -76,6 +78,7 @@ export function ImportFromUrlModal({
       setEditableName(data.name);
       setEditableCategory(data.category);
       setEditableDescription(data.description || "");
+      setEditableImageUrl(data.imageUrl);
       setExtractedData(data);
     } catch (error) {
       setExtractError(
@@ -97,6 +100,7 @@ export function ImportFromUrlModal({
         name: editableName,
         category: editableCategory,
         description: editableDescription || undefined,
+        imageUrl: editableImageUrl,
       };
 
       await onImport(finalData);
@@ -106,6 +110,7 @@ export function ImportFromUrlModal({
       setExtractedData(null);
       setEditableName("");
       setEditableDescription("");
+      setEditableImageUrl(undefined);
       setExtractError(null);
       onClose();
     } catch (error) {
@@ -120,6 +125,7 @@ export function ImportFromUrlModal({
     setExtractedData(null);
     setEditableName("");
     setEditableDescription("");
+    setEditableImageUrl(undefined);
     setExtractError(null);
     onClose();
   };
@@ -179,6 +185,40 @@ export function ImportFromUrlModal({
             <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400">
               Recipe extracted successfully! Review and edit before saving.
             </div>
+
+            {editableImageUrl && (
+              <div>
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                  Recipe Photo
+                </label>
+                <div className="mt-1 relative group">
+                  <img
+                    src={editableImageUrl}
+                    alt="Recipe preview"
+                    className="w-full h-48 object-cover rounded-lg border border-neutral-200 dark:border-neutral-700"
+                  />
+                  <button
+                    onClick={() => setEditableImageUrl(undefined)}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove image"
+                    type="button"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
