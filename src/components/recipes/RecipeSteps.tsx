@@ -8,9 +8,12 @@ import {
   PlusIcon,
   TrashIcon,
   Pencil1Icon,
+  ClipboardIcon,
 } from "@radix-ui/react-icons";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import type { RecipeStep } from "@/types/recipes";
+import { parseInstructionsToSteps } from "@/lib/recipe-steps-helpers";
+import { useToast } from "@/context/ToastContext";
 
 interface RecipeStepsProps {
   steps: RecipeStep[];
@@ -27,6 +30,7 @@ export function RecipeSteps({
 }: RecipeStepsProps) {
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
   const [isEditing, setIsEditing] = useState(_isEditing);
+  const { addToast } = useToast();
 
   // Show if: editing, has steps, or is open (for adding first step)
   if (!isEditing && steps.length === 0 && !isOpen) {
@@ -68,28 +72,93 @@ export function RecipeSteps({
     onUpdate(reordered);
   };
 
+  const handlePasteSteps = async () => {
+    try {
+      // Read text from clipboard
+      const clipboardText = await navigator.clipboard.readText();
+
+      if (!clipboardText || clipboardText.trim().length === 0) {
+        addToast("Clipboard is empty", "error");
+        return;
+      }
+
+      // Parse the pasted text into steps
+      const parsedSteps = parseInstructionsToSteps(clipboardText);
+
+      if (parsedSteps.length === 0) {
+        addToast("No valid steps found in clipboard", "error");
+        return;
+      }
+
+      // Append to existing steps with updated order numbers
+      const currentMaxOrder = steps.length;
+      const newSteps = parsedSteps.map((step, idx) => ({
+        order: currentMaxOrder + idx + 1,
+        text: step.text,
+      }));
+
+      const updatedSteps = [...steps, ...newSteps];
+      onUpdate(updatedSteps);
+
+      addToast(
+        `${parsedSteps.length} step${parsedSteps.length > 1 ? "s" : ""} added`,
+        "success",
+      );
+    } catch (error) {
+      // Handle clipboard permission errors or other failures
+      if (error instanceof Error) {
+        if (error.name === "NotAllowedError") {
+          addToast("Clipboard access denied. Please grant permission.", "error");
+        } else {
+          addToast("Failed to paste steps. Please try again.", "error");
+        }
+      } else {
+        addToast("Failed to paste steps. Please try again.", "error");
+      }
+      console.error("Paste error:", error);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Check for Ctrl+V (Windows/Linux) or Cmd+V (Mac)
+    if ((e.ctrlKey || e.metaKey) && e.key === "v") {
+      // Allow default paste behavior in the input field itself
+      // Don't trigger multi-step paste when there's selected text in the input
+      const target = e.target as HTMLInputElement;
+      if (target.selectionStart !== target.selectionEnd) {
+        return; // Let native paste happen for selected text
+      }
+
+      // Only trigger multi-step paste if input is empty or at the start
+      if (target.value.trim().length === 0 || target.selectionStart === 0) {
+        e.preventDefault();
+        handlePasteSteps();
+      }
+    }
+  };
+
   return (
     <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
-      <Box className="border-b border-gray-200 py-4">
+      <section className="rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         {/* Header */}
         <Collapsible.Trigger asChild>
           <Flex
             justify="between"
             align="center"
-            className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
+            className="cursor-pointer hover:bg-gray-50 px-5 py-2 rounded-2xl"
           >
             <Flex align="center" gap="2">
               {isOpen ? (
-                <ChevronDownIcon width="20" height="20" />
+                <ChevronDownIcon className="w-4 h-4" />
               ) : (
-                <ChevronRightIcon width="20" height="20" />
+                <ChevronRightIcon className="w-4 h-4" />
               )}
-              <Text size="4" weight="bold">
+              <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
                 Recipe Steps
-              </Text>
+              </h3>
             </Flex>
 
-            <Flex align="center" gap="2">
+            <Flex align="center" gap="2" className="ml-auto">
               {/* Edit button */}
               {!isEditing && steps.length > 0 && (
                 <IconButton
@@ -110,7 +179,7 @@ export function RecipeSteps({
                 <Flex
                   align="center"
                   justify="center"
-                  className="bg-blue-500 text-white rounded-full w-8 h-8 text-sm font-medium"
+                  className="bg-[var(--accent-8)] text-white rounded-full w-6 h-6 text-xs font-medium"
                 >
                   {steps.length}
                 </Flex>
@@ -121,20 +190,16 @@ export function RecipeSteps({
 
         {/* Content */}
         <Collapsible.Content>
-          <Box className="mt-4 space-y-3">
+          <Box className="space-y-3 p-4">
             {steps.length === 0 && isEditing ? (
               <Text size="2" color="gray">
                 No steps yet. Click &quot;Add Step&quot; to begin.
               </Text>
             ) : (
               steps.map((step) => (
-                <Flex key={step.order} gap="3" align="start">
+                <Flex key={step.order} gap="1" align="start">
                   {/* Step number */}
-                  <Text
-                    size="2"
-                    weight="bold"
-                    className="mt-2 min-w-[24px] text-gray-500"
-                  >
+                  <Text size="2" weight="bold" className="min-w-[24px] text-gray-500">
                     {step.order}.
                   </Text>
 
@@ -146,6 +211,7 @@ export function RecipeSteps({
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           handleStepChange(step.order, e.target.value)
                         }
+                        onKeyDown={handleKeyDown}
                         placeholder="Enter step instructions..."
                         className="flex-1"
                       />
@@ -167,7 +233,7 @@ export function RecipeSteps({
               ))
             )}
 
-            {/* Add step button (editing only) */}
+            {/* Add step and paste buttons (editing only) */}
             {isEditing && (
               <Flex gap="2" className="mt-3">
                 <Button
@@ -178,6 +244,17 @@ export function RecipeSteps({
                 >
                   <PlusIcon /> Add Step
                 </Button>
+                <Button
+                  variant="outline"
+                  size="2"
+                  onClick={handlePasteSteps}
+                  title="Paste multiple steps at once (or press Ctrl+V / ⌘V in an empty step field)"
+                >
+                  <ClipboardIcon /> Paste Steps, or{" "}
+                  <Text className="ml-1 text-xs text-white bg-[var(--accent-9)] rounded-sm py-0.5 px-1">
+                    <kbd>Ctrl+V</kbd>
+                  </Text>
+                </Button>
                 <Button variant="solid" size="2" onClick={() => setIsEditing(false)}>
                   Done
                 </Button>
@@ -185,7 +262,7 @@ export function RecipeSteps({
             )}
           </Box>
         </Collapsible.Content>
-      </Box>
+      </section>
     </Collapsible.Root>
   );
 }
