@@ -239,6 +239,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
       role: import("@/types/recipes").IngredientRole;
       notes?: string;
     }>;
+    steps?: Array<{ order: number; text: string }>;
     instructions?: string;
     sourceUrl: string;
   }) => {
@@ -248,6 +249,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
         category: data.category,
         description: data.description,
         ingredients: data.ingredients,
+        steps: data.steps,
         instructions: data.instructions,
       });
       addToast("Recipe imported successfully", "success");
@@ -309,6 +311,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           category: draftCategory,
           description: extractedData.description,
           ingredients: extractedData.ingredients,
+          steps: extractedData.steps,
           instructions: extractedData.instructions,
         });
 

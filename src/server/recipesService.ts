@@ -189,6 +189,7 @@ export async function setActiveVersion(
 export interface CreateVersionInput {
   recipeId: string;
   title: string;
+  steps?: Array<{ order: number; text: string }>;
   notes: string;
   nextSteps: string;
   ingredients?: Array<{
@@ -212,6 +213,7 @@ export async function createVersion(input: CreateVersionInput): Promise<Recipe> 
       data: {
         recipeId: input.recipeId,
         title: input.title,
+        steps: input.steps || [],
         notes: input.notes,
         nextSteps: input.nextSteps,
         ingredients: {
@@ -312,6 +314,7 @@ export async function updateVersionDetails(
     >
   > & {
     photoUrl?: string | null;
+    steps?: Array<{ order: number; text: string }>;
   },
 ): Promise<Recipe | null> {
   await prisma.recipeVersion.update({

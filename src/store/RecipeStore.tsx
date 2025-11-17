@@ -53,6 +53,7 @@ interface RecipeStoreValue {
       role: IngredientRole;
       notes?: string;
     }>;
+    steps?: Array<{ order: number; text: string }>;
     instructions?: string;
   }) => Promise<void>;
   updateRecipe: (
@@ -85,6 +86,7 @@ interface RecipeStoreValue {
     versionId: string,
     payload: Partial<{
       title: string;
+      steps: Array<{ order: number; text: string }>;
       notes: string;
       nextSteps: string;
       photoUrl: string | null;
@@ -348,7 +350,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
   );
 
   const createRecipeWithData = useCallback<RecipeStoreValue["createRecipeWithData"]>(
-    async ({ name, category, description, ingredients, instructions }) => {
+    async ({ name, category, description, ingredients, steps, instructions }) => {
       if (!name.trim()) {
         throw new Error("Recipe name is required");
       }
@@ -383,12 +385,12 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Update version with instructions if provided
-      if (instructions) {
+      // Update version with steps if provided
+      if (steps && steps.length > 0) {
         await requestJson(`/api/recipes/${recipe.id}/versions/${versionId}`, {
           method: "PATCH",
           body: JSON.stringify({
-            notes: instructions,
+            steps: steps,
           }),
         });
       }

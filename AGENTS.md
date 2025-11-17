@@ -61,6 +61,13 @@ docs/                       # Architecture documentation
 - **Security:** Never expose secrets, API keys, or sensitive data (check git diffs before commits)
 - **Radix UI First:** Always use Radix UI components instead of HTML primitives (see UI Components section below)
 
+### Documentation Standards
+
+- **NEVER create documentation files in the project root:** All `.md` files (except AGENTS.md and CLAUDE.md) must be placed in the `docs/` directory
+- **Reference from AGENTS.md:** When creating new documentation, add a reference in the appropriate section of this file
+- **Keep docs/ organized:** Use clear, descriptive filenames (e.g., `recipe-import.md`, `photo-extraction.md`)
+- **Update AGENTS.md:** After creating docs, add links to the "Documentation References" and/or "Feature-Specific Notes" sections
+
 ### Testing Requirements
 
 Before completing any task:

@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { RecipeCategory, IngredientRole } from "@/types/recipes";
+import { parseInstructionsToSteps } from "./recipe-steps-helpers";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -22,6 +23,7 @@ export interface ExtractedRecipeData {
   category: RecipeCategory;
   description?: string;
   ingredients: ExtractedIngredient[];
+  steps?: Array<{ order: number; text: string }>;
   instructions?: string;
   cookTime?: string;
   servings?: number;
@@ -126,6 +128,11 @@ export async function extractRecipeFromPhoto(
       };
     } else if (!parsed.category.primary || !parsed.category.secondary) {
       parsed.category = { primary: "other", secondary: "other" };
+    }
+
+    // Convert instructions to steps if present
+    if (parsed.instructions && !parsed.steps) {
+      parsed.steps = parseInstructionsToSteps(parsed.instructions);
     }
 
     return parsed;

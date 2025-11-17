@@ -125,11 +125,19 @@ export const INGREDIENT_ROLES: IngredientRole[] = [
   "other",
 ];
 
+export interface RecipeStep {
+  order: number;
+  text: string;
+}
+
+export type RecipeSteps = RecipeStep[];
+
 export interface RecipeVersion {
   id: string;
   title: string;
   createdAt: string;
   ingredients: Ingredient[];
+  steps?: RecipeSteps;
   notes: string;
   nextSteps: string;
   photoUrl?: string;

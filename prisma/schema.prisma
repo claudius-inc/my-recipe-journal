@@ -153,6 +153,7 @@ model RecipeVersion {
   recipe        Recipe         @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   recipeActive  Recipe?        @relation("ActiveRecipeVersion")
   title         String         @default("")
+  steps         Json?          @default("[]")
   notes         String         @default("")
   nextSteps     String         @default("")
   photoUrl      String?

@@ -4,10 +4,12 @@ import type {
   Recipe,
   RecipeCategory,
   RecipeVersion,
+  RecipeStep,
   PrimaryCategoryKey,
   SecondaryCategoryKey,
 } from "@/types/recipes";
 import type { PrimaryCategory, SecondaryCategory } from "@prisma/client";
+import { validateSteps } from "./recipe-steps-helpers";
 
 export const recipeWithRelations = {
   versions: {
@@ -30,6 +32,7 @@ type PrismaIngredientRecord = {
 type PrismaRecipeVersionRecord = {
   id: string;
   title: string;
+  steps: unknown;
   createdAt: Date;
   notes: string;
   nextSteps: string;
@@ -69,23 +72,34 @@ export const toIngredient = (ingredient: PrismaIngredientRecord): Ingredient => 
   notes: ingredient.notes ?? undefined,
 });
 
-export const toRecipeVersion = (version: PrismaRecipeVersionRecord): RecipeVersion => ({
-  id: version.id,
-  title: version.title,
-  createdAt: version.createdAt.toISOString(),
-  ingredients: [...version.ingredients]
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((ingredient) => toIngredient(ingredient)),
-  notes: version.notes,
-  nextSteps: version.nextSteps,
-  photoUrl: version.photoUrl ?? undefined,
-  tasteRating: version.tasteRating ?? undefined,
-  visualRating: version.visualRating ?? undefined,
-  textureRating: version.textureRating ?? undefined,
-  tasteNotes: version.tasteNotes ?? undefined,
-  visualNotes: version.visualNotes ?? undefined,
-  textureNotes: version.textureNotes ?? undefined,
-});
+export const toRecipeVersion = (version: PrismaRecipeVersionRecord): RecipeVersion => {
+  // Parse and validate steps from JSON
+  let steps: RecipeStep[] | undefined;
+  if (version.steps && validateSteps(version.steps)) {
+    steps = version.steps as RecipeStep[];
+  } else if (Array.isArray(version.steps) && version.steps.length === 0) {
+    steps = undefined;
+  }
+
+  return {
+    id: version.id,
+    title: version.title,
+    createdAt: version.createdAt.toISOString(),
+    ingredients: [...version.ingredients]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((ingredient) => toIngredient(ingredient)),
+    steps,
+    notes: version.notes,
+    nextSteps: version.nextSteps,
+    photoUrl: version.photoUrl ?? undefined,
+    tasteRating: version.tasteRating ?? undefined,
+    visualRating: version.visualRating ?? undefined,
+    textureRating: version.textureRating ?? undefined,
+    tasteNotes: version.tasteNotes ?? undefined,
+    visualNotes: version.visualNotes ?? undefined,
+    textureNotes: version.textureNotes ?? undefined,
+  };
+};
 
 export const toRecipe = (recipe: PrismaRecipeRecord): Recipe => {
   // Convert Prisma enum categories to hierarchical TypeScript type

@@ -17,6 +17,7 @@ interface ExtractedRecipeData {
     role: IngredientRole;
     notes?: string;
   }>;
+  steps?: Array<{ order: number; text: string }>;
   instructions?: string;
   servings?: number;
   sourceUrl: string;
@@ -232,15 +233,24 @@ export function ImportFromUrlModal({
               </div>
             </div>
 
-            {extractedData.instructions && (
+            {extractedData.steps && extractedData.steps.length > 0 && (
               <div>
                 <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Instructions
+                  Recipe Steps ({extractedData.steps.length})
                 </label>
                 <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
-                  <p className="whitespace-pre-wrap text-neutral-700 dark:text-neutral-300">
-                    {extractedData.instructions}
-                  </p>
+                  <ol className="space-y-2">
+                    {extractedData.steps.map((step) => (
+                      <li key={step.order} className="flex gap-2">
+                        <span className="font-semibold text-neutral-500">
+                          {step.order}.
+                        </span>
+                        <span className="flex-1 text-neutral-700 dark:text-neutral-300">
+                          {step.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
                 </div>
               </div>
             )}

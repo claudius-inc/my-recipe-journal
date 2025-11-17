@@ -1,7 +1,8 @@
 import * as cheerio from "cheerio";
 import { RecipeImporter } from "../base/RecipeImporter";
 import type { ExtractedRecipeData } from "../base/types";
-import type { IngredientRole } from "@/types/recipes";
+import type { IngredientRole, RecipeStep } from "@/types/recipes";
+import { parseInstructionsToSteps } from "@/lib/recipe-steps-helpers";
 
 /**
  * Recipe importer for Cotta.jp
@@ -48,7 +49,7 @@ export class CottaJpImporter extends RecipeImporter {
     // Fallback to HTML parsing if schema not found
     const title = this.extractTitle($);
     const ingredients = this.extractIngredients($);
-    const instructions = this.extractInstructions($);
+    const steps = this.extractInstructions($);
     const category = this.extractCategory($);
     const servings = this.extractServings($);
     const description = this.extractDescription($);
@@ -58,7 +59,7 @@ export class CottaJpImporter extends RecipeImporter {
       category,
       description,
       ingredients,
-      instructions,
+      steps,
       servings,
       sourceUrl: url,
     };
@@ -141,14 +142,15 @@ export class CottaJpImporter extends RecipeImporter {
         }
       }
 
-      // Parse instructions
-      let instructions: string | undefined;
-      if (schema.recipeInstructions && schema.recipeInstructions.length > 0) {
-        instructions = schema.recipeInstructions
-          .filter((step) => step.text && step.text.trim().length > 0)
-          .map((step, idx) => `${idx + 1}. ${step.text}`)
-          .join("\n\n");
-      }
+      // Parse instructions to steps
+      const steps: RecipeStep[] = schema.recipeInstructions
+        ? schema.recipeInstructions
+            .filter((step) => step.text && step.text.trim().length > 0)
+            .map((step, idx) => ({
+              order: idx + 1,
+              text: step.text,
+            }))
+        : [];
 
       // Parse servings
       let servings: number | undefined;
@@ -164,7 +166,7 @@ export class CottaJpImporter extends RecipeImporter {
         category: this.inferCategoryFromName(schema.name),
         description: schema.description,
         ingredients,
-        instructions,
+        steps,
         servings,
       };
     } catch (error) {
@@ -431,22 +433,25 @@ export class CottaJpImporter extends RecipeImporter {
     return "other";
   }
 
-  private extractInstructions($: ReturnType<typeof cheerio.load>): string | undefined {
+  private extractInstructions($: ReturnType<typeof cheerio.load>): RecipeStep[] {
     // Try to find instructions section
     const instructionElements = $(
       ".recipe-steps li, .instructions li, .recipe-procedure li, ol li",
     );
-    const steps: string[] = [];
+    const steps: RecipeStep[] = [];
 
     instructionElements.each((index, element) => {
       const text = $(element).text().trim();
       if (text && text.length > 5) {
-        steps.push(`${index + 1}. ${text}`);
+        steps.push({
+          order: index + 1,
+          text: text,
+        });
       }
     });
 
     if (steps.length > 0) {
-      return steps.join("\n\n");
+      return steps;
     }
 
     // Fallback: try to extract from body text
@@ -458,7 +463,11 @@ export class CottaJpImporter extends RecipeImporter {
       "Procedure",
     ]);
 
-    return procedureSection || undefined;
+    if (procedureSection) {
+      return parseInstructionsToSteps(procedureSection);
+    }
+
+    return [];
   }
 
   private extractSection(text: string, headers: string[]): string | null {

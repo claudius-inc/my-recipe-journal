@@ -10,6 +10,7 @@ import {
   type Recipe,
   type RecipeVersion,
   type RecipeCategory,
+  type RecipeStep,
 } from "@/types/recipes";
 import { useRecipeStore } from "@/store/RecipeStore";
 import {
@@ -36,6 +37,7 @@ import { RecipeAIAssistant } from "./RecipeAIAssistant";
 import type { AIAssistantResponse } from "@/lib/gemini-assistant";
 import { IngredientList } from "./IngredientList";
 import { CategorySelector } from "./CategorySelector";
+import { RecipeSteps } from "./RecipeSteps";
 import {
   Button,
   Checkbox,
@@ -180,6 +182,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     visualNotes: "",
     textureNotes: "",
   });
+  const [stepsDraft, setStepsDraft] = useState<RecipeStep[]>([]);
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isScalingOpen, setIsScalingOpen] = useState(false);
@@ -256,6 +259,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         visualNotes: selectedVersion.visualNotes || "",
         textureNotes: selectedVersion.textureNotes || "",
       });
+      setStepsDraft((selectedVersion.steps as RecipeStep[]) || []);
     }
   }, [selectedVersion]);
 
@@ -389,6 +393,22 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       }
     },
     [selectedRecipe, selectedVersion, updateVersion],
+  );
+
+  const handleStepsUpdate = useCallback(
+    async (steps: RecipeStep[]) => {
+      if (!selectedRecipe || !selectedVersion) {
+        return;
+      }
+      setStepsDraft(steps);
+      try {
+        await updateVersion(selectedRecipe.id, selectedVersion.id, { steps });
+        addToast("Recipe steps updated", "success");
+      } catch (error) {
+        addToast("Failed to update steps", "error");
+      }
+    },
+    [selectedRecipe, selectedVersion, updateVersion, addToast],
   );
 
   const handleRatingChange = useCallback(
@@ -1010,6 +1030,13 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           uploadProgress={photoUploadProgress}
           uploadError={photoUploadError}
           isRemoving={isRemovingPhoto}
+        />
+
+        <RecipeSteps
+          steps={stepsDraft}
+          onUpdate={handleStepsUpdate}
+          isEditing={false}
+          defaultCollapsed={true}
         />
 
         <VersionNotes

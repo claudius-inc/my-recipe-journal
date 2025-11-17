@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { RecipeImporter } from "../base/RecipeImporter";
 import type { ExtractedRecipeData } from "../base/types";
 import type { RecipeCategory, IngredientRole } from "@/types/recipes";
+import { parseInstructionsToSteps } from "@/lib/recipe-steps-helpers";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -156,9 +157,15 @@ export class GeminiImporter extends RecipeImporter {
         throw new Error("Invalid category structure in response");
       }
 
+      // Convert instructions to steps if present
+      const steps = parsed.instructions
+        ? parseInstructionsToSteps(parsed.instructions)
+        : [];
+
       // Add sourceUrl
       const result_data: ExtractedRecipeData = {
         ...parsed,
+        steps: steps.length > 0 ? steps : undefined,
         sourceUrl: url,
       };
 
