@@ -17,6 +17,8 @@ import {
   ArrowLeftIcon,
   DrawingPinIcon,
   DrawingPinFilledIcon,
+  LinkBreak2Icon,
+  PlusIcon,
 } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
@@ -32,6 +34,7 @@ import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
 import { useToast } from "@/context/ToastContext";
 import { DuplicateRecipeModal } from "@/components/recipes/DuplicateRecipeModal";
 import { CategorySelector } from "@/components/recipes/CategorySelector";
+import { ImportFromUrlModal } from "@/components/recipes/ImportFromUrlModal";
 
 interface RecipeSidebarProps {
   isOpen: boolean;
@@ -102,6 +105,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [pinningInProgress, setPinningInProgress] = useState<Set<string>>(new Set());
   const [duplicateModalRecipe, setDuplicateModalRecipe] = useState<Recipe | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const handleToggleArchive = async (recipeId: string, isArchived: boolean) => {
     // Prevent overlapping archive/unarchive actions on the same recipe
@@ -221,6 +225,37 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
       addToast("Failed to duplicate recipe", "error");
     } finally {
       setIsDuplicating(false);
+    }
+  };
+
+  const handleImportFromUrl = async (data: {
+    name: string;
+    category: RecipeCategory;
+    description?: string;
+    ingredients: Array<{
+      name: string;
+      quantity: number;
+      unit: string;
+      role: import("@/types/recipes").IngredientRole;
+      notes?: string;
+    }>;
+    instructions?: string;
+    sourceUrl: string;
+  }) => {
+    try {
+      await createRecipeWithData({
+        name: data.name,
+        category: data.category,
+        description: data.description,
+        ingredients: data.ingredients,
+        instructions: data.instructions,
+      });
+      addToast("Recipe imported successfully", "success");
+      setShowImportModal(false);
+      onClose();
+    } catch (error) {
+      console.error("Failed to import recipe:", error);
+      throw error; // Re-throw so modal can show error
     }
   };
 
@@ -389,31 +424,47 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           {/* Row 2: Action buttons */}
           <div>
             <div className="flex gap-2">
-              <Button
-                size="2"
-                className="flex-1"
-                onClick={() => {
-                  setIsCreating(true);
-                  onOpen();
-                }}
-              >
-                + New recipe
-              </Button>
-              <Button variant="outline" size="2" asChild disabled={isScanning}>
-                <label
-                  className={cn("cursor-pointer", isScanning && "cursor-not-allowed")}
-                >
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/jpg,image/webp"
-                    onChange={handlePhotoScan}
-                    disabled={isScanning}
-                    className="hidden"
-                  />
-                  <CameraIcon className="w-4 h-4 inline mr-1" />
-                  {isScanning ? "Scanning…" : "Scan"}
-                </label>
-              </Button>
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger>
+                  <Button size="2" className="flex-1">
+                    <PlusIcon className="w-4 h-4 inline mr-1" />
+                    New Recipe
+                  </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content>
+                  <DropdownMenu.Item
+                    onClick={() => {
+                      setIsCreating(true);
+                      onOpen();
+                    }}
+                  >
+                    <PlusIcon className="w-4 h-4 inline mr-2" />
+                    New blank recipe
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item asChild>
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                        onChange={handlePhotoScan}
+                        disabled={isScanning}
+                        className="hidden"
+                      />
+                      <CameraIcon className="w-4 h-4 inline mr-2" />
+                      {isScanning ? "Scanning photo..." : "Scan from photo"}
+                    </label>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    onClick={() => {
+                      setShowImportModal(true);
+                      onOpen();
+                    }}
+                  >
+                    <LinkBreak2Icon className="w-4 h-4 inline mr-2" />
+                    Import from URL
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
               <Tooltip
                 content={showArchived ? "Show active recipes" : "Show archived recipes"}
               >
@@ -677,6 +728,12 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           isLoading={isDuplicating}
         />
       )}
+
+      <ImportFromUrlModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImportFromUrl}
+      />
     </>
   );
 }

@@ -157,6 +157,21 @@ import { Button, TextField } from "@radix-ui/themes";
 - Implementation in `src/server/recipesService.ts` → `extractRecipeFromPhoto()`
 - See [Photo Extraction Guide](docs/photo-extraction.md)
 
+### Recipe Import from URL
+
+- **New Feature:** Import recipes from external websites using adapters or AI fallback
+- **Location:** RecipeSidebar dropdown → "Import from URL"
+- **Supported Sites:**
+  - Cotta.jp (dedicated adapter)
+  - Any recipe website (Gemini AI fallback)
+- **Components:**
+  - `ImportFromUrlModal` - URL input and preview interface
+  - Adapters in `src/lib/recipe-importers/adapters/`
+  - Factory pattern for adapter selection
+- **API:** `/api/recipes/from-url` (POST) - Rate limited to 10/hour
+- **Flow:** URL input → Extraction → Preview/Edit → Save
+- **See:** [Recipe Import Guide](docs/recipe-import.md)
+
 ### Ingredient Autocomplete
 
 - Uses cached ingredient list from database
@@ -187,6 +202,7 @@ For deeper understanding, consult:
 - [API Reference](docs/api.md) - Endpoint specifications
 - [Data Model](docs/data-model.md) - Database schema details
 - [Photo Extraction Guide](docs/photo-extraction.md) - AI integration
+- [Recipe Import Guide](docs/recipe-import.md) - URL-based recipe importing
 - [Deployment Guide](docs/deployment.md) - Production configuration
 
 ## Environment Variables
