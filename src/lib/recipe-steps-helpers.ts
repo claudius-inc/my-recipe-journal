@@ -4,6 +4,7 @@ import type { RecipeStep } from "@/types/recipes";
  * Parse string instructions to RecipeStep array
  * Handles formats like:
  * - "1. Mix flour\n\n2. Bake"
+ * - "1\nMix flour\n\n2\nBake"
  * - "Mix flour\nBake"
  */
 export function parseInstructionsToSteps(text: string): RecipeStep[] {
@@ -11,25 +12,59 @@ export function parseInstructionsToSteps(text: string): RecipeStep[] {
     return [];
   }
 
-  // Split by double newlines or single newlines
   const lines = text
-    .split(/\n\n|\n/)
+    .split(/\n/)
     .map((l) => l.trim())
     .filter(Boolean);
 
   const steps: RecipeStep[] = [];
-  let order = 1;
+  let currentStepText: string[] = [];
 
-  for (const line of lines) {
-    // Remove existing numbering like "1. ", "2. ", "1) ", etc.
-    const cleaned = line.replace(/^\d+[\.\)]\s*/, "").trim();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
 
-    if (cleaned.length > 0) {
-      steps.push({
-        order: order++,
-        text: cleaned,
-      });
+    // Check if line is ONLY a number (e.g., "1", "2", "3")
+    const standaloneNumber = /^(\d+)$/.test(line);
+
+    // Check if line starts with "1. " or "1) " format
+    const numberedLine = /^(\d+)[\.\)]\s*(.*)$/.exec(line);
+
+    if (standaloneNumber) {
+      // Save previous step before starting new one
+      if (currentStepText.length > 0) {
+        steps.push({
+          order: steps.length + 1,
+          text: currentStepText.join("\n").trim(),
+        });
+        currentStepText = [];
+      }
+      // Next lines will be the step content
+    } else if (numberedLine) {
+      // Traditional "1. Text" format
+      if (currentStepText.length > 0) {
+        steps.push({
+          order: steps.length + 1,
+          text: currentStepText.join("\n").trim(),
+        });
+        currentStepText = [];
+      }
+
+      const text = numberedLine[2].trim();
+      if (text) {
+        currentStepText.push(text);
+      }
+    } else {
+      // Regular text - accumulate as part of current step
+      currentStepText.push(line);
     }
+  }
+
+  // Don't forget the last step
+  if (currentStepText.length > 0) {
+    steps.push({
+      order: steps.length + 1,
+      text: currentStepText.join("\n").trim(),
+    });
   }
 
   return steps;

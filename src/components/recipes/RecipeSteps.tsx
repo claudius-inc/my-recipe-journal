@@ -32,24 +32,6 @@ export function RecipeSteps({
   const [isEditing, setIsEditing] = useState(_isEditing);
   const { addToast } = useToast();
 
-  // Show if: editing, has steps, or is open (for adding first step)
-  if (!isEditing && steps.length === 0 && !isOpen) {
-    return (
-      <Box className="border-b border-gray-200 py-4">
-        <Button
-          variant="soft"
-          size="2"
-          onClick={() => {
-            setIsEditing(true);
-            setIsOpen(true);
-          }}
-        >
-          <PlusIcon /> Add Recipe Steps
-        </Button>
-      </Box>
-    );
-  }
-
   const handleStepChange = (order: number, newText: string) => {
     const updated = steps.map((step) =>
       step.order === order ? { ...step, text: newText } : step,
@@ -160,7 +142,7 @@ export function RecipeSteps({
 
             <Flex align="center" gap="2" className="ml-auto">
               {/* Edit button */}
-              {!isEditing && steps.length > 0 && (
+              {!isEditing && (
                 <IconButton
                   variant="ghost"
                   size="1"
@@ -175,15 +157,13 @@ export function RecipeSteps({
               )}
 
               {/* Step count badge */}
-              {steps.length > 0 && (
-                <Flex
-                  align="center"
-                  justify="center"
-                  className="bg-[var(--accent-8)] text-white rounded-full w-6 h-6 text-xs font-medium"
-                >
-                  {steps.length}
-                </Flex>
-              )}
+              <Flex
+                align="center"
+                justify="center"
+                className="bg-[var(--accent-8)] text-white rounded-full w-6 h-6 text-xs font-medium"
+              >
+                {steps.length}
+              </Flex>
             </Flex>
           </Flex>
         </Collapsible.Trigger>
@@ -191,9 +171,11 @@ export function RecipeSteps({
         {/* Content */}
         <Collapsible.Content>
           <Box className="space-y-3 p-4">
-            {steps.length === 0 && isEditing ? (
+            {steps.length === 0 ? (
               <Text size="2" color="gray">
-                No steps yet. Click &quot;Add Step&quot; to begin.
+                {isEditing
+                  ? 'No steps yet. Click "Add Step" to begin.'
+                  : "No steps yet. Click the edit button to add steps."}
               </Text>
             ) : (
               steps.map((step) => (
