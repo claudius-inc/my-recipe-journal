@@ -571,7 +571,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                     <li
                       key={recipe.id}
                       className={cn(
-                        "flex items-stretch gap-2 transition-all",
+                        "flex items-stretch transition-all",
                         isAnimatingOut && "animate-slideUp",
                         isJustMoved &&
                           "animate-fadeIn ring-2 ring-blue-400 dark:ring-blue-600 rounded-lg",
@@ -581,7 +581,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                         variant={recipe.id === selectedRecipeId ? "solid" : "soft"}
                         size="3"
                         className={cn(
-                          "flex-1 h-auto rounded-lg px-4 py-4 text-left transition-shadow justify-start",
+                          "flex-1 h-auto rounded-lg rounded-r-none px-4 py-2.5 text-left transition-shadow justify-start",
                           recipe.id === selectedRecipeId
                             ? "shadow-sm"
                             : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
@@ -629,14 +629,39 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                           </p>
                         </div>
                       </Button>
-                      <div className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col">
+                        <IconButton
+                          variant={recipe.id === selectedRecipeId ? "solid" : "soft"}
+                          size="3"
+                          color={recipe.pinnedAt ? "blue" : undefined}
+                          className={cn(
+                            "rounded-none rounded-tr-lg flex-1",
+                            recipe.id === selectedRecipeId
+                              ? ""
+                              : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePin(recipe.id, !!recipe.pinnedAt);
+                          }}
+                          disabled={
+                            isAnimatingOut || isArchiveInProgress || isPinInProgress
+                          }
+                          aria-label={recipe.pinnedAt ? "Unpin recipe" : "Pin recipe"}
+                        >
+                          {recipe.pinnedAt ? (
+                            <DrawingPinFilledIcon />
+                          ) : (
+                            <DrawingPinIcon />
+                          )}
+                        </IconButton>
                         <DropdownMenu.Root>
                           <DropdownMenu.Trigger>
                             <IconButton
-                              variant="soft"
+                              variant={recipe.id === selectedRecipeId ? "solid" : "soft"}
                               size="3"
                               className={cn(
-                                "rounded-lg",
+                                "rounded-none rounded-br-lg flex-1",
                                 recipe.id === selectedRecipeId
                                   ? ""
                                   : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
@@ -670,35 +695,6 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
                             </DropdownMenu.Item>
                           </DropdownMenu.Content>
                         </DropdownMenu.Root>
-                        <Tooltip
-                          content={recipe.pinnedAt ? "Unpin recipe" : "Pin recipe"}
-                        >
-                          <IconButton
-                            variant="soft"
-                            size="3"
-                            color={recipe.pinnedAt ? "blue" : undefined}
-                            className={cn(
-                              "rounded-lg",
-                              recipe.id === selectedRecipeId
-                                ? ""
-                                : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
-                            )}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTogglePin(recipe.id, !!recipe.pinnedAt);
-                            }}
-                            disabled={
-                              isAnimatingOut || isArchiveInProgress || isPinInProgress
-                            }
-                            aria-label={recipe.pinnedAt ? "Unpin recipe" : "Pin recipe"}
-                          >
-                            {recipe.pinnedAt ? (
-                              <DrawingPinFilledIcon />
-                            ) : (
-                              <DrawingPinIcon />
-                            )}
-                          </IconButton>
-                        </Tooltip>
                       </div>
                     </li>
                   );

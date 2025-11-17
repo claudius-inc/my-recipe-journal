@@ -87,7 +87,7 @@ export const SECONDARY_LABELS: Record<SecondaryCategoryKey, string> = {
 
 // Helper functions
 export function formatCategoryLabel(category: RecipeCategory): string {
-  return `${PRIMARY_LABELS[category.primary]} → ${SECONDARY_LABELS[category.secondary]}`;
+  return `${SECONDARY_LABELS[category.secondary]}`;
 }
 
 export function isValidCategory(category: RecipeCategory): boolean {
