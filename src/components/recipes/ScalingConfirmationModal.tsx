@@ -48,7 +48,7 @@ export function ScalingConfirmationModal({
                   {ingredient.name}
                 </div>
                 <div className="flex items-center justify-between gap-2 text-neutral-600 dark:text-neutral-400 sm:col-span-2 flex-nowrap">
-                  <span className="font-mono whitespace-nowrap">
+                  <span className="font-mono whitespace-nowrap line-through">
                     {ingredient.originalQuantity.toFixed(1)} {ingredient.unit}
                   </span>
                   <ArrowRightIcon className="w-4 h-4 text-neutral-400 dark:text-neutral-500" />
