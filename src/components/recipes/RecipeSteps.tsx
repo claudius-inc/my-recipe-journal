@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Box, Flex, Text, Button, TextField, IconButton } from "@radix-ui/themes";
 import {
   ChevronRightIcon,
@@ -14,12 +14,17 @@ import * as Collapsible from "@radix-ui/react-collapsible";
 import type { RecipeStep } from "@/types/recipes";
 import { parseInstructionsToSteps } from "@/lib/recipe-steps-helpers";
 import { useToast } from "@/context/ToastContext";
+import { SaveStatus } from "./SaveStatus";
 
 interface RecipeStepsProps {
   steps: RecipeStep[];
-  onUpdate: (steps: RecipeStep[]) => void;
+  onUpdate: (steps: RecipeStep[], actionType?: "delete" | "add" | "edit") => void;
   isEditing: boolean;
   defaultCollapsed?: boolean;
+  isSaving?: boolean;
+  lastSaved?: Date | null;
+  saveError?: Error | null;
+  onRetry?: () => void;
 }
 
 export function RecipeSteps({
@@ -27,21 +32,54 @@ export function RecipeSteps({
   onUpdate,
   isEditing: _isEditing,
   defaultCollapsed = true,
+  isSaving = false,
+  lastSaved = null,
+  saveError = null,
+  onRetry,
 }: RecipeStepsProps) {
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
   const [isEditing, setIsEditing] = useState(_isEditing);
   const { addToast } = useToast();
+  const firstInputRef = useRef<HTMLTextAreaElement>(null);
+  const wasEmptyOnExpandRef = useRef(false);
+
+  // Device and accessibility detection
+  const isMobile =
+    typeof window !== "undefined" &&
+    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // Auto-enable edit mode when expanding with 0 steps
+  // Auto-create first step and auto-exit edit mode when collapsing
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open && steps.length === 0) {
+      setIsEditing(true);
+      wasEmptyOnExpandRef.current = true;
+      // Auto-create first empty step
+      handleAddStep();
+    } else if (!open) {
+      // Cleanup: remove auto-created step if still empty
+      if (wasEmptyOnExpandRef.current && steps.length === 1 && !steps[0].text.trim()) {
+        onUpdate([], "delete");
+      }
+      wasEmptyOnExpandRef.current = false;
+      setIsEditing(false);
+    }
+  };
 
   const handleStepChange = (order: number, newText: string) => {
     const updated = steps.map((step) =>
       step.order === order ? { ...step, text: newText } : step,
     );
-    onUpdate(updated);
+    onUpdate(updated, "edit");
   };
 
   const handleAddStep = () => {
     const newOrder = steps.length + 1;
-    onUpdate([...steps, { order: newOrder, text: "" }]);
+    onUpdate([...steps, { order: newOrder, text: "" }], "add");
   };
 
   const handleRemoveStep = (order: number) => {
@@ -51,7 +89,7 @@ export function RecipeSteps({
       ...step,
       order: idx + 1,
     }));
-    onUpdate(reordered);
+    onUpdate(reordered, "delete");
   };
 
   const handlePasteSteps = async () => {
@@ -80,7 +118,7 @@ export function RecipeSteps({
       }));
 
       const updatedSteps = [...steps, ...newSteps];
-      onUpdate(updatedSteps);
+      onUpdate(updatedSteps, "add");
     } catch (error) {
       // Handle clipboard permission errors or other failures
       if (error instanceof Error) {
@@ -96,17 +134,42 @@ export function RecipeSteps({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Auto-focus first step when auto-created (desktop only)
+  useEffect(() => {
+    if (wasEmptyOnExpandRef.current && steps.length === 1 && isOpen && isEditing) {
+      // Only auto-focus on desktop (avoid unwanted keyboard on mobile)
+      if (!isMobile && !prefersReducedMotion) {
+        // Delay to allow expand animation to complete
+        const timer = setTimeout(() => {
+          firstInputRef.current?.focus();
+        }, 200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [steps.length, isOpen, isEditing, isMobile, prefersReducedMotion]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Escape key: clear empty step and exit edit mode
+    if (e.key === "Escape") {
+      const target = e.target as HTMLTextAreaElement;
+      if (!target.value.trim() && steps.length === 1) {
+        onUpdate([], "delete");
+        setIsEditing(false);
+        setIsOpen(false);
+        return;
+      }
+    }
+
     // Check for Ctrl+V (Windows/Linux) or Cmd+V (Mac)
     if ((e.ctrlKey || e.metaKey) && e.key === "v") {
-      // Allow default paste behavior in the input field itself
-      // Don't trigger multi-step paste when there's selected text in the input
-      const target = e.target as HTMLInputElement;
+      // Allow default paste behavior in the textarea itself
+      // Don't trigger multi-step paste when there's selected text in the textarea
+      const target = e.target as HTMLTextAreaElement;
       if (target.selectionStart !== target.selectionEnd) {
         return; // Let native paste happen for selected text
       }
 
-      // Only trigger multi-step paste if input is empty or at the start
+      // Only trigger multi-step paste if textarea is empty or at the start
       if (target.value.trim().length === 0 || target.selectionStart === 0) {
         e.preventDefault();
         handlePasteSteps();
@@ -115,8 +178,15 @@ export function RecipeSteps({
   };
 
   return (
-    <Collapsible.Root open={isOpen} onOpenChange={setIsOpen}>
+    <Collapsible.Root open={isOpen} onOpenChange={handleOpenChange}>
       <section className="rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+        {/* ARIA announcement for screen readers */}
+        {isEditing && wasEmptyOnExpandRef.current && steps.length === 1 && (
+          <div role="status" aria-live="polite" className="sr-only">
+            Edit mode enabled. Step 1 input field ready.
+          </div>
+        )}
+
         {/* Header */}
         <Collapsible.Trigger asChild>
           <Flex
@@ -135,27 +205,58 @@ export function RecipeSteps({
               </h3>
             </Flex>
 
-            <Flex align="center" gap="2" className="ml-auto">
-              {/* Edit button */}
-              {!isEditing && (
-                <IconButton
+            <Flex align="center" gap="4" className="ml-auto">
+              {/* Save status indicator */}
+              {isEditing && (
+                <SaveStatus
+                  isSaving={isSaving}
+                  hasUnsavedChanges={false}
+                  lastSaved={lastSaved}
+                  error={saveError}
+                  onRetry={onRetry}
+                />
+              )}
+
+              {/* Paste button (editing only) */}
+              {isEditing && (
+                <Button
                   variant="ghost"
                   size="1"
                   onClick={(e) => {
                     e.stopPropagation();
+                    handlePasteSteps();
+                  }}
+                  title="Paste multiple steps from clipboard (or press Ctrl+V / ⌘V in an empty step field)"
+                >
+                  <ClipboardIcon />
+                  <span className="hidden sm:inline">Paste</span>
+                </Button>
+              )}
+
+              {/* Edit/Done button - toggles edit mode */}
+              <Button
+                variant="ghost"
+                size="1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isEditing) {
+                    setIsEditing(false);
+                  } else {
                     setIsEditing(true);
                     setIsOpen(true);
-                  }}
-                >
-                  <Pencil1Icon />
-                </IconButton>
-              )}
+                  }
+                }}
+                title={isEditing ? "Exit edit mode" : "Edit steps"}
+              >
+                <Pencil1Icon />
+                <span className="hidden sm:inline">Edit</span>
+              </Button>
 
               {/* Step count badge */}
               <Flex
                 align="center"
                 justify="center"
-                className="bg-[var(--accent-8)] text-white rounded-full w-6 h-6 text-xs font-medium"
+                className="bg-[var(--accent-8)] text-white rounded-lg w-6 h-6 text-xs font-medium"
               >
                 {steps.length}
               </Flex>
@@ -182,23 +283,35 @@ export function RecipeSteps({
 
                   {/* Step text */}
                   {isEditing ? (
-                    <Flex gap="2" className="flex-1">
-                      <TextField.Root
+                    <Flex gap="2" className="flex-1 items-center">
+                      <textarea
+                        ref={step.order === 1 ? firstInputRef : null}
                         value={step.text}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                           handleStepChange(step.order, e.target.value)
                         }
                         onKeyDown={handleKeyDown}
                         placeholder="Enter step instructions..."
-                        className="flex-1"
+                        aria-label={`Step ${step.order}`}
+                        rows={1}
+                        className="flex-1 min-h-[32px] p-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm resize-none overflow-hidden field-sizing-content"
+                        style={{
+                          height: "auto",
+                        }}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = "auto";
+                          target.style.height = target.scrollHeight + "px";
+                        }}
                       />
 
                       <IconButton
                         variant="ghost"
                         color="red"
+                        size="2"
                         onClick={() => handleRemoveStep(step.order)}
                       >
-                        <TrashIcon />
+                        <TrashIcon className="w-4 h-4" />
                       </IconButton>
                     </Flex>
                   ) : (
@@ -210,30 +323,11 @@ export function RecipeSteps({
               ))
             )}
 
-            {/* Add step and paste buttons (editing only) */}
+            {/* Add step button (editing only) */}
             {isEditing && (
-              <Flex gap="2" className="mt-3">
-                <Button
-                  variant="soft"
-                  size="2"
-                  onClick={handleAddStep}
-                  className="flex-1"
-                >
+              <Flex gap="2" className="mt-3 justify-end">
+                <Button variant="soft" size="2" onClick={handleAddStep}>
                   <PlusIcon /> Add Step
-                </Button>
-                <Button
-                  variant="outline"
-                  size="2"
-                  onClick={handlePasteSteps}
-                  title="Paste multiple steps at once (or press Ctrl+V / ⌘V in an empty step field)"
-                >
-                  <ClipboardIcon /> Paste Steps, or{" "}
-                  <Text className="ml-1 text-xs text-white bg-[var(--accent-9)] rounded-sm py-0.5 px-1">
-                    <kbd>Ctrl+V</kbd>
-                  </Text>
-                </Button>
-                <Button variant="solid" size="2" onClick={() => setIsEditing(false)}>
-                  Done
                 </Button>
               </Flex>
             )}

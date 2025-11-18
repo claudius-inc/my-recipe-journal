@@ -183,6 +183,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     textureNotes: "",
   });
   const [stepsDraft, setStepsDraft] = useState<RecipeStep[]>([]);
+  const [isSavingSteps, setIsSavingSteps] = useState(false);
+  const [stepsLastSaved, setStepsLastSaved] = useState<Date | null>(null);
+  const [stepsSaveError, setStepsSaveError] = useState<Error | null>(null);
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isScalingOpen, setIsScalingOpen] = useState(false);
@@ -398,28 +401,43 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const saveStepsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleStepsUpdate = useCallback(
-    (steps: RecipeStep[]) => {
+    (steps: RecipeStep[], actionType: "delete" | "add" | "edit" = "edit") => {
       if (!selectedRecipe || !selectedVersion) {
         return;
       }
 
       // Update local state immediately for responsive UI
       setStepsDraft(steps);
+      setStepsSaveError(null); // Clear any previous errors
 
       // Cancel any pending save
       if (saveStepsTimeoutRef.current) {
         clearTimeout(saveStepsTimeoutRef.current);
       }
 
+      // Different debounce delays based on action type
+      const debounceDelays = {
+        delete: 0, // Persist deletes immediately
+        add: 100, // Quick for adding steps
+        edit: 500, // Standard for text editing
+      };
+
       // Debounce the actual save operation
       saveStepsTimeoutRef.current = setTimeout(async () => {
+        setIsSavingSteps(true);
         try {
           await updateVersion(selectedRecipe.id, selectedVersion.id, { steps });
-          addToast("Recipe steps updated", "success");
+          setStepsLastSaved(new Date());
+          setStepsSaveError(null);
+          // Success - no toast notification (auto-save should be silent)
         } catch (error) {
+          const err = error instanceof Error ? error : new Error("Failed to save");
+          setStepsSaveError(err);
           addToast("Failed to update steps", "error");
+        } finally {
+          setIsSavingSteps(false);
         }
-      }, 500);
+      }, debounceDelays[actionType]);
     },
     [selectedRecipe, selectedVersion, updateVersion, addToast],
   );
@@ -1059,6 +1077,10 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onUpdate={handleStepsUpdate}
           isEditing={false}
           defaultCollapsed={true}
+          isSaving={isSavingSteps}
+          lastSaved={stepsLastSaved}
+          saveError={stepsSaveError}
+          onRetry={() => handleStepsUpdate(stepsDraft)}
         />
 
         <VersionNotes
