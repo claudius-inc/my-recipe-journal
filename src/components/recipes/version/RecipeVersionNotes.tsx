@@ -30,6 +30,11 @@ export interface VersionNotesProps {
     value: number | null;
   };
   setHoverRating: (value: { field: string | null; value: number | null }) => void;
+  pendingRatings: {
+    tasteRating?: number;
+    visualRating?: number;
+    textureRating?: number;
+  };
 }
 
 export function RecipeVersionNotes({
@@ -44,6 +49,7 @@ export function RecipeVersionNotes({
   savingRating,
   hoverRating,
   setHoverRating,
+  pendingRatings,
 }: VersionNotesProps) {
   const [editingRatingNote, setEditingRatingNote] = useState<
     "taste" | "visual" | "texture" | null
@@ -151,10 +157,13 @@ export function RecipeVersionNotes({
                   <div className="flex gap-0.5">
                     {Array.from({ length: 5 }).map((_, i) => {
                       const isLoading = savingRating === ratingField;
+                      const pendingValue = pendingRatings[ratingField];
                       const displayRating =
                         hoverRating.field === ratingField && hoverRating.value !== null
                           ? hoverRating.value
-                          : (rating ?? 0);
+                          : pendingValue !== undefined
+                            ? pendingValue
+                            : (rating ?? 0);
                       const isFilled = i < displayRating;
 
                       return (

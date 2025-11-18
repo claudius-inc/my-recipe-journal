@@ -133,6 +133,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     field: string | null;
     value: number | null;
   }>({ field: null, value: null });
+  const [pendingRatings, setPendingRatings] = useState<{
+    tasteRating?: number;
+    visualRating?: number;
+    textureRating?: number;
+  }>({});
 
   // Initialize photo upload hook
   const {
@@ -358,6 +363,8 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       if (!selectedRecipe || !selectedVersion) {
         return;
       }
+      // Set pending value for optimistic UI update
+      setPendingRatings((prev) => ({ ...prev, [field]: value }));
       setSavingRating(field);
       try {
         await updateVersion(selectedRecipe.id, selectedVersion.id, { [field]: value });
@@ -366,6 +373,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         addToast("Failed to save rating", "error");
       } finally {
         setSavingRating(null);
+        // Clear pending value after save completes
+        setPendingRatings((prev) => {
+          const updated = { ...prev };
+          delete updated[field];
+          return updated;
+        });
       }
     },
     [selectedRecipe, selectedVersion, updateVersion, addToast],
@@ -847,6 +860,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           savingRating={savingRating}
           hoverRating={hoverRating}
           setHoverRating={setHoverRating}
+          pendingRatings={pendingRatings}
         />
 
         <div className="flex gap-3">
