@@ -32,9 +32,8 @@ import {
 import { useRecipeStore } from "@/store/RecipeStore";
 import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
 import { useToast } from "@/context/ToastContext";
-import { DuplicateRecipeModal } from "@/components/recipes/DuplicateRecipeModal";
-import { CategorySelector } from "@/components/recipes/CategorySelector";
-import { ImportFromUrlModal } from "@/components/recipes/ImportFromUrlModal";
+import { DuplicateRecipeModal, ImportFromUrlModal } from "@/components/recipes/modals";
+import { CategorySelector } from "@/components/recipes/selectors";
 
 interface RecipeSidebarProps {
   isOpen: boolean;

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Checkbox, TextField } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
-import { SaveIndicator } from "../ui/SaveIndicator";
+import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
 import { ChevronDownIcon, InfoCircledIcon } from "@radix-ui/react-icons";
 

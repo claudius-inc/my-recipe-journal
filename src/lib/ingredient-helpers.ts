@@ -1,5 +1,20 @@
 import type { IngredientRole, RecipeCategory } from "@/types/recipes";
 
+/**
+ * Human-readable labels for ingredient roles
+ */
+export const IngredientRoleLabels: Record<string, string> = {
+  flour: "Flour",
+  liquid: "Liquid",
+  preferment: "Preferment",
+  salt: "Salt",
+  sweetener: "Sweetener",
+  fat: "Fat",
+  add_in: "Add-in",
+  spice: "Spice",
+  other: "Other",
+};
+
 interface IngredientDefaults {
   role: IngredientRole;
   unit: string;

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { TextField } from "@radix-ui/themes";
 import { CheckIcon, Cross2Icon } from "@radix-ui/react-icons";
 import type { Ingredient } from "@/types/recipes";
-import { SaveIndicator } from "../ui/SaveIndicator";
+import { SaveIndicator } from "@/components/ui/SaveIndicator";
 
 interface InteractivePercentageEditorProps {
   ingredient: Ingredient;

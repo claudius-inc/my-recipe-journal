@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button, Dialog, TextField } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { RecipeCategory, IngredientRole } from "@/types/recipes";
-import { CategorySelector } from "./CategorySelector";
+import { CategorySelector } from "../selectors";
 
 interface ExtractedRecipeData {
   name: string;

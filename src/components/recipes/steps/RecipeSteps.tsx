@@ -14,7 +14,7 @@ import * as Collapsible from "@radix-ui/react-collapsible";
 import type { RecipeStep } from "@/types/recipes";
 import { parseInstructionsToSteps } from "@/lib/recipe-steps-helpers";
 import { useToast } from "@/context/ToastContext";
-import { SaveStatus } from "./SaveStatus";
+import { SaveStatus } from "../shared/SaveStatus";
 
 interface RecipeStepsProps {
   steps: RecipeStep[];

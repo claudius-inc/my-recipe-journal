@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Dialog, Button, TextField, Checkbox, Badge } from "@radix-ui/themes";
 import type { Recipe, RecipeCategory, DuplicateRecipeData } from "@/types/recipes";
 import { formatCategoryLabel } from "@/types/recipes";
-import { CategorySelector } from "./CategorySelector";
+import { CategorySelector } from "../selectors";
 
 interface DuplicateRecipeModalProps {
   isOpen: boolean;
