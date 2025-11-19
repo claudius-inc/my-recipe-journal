@@ -2,39 +2,34 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { cn } from "@/lib/utils";
 import {
   type DuplicateRecipeData,
   type Ingredient,
-  type Recipe,
-  type RecipeVersion,
-  type RecipeCategory,
   type RecipeStep,
+  type RecipeCategory,
+  type RecipeVersion,
 } from "@/types/recipes";
 import { useRecipeStore } from "@/store/RecipeStore";
 import { useToast } from "@/context/ToastContext";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
-import { formatDateTime } from "@/lib/formatting";
 import type { AIAssistantResponse } from "@/lib/gemini-assistant";
 
 // Component imports - organized by feature
-import { EditableField } from "@/components/ui/EditableField";
-import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { AIAssistantButton, RecipeAIAssistant } from "./ai-assistant";
-import { CategorySelector } from "./selectors";
 import {
   DuplicateRecipeModal,
   IterationIntentModal,
-  ScalingConfirmationModal,
   VersionComparisonModal,
 } from "./modals";
 import { IngredientList } from "./ingredients";
 import { RecipeSteps } from "./steps";
 import { PhotoUploadSection } from "./shared";
 import { RecipeVersionTabs, RecipeVersionNotes } from "./version";
+import { RecipeHeader } from "./RecipeHeader";
+import { RecipeScalingManager } from "./RecipeScalingManager";
 
 // Radix UI imports
-import { Button, TextArea } from "@radix-ui/themes";
+import { Button } from "@radix-ui/themes";
 import { ArchiveIcon } from "@radix-ui/react-icons";
 
 interface RecipeViewProps {
@@ -82,7 +77,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [isScalingOpen, setIsScalingOpen] = useState(false);
-  const [scalingMode, setScalingMode] = useState<"ingredient" | null>(null);
   const [selectedScalingIngredient, setSelectedScalingIngredient] = useState<string>("");
   const [targetQuantity, setTargetQuantity] = useState<string>("");
   const [scaledIngredients, setScaledIngredients] = useState<
@@ -95,15 +89,11 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }>
   >([]);
   const [isScalingModalOpen, setIsScalingModalOpen] = useState(false);
-  const [isApplyingScaling, setIsApplyingScaling] = useState(false);
   const [isPreviewingScaling, setIsPreviewingScaling] = useState(false);
-  const [savingMetaField, setSavingMetaField] = useState<string | null>(null);
   const [isIntentModalOpen, setIsIntentModalOpen] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
   const [comparisonVersion, setComparisonVersion] = useState<RecipeVersion | null>(null);
-  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-  const [showGenerationTimeout, setShowGenerationTimeout] = useState(false);
   // AI Assistant state
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   // Duplicate modal state
@@ -424,50 +414,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }, 300);
   }, [selectedVersion, selectedScalingIngredient, targetQuantity]);
 
-  const handleConfirmScaling = useCallback(async () => {
-    if (!selectedRecipe || !selectedVersion || scaledIngredients.length === 0) {
-      return;
-    }
-
-    setIsApplyingScaling(true);
-    try {
-      // Update all ingredients with new quantities in a single batch request
-      await batchUpdateIngredients(
-        selectedRecipe.id,
-        selectedVersion.id,
-        scaledIngredients.map((ingredient) => ({
-          id: ingredient.id,
-          quantity: ingredient.newQuantity,
-        })),
-      );
-
-      setIsScalingModalOpen(false);
-      setIsScalingOpen(false);
-      setSelectedScalingIngredient("");
-      setTargetQuantity("");
-      setScaledIngredients([]);
-    } finally {
-      setIsApplyingScaling(false);
-    }
-  }, [selectedRecipe, selectedVersion, scaledIngredients, batchUpdateIngredients]);
-
-  const handleCancelScaling = useCallback(() => {
-    setIsScalingModalOpen(false);
-    setScaledIngredients([]);
-  }, []);
-
-  const handleUpdateIngredientPercentage = useCallback(
-    async (ingredientId: string, newQuantity: number) => {
-      if (!selectedRecipe || !selectedVersion) {
-        return;
-      }
-      await updateIngredient(selectedRecipe.id, selectedVersion.id, ingredientId, {
-        quantity: newQuantity,
-      });
-    },
-    [selectedRecipe, selectedVersion, updateIngredient],
-  );
-
   const handleCompareVersion = useCallback(
     (versionId: string) => {
       if (!selectedRecipe) {
@@ -513,55 +459,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     },
     [selectedRecipe, createVersion],
   );
-
-  const handleGenerateDescription = useCallback(async () => {
-    if (!selectedRecipe || !selectedVersion || selectedVersion.ingredients.length === 0) {
-      return;
-    }
-    setIsGeneratingDescription(true);
-    setShowGenerationTimeout(false);
-
-    // Show timeout warning after 10 seconds
-    const timeoutHandle = setTimeout(() => {
-      setShowGenerationTimeout(true);
-    }, 10000);
-
-    try {
-      const response = await fetch("/api/recipes/generate-description", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ingredients: selectedVersion.ingredients.map((ing) => ({
-            name: ing.name,
-            quantity: ing.quantity,
-            unit: ing.unit,
-            role: ing.role,
-          })),
-          category: selectedRecipe.category,
-          name: selectedRecipe.name,
-        }),
-      });
-
-      clearTimeout(timeoutHandle);
-      setShowGenerationTimeout(false);
-
-      if (!response.ok) {
-        throw new Error("Failed to generate description");
-      }
-
-      const data = await response.json();
-      setRecipeDescription(data.description);
-      await updateRecipe(selectedRecipe.id, { description: data.description });
-      addToast("Description generated successfully", "success");
-    } catch (error) {
-      console.error("Failed to generate description:", error);
-      addToast("Failed to generate description", "error");
-    } finally {
-      clearTimeout(timeoutHandle);
-      setIsGeneratingDescription(false);
-      setShowGenerationTimeout(false);
-    }
-  }, [selectedRecipe, selectedVersion, updateRecipe, addToast]);
 
   const handleToggleIngredientCheck = useCallback((ingredientId: string) => {
     setCheckedIngredients((prev) => {
@@ -705,70 +602,29 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   return (
     <div className="flex-1 overflow-y-auto bg-surface">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-5 py-6">
-        <section className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1">
-                <EditableField
-                  label="Recipe name"
-                  value={recipeName}
-                  onChange={setRecipeName}
-                  placeholder="e.g. Country loaf"
-                  onBlur={() => handleRecipeBlur("name")}
-                  isSaving={savingRecipeName}
-                />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                  Description
-                </span>
-                <SaveIndicator isSaving={savingRecipeDescription} />
-              </div>
-              <TextArea
-                value={recipeDescription}
-                onChange={(event) => setRecipeDescription(event.target.value)}
-                onBlur={() => handleRecipeBlur("description")}
-                placeholder="Describe this recipe iteration."
-                rows={3}
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                    Category
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <CategorySelector
-                      value={category}
-                      onChange={async (newCategory) => {
-                        setCategory(newCategory);
-                        // Pass the new value directly instead of reading from state
-                        if (selectedRecipe && newCategory !== selectedRecipe.category) {
-                          setSavingCategory(true);
-                          try {
-                            await updateRecipe(selectedRecipe.id, {
-                              category: newCategory,
-                            });
-                          } finally {
-                            setSavingCategory(false);
-                          }
-                        }
-                      }}
-                    />
-                    <SaveIndicator isSaving={savingCategory} />
-                  </div>
-                </div>
-              </div>
-              <span className="text-xs text-neutral-400 dark:text-neutral-500">
-                Last updated {formatDateTime(selectedRecipe.updatedAt)}
-              </span>
-            </div>
-          </div>
-        </section>
+        <RecipeHeader
+          recipe={selectedRecipe}
+          name={recipeName}
+          onNameChange={setRecipeName}
+          description={recipeDescription}
+          onDescriptionChange={setRecipeDescription}
+          category={category}
+          onCategoryChange={async (newCategory) => {
+            setCategory(newCategory);
+            if (selectedRecipe && newCategory !== selectedRecipe.category) {
+              setSavingCategory(true);
+              try {
+                await updateRecipe(selectedRecipe.id, { category: newCategory });
+              } finally {
+                setSavingCategory(false);
+              }
+            }
+          }}
+          onBlur={handleRecipeBlur}
+          savingName={savingRecipeName}
+          savingDescription={savingRecipeDescription}
+          savingCategory={savingCategory}
+        />
 
         <RecipeVersionTabs
           recipe={selectedRecipe}
@@ -814,7 +670,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onToggleAllIngredients={handleToggleAllIngredients}
           pendingIngredients={pendingIngredients}
           onPendingIngredientsChange={setPendingIngredients}
-          onAddIngredient={addIngredient}
+          onAddIngredient={(data) =>
+            addIngredient(selectedRecipe.id, selectedVersion.id, {
+              ...data,
+              role: data.role,
+            })
+          }
           isScalingOpen={isScalingOpen}
           onToggleScaling={() => setIsScalingOpen(!isScalingOpen)}
           selectedScalingIngredient={selectedScalingIngredient}
@@ -914,9 +775,19 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           />
         )}
 
-        <ScalingConfirmationModal
+        <RecipeScalingManager
           isOpen={isScalingModalOpen}
+          onClose={() => setIsScalingModalOpen(false)}
           scaledIngredients={scaledIngredients}
+          recipeId={selectedRecipe.id}
+          versionId={selectedVersion.id}
+          onSuccess={() => {
+            setIsScalingModalOpen(false);
+            setIsScalingOpen(false);
+            setSelectedScalingIngredient("");
+            setTargetQuantity("");
+            setScaledIngredients([]);
+          }}
           scalingMethod={
             selectedScalingIngredient && selectedVersion
               ? `Scaling based on ${
@@ -930,9 +801,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                 }`
               : ""
           }
-          onConfirm={handleConfirmScaling}
-          onCancel={handleCancelScaling}
-          isApplying={isApplyingScaling}
         />
       </div>
 

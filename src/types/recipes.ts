@@ -18,6 +18,15 @@ export interface Ingredient {
   notes?: string;
 }
 
+export interface PendingIngredient {
+  tempId: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  role: IngredientRole;
+  notes?: string;
+}
+
 // Hierarchical category types
 export type PrimaryCategoryKey = "baking" | "cooking" | "beverages" | "other";
 

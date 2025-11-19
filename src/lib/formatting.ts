@@ -38,3 +38,32 @@ export function formatDateTime(date: Date | string): string {
   });
   return `${day} ${month} ${year}, ${time}`;
 }
+
+/**
+ * Format a date relative to now (e.g. "5 minutes ago", "2 hours ago")
+ */
+export const formatRelativeTime = (iso: string) => {
+  const formatter = new Intl.RelativeTimeFormat(undefined, {
+    numeric: "auto",
+  });
+  const now = Date.now();
+  const diffMs = new Date(iso).getTime() - now;
+  const diffMinutes = Math.round(diffMs / (1000 * 60));
+  if (Math.abs(diffMinutes) < 60) {
+    return formatter.format(diffMinutes, "minute");
+  }
+  const diffHours = Math.round(diffMinutes / 60);
+  if (Math.abs(diffHours) < 24) {
+    return formatter.format(diffHours, "hour");
+  }
+  const diffDays = Math.round(diffHours / 24);
+  if (Math.abs(diffDays) < 14) {
+    return formatter.format(diffDays, "day");
+  }
+  const diffWeeks = Math.round(diffDays / 7);
+  if (Math.abs(diffWeeks) < 8) {
+    return formatter.format(diffWeeks, "week");
+  }
+  const diffMonths = Math.round(diffDays / 30);
+  return formatter.format(diffMonths, "month");
+};
