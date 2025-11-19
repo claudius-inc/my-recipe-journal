@@ -19,7 +19,9 @@ import {
   DrawingPinFilledIcon,
   LinkBreak2Icon,
   PlusIcon,
+  MagnifyingGlassIcon,
 } from "@radix-ui/react-icons";
+import { useEffect } from "react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -87,6 +89,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
     loadingMore,
   } = useRecipeStore();
   const [query, setQuery] = useState("");
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [draftCategory, setDraftCategory] = useState<RecipeCategory>({
@@ -105,6 +108,18 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const [duplicateModalRecipe, setDuplicateModalRecipe] = useState<Recipe | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsSearchExpanded(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleToggleArchive = async (recipeId: string, isArchived: boolean) => {
     // Prevent overlapping archive/unarchive actions on the same recipe
@@ -396,26 +411,85 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
       >
         <div className="space-y-3 border-b border-neutral-200 px-5 py-3 dark:border-neutral-800">
           {/* Row 1: Title, Search, Close */}
-          <div className="flex items-center gap-3">
-            <h1 className="text-base font-semibold tracking-tight shrink-0">Recipes</h1>
-            <TextField.Root
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search recipes"
-              className="flex-1"
-            />
-            <Tooltip content="Close">
-              <IconButton
-                variant="ghost"
-                size="2"
-                className="rounded-full md:hidden"
-                onClick={onClose}
-                aria-label="Close recipes panel"
-              >
-                <Cross2Icon className="w-4 h-4" />
-              </IconButton>
-            </Tooltip>
+          <div className="flex items-center gap-3 h-9">
+            {isSearchExpanded ? (
+              <div className="flex-1 flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+                <TextField.Root
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search recipes..."
+                  className="flex-1"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (query) {
+                        setQuery("");
+                      } else {
+                        setIsSearchExpanded(false);
+                      }
+                    }
+                  }}
+                >
+                  <TextField.Slot>
+                    <MagnifyingGlassIcon height="16" width="16" />
+                  </TextField.Slot>
+                  {query && (
+                    <TextField.Slot>
+                      <IconButton
+                        size="1"
+                        variant="ghost"
+                        onClick={() => setQuery("")}
+                        aria-label="Clear search"
+                      >
+                        <Cross2Icon height="14" width="14" />
+                      </IconButton>
+                    </TextField.Slot>
+                  )}
+                </TextField.Root>
+                <IconButton
+                  variant="ghost"
+                  size="2"
+                  onClick={() => {
+                    setQuery("");
+                    setIsSearchExpanded(false);
+                  }}
+                  aria-label="Close search"
+                >
+                  <Cross2Icon className="w-4 h-4" />
+                </IconButton>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-base font-semibold tracking-tight shrink-0 flex-1">
+                  Recipes
+                </h1>
+                <Tooltip content="Search (⌘K)">
+                  <IconButton
+                    variant="ghost"
+                    size="2"
+                    color="gray"
+                    onClick={() => setIsSearchExpanded(true)}
+                    aria-label="Search recipes"
+                  >
+                    <MagnifyingGlassIcon className="w-4 h-4" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip content="Close">
+                  <IconButton
+                    variant="ghost"
+                    size="2"
+                    className="rounded-full md:hidden"
+                    onClick={onClose}
+                    aria-label="Close recipes panel"
+                  >
+                    <Cross2Icon className="w-4 h-4" />
+                  </IconButton>
+                </Tooltip>
+              </>
+            )}
           </div>
 
           {/* Loading/Error message */}
@@ -555,9 +629,11 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
             </div>
           ) : filtered.length === 0 ? (
             <p className="px-3 text-sm text-neutral-500 dark:text-neutral-400">
-              {showArchived
-                ? "No archived recipes."
-                : "No recipes yet. Create one to get started."}
+              {query
+                ? `No recipes found for "${query}"`
+                : showArchived
+                  ? "No archived recipes."
+                  : "No recipes yet. Create one to get started."}
             </p>
           ) : (
             <>
