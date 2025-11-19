@@ -1,10 +1,11 @@
-import { useState, useRef, KeyboardEvent, useId } from "react";
-import { Button, Spinner, TextField } from "@radix-ui/themes";
+import { useState, useRef, KeyboardEvent } from "react";
+import { Button, TextField } from "@radix-ui/themes";
 import { PlusIcon } from "@radix-ui/react-icons";
 import type { Ingredient } from "@/types/recipes";
 import { suggestIngredientDefaults } from "@/lib/ingredient-helpers";
 import { IngredientRoleLabels, INGREDIENT_ROLES } from "./constants";
 import { cn } from "@/lib/utils";
+import { IngredientAutocomplete } from "@/components/ui/IngredientAutocomplete";
 
 interface AddIngredientFormProps {
   onAdd: (payload: {
@@ -23,7 +24,6 @@ export function AddIngredientForm({
   suggestions,
   isLoadingSuggestions,
 }: AddIngredientFormProps) {
-  const datalistId = useId();
   const [draft, setDraft] = useState({
     name: "",
     quantity: "",
@@ -95,22 +95,14 @@ export function AddIngredientForm({
         {/* Desktop: Horizontal Layout / Mobile: Stacked */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
           {/* Name Input */}
-          <div className="relative flex-1">
-            <input
-              ref={ingredientNameInputRef}
-              list={datalistId}
-              value={draft.name}
-              onChange={(event) => handleNameChange(event.target.value)}
-              placeholder="Ingredient name"
-              disabled={isLoadingSuggestions}
-              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-            />
-            {isLoadingSuggestions && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Spinner size="1" />
-              </div>
-            )}
-          </div>
+          <IngredientAutocomplete
+            value={draft.name}
+            onChange={handleNameChange}
+            suggestions={suggestions}
+            isLoading={isLoadingSuggestions}
+            placeholder="Ingredient name"
+            inputRef={ingredientNameInputRef}
+          />
 
           {/* Quantity & Unit Row */}
           <div className="flex gap-2 sm:w-auto">
@@ -207,12 +199,6 @@ export function AddIngredientForm({
           </Button>
         </div>
       </div>
-
-      <datalist id={datalistId}>
-        {suggestions.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
     </div>
   );
 }
