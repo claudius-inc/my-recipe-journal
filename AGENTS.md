@@ -65,7 +65,7 @@ docs/                       # Architecture documentation
 
 - **NEVER create documentation files in the project root:** All `.md` files (except AGENTS.md and CLAUDE.md) must be placed in the `docs/` directory
 - **Reference from AGENTS.md:** When creating new documentation, add a reference in the appropriate section of this file
-- **Keep docs/ organized:** Use clear, descriptive filenames (e.g., `recipe-import.md`, `photo-extraction.md`)
+- **Keep docs/ organized:** Use clear, descriptive filenames (e.g., `features/recipe-import.md`, `features/photo-extraction.md`)
 - **Update AGENTS.md:** After creating docs, add links to the "Documentation References" and/or "Feature-Specific Notes" sections
 
 ### Testing Requirements
@@ -156,13 +156,13 @@ import { Button, TextField } from "@radix-ui/themes";
   - Baking guidance and troubleshooting
   - Baker's percentage adjustments
 - **State:** Ephemeral (per-version, in-memory only for v1.0)
-- **See:** [AI Assistant Guide](docs/ai-assistant.md) and [Roadmap](docs/ai-assistant-roadmap.md)
+- **See:** [AI Assistant Guide](docs/planning/ai-assistant.md) and [Roadmap](docs/planning/ai-assistant-roadmap.md)
 
 ### Photo Extraction (Gemini AI)
 
 - Requires `GEMINI_API_KEY` environment variable
 - Implementation in `src/server/recipesService.ts` → `extractRecipeFromPhoto()`
-- See [Photo Extraction Guide](docs/photo-extraction.md)
+- See [Photo Extraction Guide](docs/features/photo-extraction.md)
 
 ### Recipe Import from URL
 
@@ -177,7 +177,7 @@ import { Button, TextField } from "@radix-ui/themes";
   - Factory pattern for adapter selection
 - **API:** `/api/recipes/from-url` (POST) - Rate limited to 10/hour
 - **Flow:** URL input → Extraction → Preview/Edit → Save
-- **See:** [Recipe Import Guide](docs/recipe-import.md)
+- **See:** [Recipe Import Guide](docs/features/recipe-import.md)
 
 ### Ingredient Autocomplete
 
@@ -205,12 +205,12 @@ import { Button, TextField } from "@radix-ui/themes";
 
 For deeper understanding, consult:
 
-- [Architecture](docs/architecture.md) - System design and patterns
-- [API Reference](docs/api.md) - Endpoint specifications
-- [Data Model](docs/data-model.md) - Database schema details
-- [Photo Extraction Guide](docs/photo-extraction.md) - AI integration
-- [Recipe Import Guide](docs/recipe-import.md) - URL-based recipe importing
-- [Deployment Guide](docs/deployment.md) - Production configuration
+- [Architecture](docs/core/architecture.md) - System design and patterns
+- [API Reference](docs/core/api.md) - Endpoint specifications
+- [Data Model](docs/core/data-model.md) - Database schema details
+- [Photo Extraction Guide](docs/features/photo-extraction.md) - AI integration
+- [Recipe Import Guide](docs/features/recipe-import.md) - URL-based recipe importing
+- [Deployment Guide](docs/infrastructure/deployment.md) - Production configuration
 
 ## Environment Variables
 

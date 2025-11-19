@@ -64,11 +64,11 @@ Mobile-first recipe journaling app for bakers and beverage creatives. Track iter
 
 ## Additional Documentation
 
-- [Architecture](docs/architecture.md)
-- [API Reference](docs/api.md)
-- [Data Model](docs/data-model.md)
-- [Photo Extraction Guide](docs/photo-extraction.md)
-- [Deployment Guide](docs/deployment.md)
+- [Architecture](docs/core/architecture.md)
+- [API Reference](docs/core/api.md)
+- [Data Model](docs/core/data-model.md)
+- [Photo Extraction Guide](docs/features/photo-extraction.md)
+- [Deployment Guide](docs/infrastructure/deployment.md)
 
 ## Deployment Notes
 
@@ -92,4 +92,4 @@ Mobile-first recipe journaling app for bakers and beverage creatives. Track iter
 - `FROM_EMAIL` - Email sender address (must be verified in Resend)
 - `GEMINI_API_KEY` - Optional, enables photo-to-recipe feature
 
-See [Deployment Guide](docs/deployment.md) for detailed instructions and troubleshooting.
+See [Deployment Guide](docs/infrastructure/deployment.md) for detailed instructions and troubleshooting.
