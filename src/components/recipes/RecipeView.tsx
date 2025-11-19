@@ -15,7 +15,7 @@ import { usePhotoUpload } from "@/hooks/usePhotoUpload";
 import type { AIAssistantResponse } from "@/lib/gemini-assistant";
 
 // Component imports - organized by feature
-import { AIAssistantButton, RecipeAIAssistant } from "./ai-assistant";
+import { RecipeAIAssistant } from "./ai-assistant";
 import {
   DuplicateRecipeModal,
   IterationIntentModal,
@@ -28,6 +28,7 @@ import { RecipeVersionTabs, RecipeVersionNotes } from "./version";
 import { RecipeHeader } from "./RecipeHeader";
 import { RecipeScalingManager } from "./RecipeScalingManager";
 import { LoadingAnimation } from "@/components/ui/LoadingAnimation";
+import { SpeedDialFAB } from "./SpeedDialFAB";
 
 // Radix UI imports
 import { Button } from "@radix-ui/themes";
@@ -725,7 +726,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           pendingRatings={pendingRatings}
         />
 
-        <div className="flex gap-3">
+        <div className="hidden gap-3 md:flex">
           <Button
             size="2"
             variant="soft"
@@ -805,8 +806,15 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         />
       </div>
 
+      {/* Speed Dial FAB */}
+      <SpeedDialFAB
+        onOpenAI={() => setIsAIAssistantOpen(true)}
+        onDuplicate={() => setIsDuplicateModalOpen(true)}
+        onArchive={handleToggleArchive}
+        isArchived={!!selectedRecipe?.archivedAt}
+      />
+
       {/* AI Assistant */}
-      <AIAssistantButton onClick={() => setIsAIAssistantOpen(true)} />
       <RecipeAIAssistant
         recipe={selectedRecipe}
         version={selectedVersion}
