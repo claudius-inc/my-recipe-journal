@@ -27,6 +27,7 @@ import { PhotoUploadSection } from "./shared";
 import { RecipeVersionTabs, RecipeVersionNotes } from "./version";
 import { RecipeHeader } from "./RecipeHeader";
 import { RecipeScalingManager } from "./RecipeScalingManager";
+import { LoadingAnimation } from "@/components/ui/LoadingAnimation";
 
 // Radix UI imports
 import { Button } from "@radix-ui/themes";
@@ -573,27 +574,27 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     // Show loading state while recipes are being fetched
     const isLoadingRecipes = loading && recipes.length === 0;
 
+    if (isLoadingRecipes) {
+      return (
+        <div className="flex flex-1 items-center justify-center bg-surface">
+          <LoadingAnimation />
+        </div>
+      );
+    }
+
     return (
       <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
         <div className="mx-auto max-w-2xl text-center">
-          <Button
-            onClick={onOpenSidebar}
-            loading={isLoadingRecipes}
-            variant="solid"
-            size="3"
-            className="mb-6"
-          >
-            {isLoadingRecipes ? "Loading recipes..." : "Browse recipes"}
+          <Button onClick={onOpenSidebar} variant="solid" size="3" className="mb-6">
+            Browse recipes
           </Button>
-          {!isLoadingRecipes && (
-            <>
-              <h2 className="text-lg font-semibold">Start your first recipe</h2>
-              <p className="mt-2 text-sm">
-                Use the drawer to create a recipe, then track each experiment with notes,
-                ingredient tweaks, and baker&apos;s percentages for breads.
-              </p>
-            </>
-          )}
+          <>
+            <h2 className="text-lg font-semibold">Start your first recipe</h2>
+            <p className="mt-2 text-sm">
+              Use the drawer to create a recipe, then track each experiment with notes,
+              ingredient tweaks, and baker&apos;s percentages for breads.
+            </p>
+          </>
         </div>
       </div>
     );
