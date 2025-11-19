@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getImporter, hasSpecificAdapter } from "@/lib/recipe-importers/importerFactory";
-import { downloadAndOptimizeImage, imageToDataUri } from "@/lib/imageOptimizer";
+import {
+  downloadAndOptimizeImage,
+  imageToDataUri,
+  isImageOptimizationAvailable,
+} from "@/lib/imageOptimizer";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -98,23 +102,30 @@ export async function POST(request: NextRequest) {
 
     console.log(`Successfully extracted recipe: ${extractedData.name}`);
 
-    // Download and optimize image if present
+    // Download and optimize image if present and optimization is available
     if (extractedData.imageUrl) {
-      try {
-        console.log(`Downloading and optimizing image from: ${extractedData.imageUrl}`);
-        const optimized = await downloadAndOptimizeImage(extractedData.imageUrl);
-
-        // Convert to base64 data URI for preview
-        const dataUri = imageToDataUri(optimized.buffer, optimized.format);
-        extractedData.imageUrl = dataUri;
-
-        console.log(
-          `Image optimized: ${optimized.width}x${optimized.height}, ${Math.round(optimized.size / 1024)}KB`,
+      if (!isImageOptimizationAvailable()) {
+        console.warn(
+          "Image optimization unavailable (sharp not installed) - keeping original URL",
         );
-      } catch (imageError) {
-        // Log error but continue with recipe import without image
-        console.warn(`Failed to download/optimize image:`, imageError);
-        extractedData.imageUrl = undefined;
+        // Keep the original imageUrl - it will be displayed directly
+      } else {
+        try {
+          console.log(`Downloading and optimizing image from: ${extractedData.imageUrl}`);
+          const optimized = await downloadAndOptimizeImage(extractedData.imageUrl);
+
+          // Convert to base64 data URI for preview
+          const dataUri = imageToDataUri(optimized.buffer, optimized.format);
+          extractedData.imageUrl = dataUri;
+
+          console.log(
+            `Image optimized: ${optimized.width}x${optimized.height}, ${Math.round(optimized.size / 1024)}KB`,
+          );
+        } catch (imageError) {
+          // Log error but continue with recipe import without image
+          console.warn(`Failed to download/optimize image:`, imageError);
+          extractedData.imageUrl = undefined;
+        }
       }
     }
 

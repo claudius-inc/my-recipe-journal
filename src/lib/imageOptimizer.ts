@@ -1,10 +1,28 @@
-import sharp from "sharp";
+// Try to load sharp, but gracefully handle if it's not available (e.g., on Windows/WSL)
+let sharp: typeof import("sharp") | null = null;
+let sharpLoadError: string | null = null;
+
+try {
+  sharp = require("sharp");
+} catch (error) {
+  sharpLoadError = error instanceof Error ? error.message : "Unknown error loading sharp";
+  console.warn(
+    "Sharp module not available - image optimization disabled. To enable, run: npm install --include=optional",
+  );
+}
 
 const MAX_WIDTH = 1200;
 const MAX_HEIGHT = 1200;
 const QUALITY = 80;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const DOWNLOAD_TIMEOUT = 10000; // 10 seconds
+
+/**
+ * Check if image optimization is available
+ */
+export function isImageOptimizationAvailable(): boolean {
+  return sharp !== null;
+}
 
 interface OptimizedImage {
   buffer: Buffer;
@@ -57,6 +75,12 @@ async function downloadImage(url: string): Promise<Buffer> {
  * Optimize an image: resize, convert to WebP, and compress
  */
 async function optimizeImage(buffer: Buffer): Promise<OptimizedImage> {
+  if (!sharp) {
+    throw new Error(
+      `Image optimization unavailable: ${sharpLoadError || "sharp module not loaded"}`,
+    );
+  }
+
   try {
     const image = sharp(buffer);
     const metadata = await image.metadata();
