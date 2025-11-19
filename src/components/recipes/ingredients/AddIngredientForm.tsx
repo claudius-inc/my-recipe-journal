@@ -1,9 +1,10 @@
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, KeyboardEvent, useId } from "react";
 import { Button, Spinner, TextField } from "@radix-ui/themes";
-import { ChevronDownIcon } from "@radix-ui/react-icons";
+import { PlusIcon } from "@radix-ui/react-icons";
 import type { Ingredient } from "@/types/recipes";
 import { suggestIngredientDefaults } from "@/lib/ingredient-helpers";
 import { IngredientRoleLabels, INGREDIENT_ROLES } from "./constants";
+import { cn } from "@/lib/utils";
 
 interface AddIngredientFormProps {
   onAdd: (payload: {
@@ -22,6 +23,7 @@ export function AddIngredientForm({
   suggestions,
   isLoadingSuggestions,
 }: AddIngredientFormProps) {
+  const datalistId = useId();
   const [draft, setDraft] = useState({
     name: "",
     quantity: "",
@@ -29,7 +31,6 @@ export function AddIngredientForm({
     role: "other" as Ingredient["role"],
     notes: "",
   });
-  const [showRoleSelector, setShowRoleSelector] = useState(false);
   const ingredientNameInputRef = useRef<HTMLInputElement>(null);
 
   const handleNameChange = (name: string) => {
@@ -68,8 +69,8 @@ export function AddIngredientForm({
     });
 
     setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
-    setShowRoleSelector(false);
 
+    // Keep focus on name input for rapid entry
     setTimeout(() => {
       ingredientNameInputRef.current?.focus();
     }, 0);
@@ -83,16 +84,21 @@ export function AddIngredientForm({
   };
 
   return (
-    <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-700">
-      <h4 className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-        Add ingredient
-      </h4>
-      <div className="grid gap-3 text-sm" onKeyDown={handleKeyDown}>
-        <div className="flex flex-col gap-2">
-          <div className="relative">
-            <TextField.Root
+    <div className="mt-6 border-t border-neutral-200 pt-6 dark:border-neutral-800">
+      <div className="mb-3 flex items-center justify-between">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Add ingredient
+        </h4>
+      </div>
+
+      <div className="space-y-4" onKeyDown={handleKeyDown}>
+        {/* Desktop: Horizontal Layout / Mobile: Stacked */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+          {/* Name Input */}
+          <div className="relative flex-1">
+            <input
               ref={ingredientNameInputRef}
-              list="ingredient-suggestions"
+              list={datalistId}
               value={draft.name}
               onChange={(event) => handleNameChange(event.target.value)}
               placeholder="Ingredient name"
@@ -106,95 +112,103 @@ export function AddIngredientForm({
             )}
           </div>
 
-          {/* Role badge/chip */}
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              onClick={() => setShowRoleSelector(!showRoleSelector)}
-              variant="outline"
-              size="1"
-              radius="full"
-            >
-              {IngredientRoleLabels[draft.role]}
-              <ChevronDownIcon className="w-3 h-3 ml-1" />
-            </Button>
-            {showRoleSelector && (
-              <div className="flex flex-wrap gap-1">
-                {INGREDIENT_ROLES.filter((r) => r !== draft.role).map((role) => (
-                  <Button
-                    key={role}
-                    type="button"
-                    onClick={() => {
-                      setDraft((prev) => ({ ...prev, role }));
-                      setShowRoleSelector(false);
-                    }}
-                    variant="soft"
-                    size="1"
-                    radius="full"
-                  >
-                    {IngredientRoleLabels[role]}
-                  </Button>
-                ))}
-              </div>
-            )}
+          {/* Quantity & Unit Row */}
+          <div className="flex gap-2 sm:w-auto">
+            <TextField.Root
+              type="number"
+              inputMode="decimal"
+              value={draft.quantity}
+              onChange={(event) =>
+                setDraft((prev) => ({ ...prev, quantity: event.target.value }))
+              }
+              placeholder="Qty"
+              className="w-20 shrink-0 sm:w-24"
+              size="2"
+            />
+            <TextField.Root
+              value={draft.unit}
+              onChange={(event) =>
+                setDraft((prev) => ({ ...prev, unit: event.target.value }))
+              }
+              placeholder="Unit"
+              className="w-20 shrink-0 sm:w-24"
+              size="2"
+            />
           </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <TextField.Root
-            type="number"
-            value={draft.quantity}
-            onChange={(event) =>
-              setDraft((prev) => ({ ...prev, quantity: event.target.value }))
-            }
-            placeholder="Quantity"
-            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-          />
-          <TextField.Root
-            value={draft.unit}
-            onChange={(event) =>
-              setDraft((prev) => ({ ...prev, unit: event.target.value }))
-            }
-            placeholder="Unit"
-            className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
-          />
+          {/* Add Button (Desktop) */}
           <Button
             type="button"
             onClick={handleSubmit}
             disabled={!isFormValid}
             variant="solid"
             size="2"
-            className="w-full"
+            className="hidden sm:flex"
           >
-            <span className="hidden sm:inline">Add</span>
-            <span className="sm:hidden">+</span>
+            Add
           </Button>
         </div>
 
-        {/* Quick unit shortcuts */}
-        {!draft.unit && draft.name && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">Quick:</span>
-            {["g", "ml", "pc"].map((unit) => (
-              <Button
-                key={unit}
+        {/* Role Selection - Horizontal Scrollable Chips */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <span className="text-xs text-neutral-500 dark:text-neutral-400 shrink-0">
+              Role:
+            </span>
+            {INGREDIENT_ROLES.map((role) => (
+              <button
+                key={role}
                 type="button"
-                onClick={() => setQuickUnit(unit)}
-                variant="soft"
-                size="1"
+                onClick={() => setDraft((prev) => ({ ...prev, role }))}
+                className={cn(
+                  "flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                  draft.role === role
+                    ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700",
+                )}
               >
-                {unit}
-              </Button>
+                {IngredientRoleLabels[role]}
+              </button>
             ))}
           </div>
-        )}
-      </div>
-      {isLoadingSuggestions && (
-        <div className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-          ⏳ Loading ingredient suggestions…
         </div>
-      )}
-      <datalist id="ingredient-suggestions">
+
+        {/* Quick Units & Mobile Add Button */}
+        <div className="flex items-center justify-between gap-3 sm:justify-start">
+          {/* Quick Units */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+            {!draft.unit && draft.name && (
+              <>
+                <span className="text-xs text-neutral-400 shrink-0">Quick units:</span>
+                {["g", "ml", "cup", "tbsp", "tsp", "pc"].map((unit) => (
+                  <button
+                    key={unit}
+                    type="button"
+                    onClick={() => setQuickUnit(unit)}
+                    className="shrink-0 rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                  >
+                    {unit}
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+
+          {/* Add Button (Mobile) */}
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!isFormValid}
+            variant="solid"
+            size="3"
+            className="w-full sm:hidden"
+          >
+            <PlusIcon /> Add Ingredient
+          </Button>
+        </div>
+      </div>
+
+      <datalist id={datalistId}>
         {suggestions.map((name) => (
           <option key={name} value={name} />
         ))}

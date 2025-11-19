@@ -64,7 +64,7 @@ export function RecipeSearchHeader({
             }}
             aria-label="Close search"
           >
-            <Cross2Icon className="w-4 h-4" />
+            <Cross2Icon className="w-5 h-5" />
           </IconButton>
         </div>
       ) : (
@@ -80,7 +80,7 @@ export function RecipeSearchHeader({
               onClick={() => onExpandToggle(true)}
               aria-label="Search recipes"
             >
-              <MagnifyingGlassIcon className="w-4 h-4" />
+              <MagnifyingGlassIcon className="w-5 h-5" />
             </IconButton>
           </Tooltip>
           <Tooltip content="Close">
@@ -91,7 +91,7 @@ export function RecipeSearchHeader({
               onClick={onClose}
               aria-label="Close recipes panel"
             >
-              <Cross2Icon className="w-4 h-4" />
+              <Cross2Icon className="w-5 h-5" />
             </IconButton>
           </Tooltip>
         </>
