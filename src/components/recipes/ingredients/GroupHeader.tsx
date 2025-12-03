@@ -1,0 +1,180 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronDownIcon, DragHandleDots2Icon } from "@radix-ui/react-icons";
+import { cn } from "@/lib/utils";
+import type { IngredientGroup } from "@/types/recipes";
+
+interface GroupHeaderProps {
+    group: IngredientGroup;
+    isCollapsed: boolean;
+    onToggleCollapse: () => void;
+    onUpdateGroup: (data: Partial<IngredientGroup>) => Promise<void>;
+    onDeleteGroup: () => void;
+    canDelete: boolean; // Can't delete if it's the only group
+    isBakingCategory: boolean; // Only show baker's % toggle for baking
+}
+
+export function GroupHeader({
+    group,
+    isCollapsed,
+    onToggleCollapse,
+    onUpdateGroup,
+    onDeleteGroup,
+    canDelete,
+    isBakingCategory,
+}: GroupHeaderProps) {
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState(group.name);
+    const [showMenu, setShowMenu] = useState(false);
+
+    const handleSaveName = async () => {
+        if (editedName.trim() && editedName !== group.name) {
+            await onUpdateGroup({ name: editedName.trim() });
+        }
+        setIsEditingName(false);
+    };
+
+    const handleToggleBakersPercent = async () => {
+        await onUpdateGroup({ enableBakersPercent: !group.enableBakersPercent });
+    };
+
+    return (
+        <div className="flex items-center gap-2 rounded-t-lg bg-neutral-50 px-4 py-3 dark:bg-neutral-900/60">
+            {/* Drag Handle */}
+            <button
+                type="button"
+                className="cursor-grab text-neutral-400 transition hover:text-neutral-600 active:cursor-grabbing dark:hover:text-neutral-300"
+                aria-label="Drag to reorder group"
+            >
+                <DragHandleDots2Icon className="h-4 w-4" />
+            </button>
+
+            {/* Collapse/Expand Button */}
+            <button
+                type="button"
+                onClick={onToggleCollapse}
+                className={cn(
+                    "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition-transform duration-200 hover:bg-neutral-100 dark:hover:bg-neutral-800",
+                    isCollapsed ? "" : "rotate-180"
+                )}
+                aria-label={isCollapsed ? "Expand group" : "Collapse group"}
+            >
+                <ChevronDownIcon className="h-4 w-4" />
+            </button>
+
+            {/* Group Name */}
+            <div className="flex-1">
+                {isEditingName ? (
+                    <input
+                        autoFocus
+                        type="text"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        onBlur={handleSaveName}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                handleSaveName();
+                            } else if (e.key === "Escape") {
+                                setEditedName(group.name);
+                                setIsEditingName(false);
+                            }
+                        }}
+                        className="w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm font-medium text-neutral-900 outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                    />
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => setIsEditingName(true)}
+                        className="text-sm font-medium text-neutral-900 hover:text-neutral-700 dark:text-white dark:hover:text-neutral-300"
+                    >
+                        {group.name} ({group.ingredients.length})
+                    </button>
+                )}
+            </div>
+
+            {/* Baker's Percentage Toggle (only for baking categories) */}
+            {isBakingCategory && (
+                <button
+                    type="button"
+                    onClick={handleToggleBakersPercent}
+                    className={cn(
+                        "rounded-full px-3 py-1 text-xs font-medium transition",
+                        group.enableBakersPercent
+                            ? "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                            : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700"
+                    )}
+                    aria-label={`Baker's percentage: ${group.enableBakersPercent ? "enabled" : "disabled"}`}
+                >
+                    📊 Baker's %: {group.enableBakersPercent ? "ON" : "OFF"}
+                </button>
+            )}
+
+            {/* Menu Button */}
+            <div className="relative">
+                <button
+                    type="button"
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+                    aria-label="Group options"
+                >
+                    <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 15 15"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path
+                            d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5ZM8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5ZM13.625 7.5C13.625 8.12132 13.1213 8.625 12.5 8.625C11.8787 8.625 11.375 8.12132 11.375 7.5C11.375 6.87868 11.8787 6.375 12.5 6.375C13.1213 6.375 13.625 6.87868 13.625 7.5Z"
+                            fill="currentColor"
+                        />
+                    </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showMenu && (
+                    <>
+                        {/* Backdrop */}
+                        <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setShowMenu(false)}
+                        />
+                        {/* Menu */}
+                        <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsEditingName(true);
+                                    setShowMenu(false);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                            >
+                                Rename
+                            </button>
+                            {canDelete && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (
+                                            group.ingredients.length === 0 ||
+                                            confirm(
+                                                `Delete "${group.name}" group with ${group.ingredients.length} ingredient(s)?`
+                                            )
+                                        ) {
+                                            onDeleteGroup();
+                                        }
+                                        setShowMenu(false);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+                                >
+                                    Delete
+                                </button>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}

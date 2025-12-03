@@ -167,12 +167,30 @@ model RecipeVersion {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   ingredients   Ingredient[]
+  ingredientGroups IngredientGroup[]
+}
+
+model IngredientGroup {
+  id                  String         @id @default(cuid())
+  versionId           String
+  version             RecipeVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  name                String
+  orderIndex          Int            @default(0)
+  enableBakersPercent Boolean        @default(false)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  ingredients         Ingredient[]
+
+  @@index([versionId])
+  @@index([versionId, orderIndex])
 }
 
 model Ingredient {
   id         String          @id @default(cuid())
   versionId  String
   version    RecipeVersion   @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  groupId    String?
+  group      IngredientGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
   name       String
   quantity   Float
   unit       String

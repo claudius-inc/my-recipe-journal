@@ -21,7 +21,7 @@ import {
   IterationIntentModal,
   VersionComparisonModal,
 } from "./modals";
-import { IngredientList } from "./ingredients";
+import { IngredientGroupList } from "./ingredients";
 import { RecipeSteps } from "./steps";
 import { PhotoUploadSection } from "./shared";
 import { RecipeVersionTabs, RecipeVersionNotes } from "./version";
@@ -53,6 +53,10 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     updateIngredient,
     batchUpdateIngredients,
     deleteIngredient,
+    createIngredientGroup,
+    updateIngredientGroup,
+    deleteIngredientGroup,
+    migrateToGroups,
     updateRecipe,
     archiveRecipe,
     unarchiveRecipe,
@@ -637,33 +641,70 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onCompare={handleCompareVersion}
         />
 
-        <IngredientList
+        <IngredientGroupList
           version={selectedVersion}
           recipeId={selectedRecipe.id}
           recipeCategory={selectedRecipe.category}
-          onUpdateIngredient={async (ingredientId, data) => {
+          onAddGroup={async (name, enableBakersPercent) => {
+            const hasGroups =
+              selectedVersion.ingredientGroups && selectedVersion.ingredientGroups.length > 0;
+            const hasIngredients =
+              selectedVersion.ingredients && selectedVersion.ingredients.length > 0;
+
+            if (!hasGroups && hasIngredients) {
+              // Migrate existing ingredients to a default group first
+              const isBaking =
+                selectedRecipe.category.primary === "baking" &&
+                ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"].includes(
+                  selectedRecipe.category.secondary,
+                );
+
+              await migrateToGroups(selectedRecipe.id, selectedVersion.id, {
+                name: "Ingredients",
+                enableBakersPercent: isBaking,
+              });
+            }
+
+            await createIngredientGroup(selectedRecipe.id, selectedVersion.id, {
+              name,
+              enableBakersPercent,
+            });
+          }}
+          onUpdateGroup={async (groupId, data) => {
+            await updateIngredientGroup(
+              selectedRecipe.id,
+              selectedVersion.id,
+              groupId,
+              data,
+            );
+          }}
+          onDeleteGroup={async (groupId) => {
+            await deleteIngredientGroup(selectedRecipe.id, selectedVersion.id, groupId);
+          }}
+          // Ingredient handlers (group-aware)
+          onAddIngredient={async (groupId, data) => {
+            await addIngredient(selectedRecipe.id, selectedVersion.id, {
+              ...data,
+              role: data.role,
+              groupId,
+            });
+          }}
+          onUpdateIngredient={async (groupId, ingredientId, data) => {
             setSavingIngredient((prev) => ({ ...prev, [ingredientId]: true }));
             try {
               await updateIngredient(
                 selectedRecipe.id,
                 selectedVersion.id,
                 ingredientId,
-                data,
+                data
               );
             } finally {
               setSavingIngredient((prev) => ({ ...prev, [ingredientId]: false }));
             }
           }}
-          onDeleteIngredient={(ingredientId) =>
-            deleteIngredient(selectedRecipe.id, selectedVersion.id, ingredientId)
-          }
-          enableBakersPercent={
-            selectedRecipe.category.primary === "baking" &&
-            ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"].includes(
-              selectedRecipe.category.secondary,
-            )
-          }
-          flourTotal={flourTotal}
+          onDeleteIngredient={async (groupId, ingredientId) => {
+            await deleteIngredient(selectedRecipe.id, selectedVersion.id, ingredientId);
+          }}
           savingIngredient={savingIngredient}
           suggestions={ingredientSuggestions}
           isLoadingSuggestions={isLoadingSuggestions}
@@ -672,12 +713,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onToggleAllIngredients={handleToggleAllIngredients}
           pendingIngredients={pendingIngredients}
           onPendingIngredientsChange={setPendingIngredients}
-          onAddIngredient={(data) =>
-            addIngredient(selectedRecipe.id, selectedVersion.id, {
-              ...data,
-              role: data.role,
-            })
-          }
           isScalingOpen={isScalingOpen}
           onToggleScaling={() => setIsScalingOpen(!isScalingOpen)}
           selectedScalingIngredient={selectedScalingIngredient}
@@ -792,15 +827,13 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           }}
           scalingMethod={
             selectedScalingIngredient && selectedVersion
-              ? `Scaling based on ${
-                  selectedVersion.ingredients.find(
-                    (i) => i.id === selectedScalingIngredient,
-                  )?.name
-                } to ${targetQuantity} ${
-                  selectedVersion.ingredients.find(
-                    (i) => i.id === selectedScalingIngredient,
-                  )?.unit
-                }`
+              ? `Scaling based on ${selectedVersion.ingredients.find(
+                (i) => i.id === selectedScalingIngredient,
+              )?.name
+              } to ${targetQuantity} ${selectedVersion.ingredients.find(
+                (i) => i.id === selectedScalingIngredient,
+              )?.unit
+              }`
               : ""
           }
         />

@@ -111,6 +111,7 @@ interface RecipeStoreValue {
       role: IngredientRole;
       notes?: string;
       sortOrder?: number;
+      groupId?: string;
     },
   ) => Promise<void>;
   updateIngredient: (
@@ -124,6 +125,7 @@ interface RecipeStoreValue {
       role: IngredientRole;
       notes: string | null;
       sortOrder: number;
+      groupId: string | null;
     }>,
   ) => Promise<void>;
   batchUpdateIngredients: (
@@ -137,12 +139,44 @@ interface RecipeStoreValue {
       role?: IngredientRole;
       notes?: string | null;
       sortOrder?: number;
+      groupId?: string | null;
     }>,
   ) => Promise<void>;
   deleteIngredient: (
     recipeId: string,
     versionId: string,
     ingredientId: string,
+  ) => Promise<void>;
+  createIngredientGroup: (
+    recipeId: string,
+    versionId: string,
+    payload: {
+      name: string;
+      enableBakersPercent?: boolean;
+    },
+  ) => Promise<void>;
+  updateIngredientGroup: (
+    recipeId: string,
+    versionId: string,
+    groupId: string,
+    payload: Partial<{
+      name: string;
+      enableBakersPercent: boolean;
+      orderIndex: number;
+    }>,
+  ) => Promise<void>;
+  migrateToGroups: (
+    recipeId: string,
+    versionId: string,
+    payload: {
+      name: string;
+      enableBakersPercent: boolean;
+    },
+  ) => Promise<void>;
+  deleteIngredientGroup: (
+    recipeId: string,
+    versionId: string,
+    groupId: string,
   ) => Promise<void>;
   getIngredientSuggestions: (recipeId?: string) => Promise<string[]>;
 }
@@ -730,6 +764,65 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  const createIngredientGroup = useCallback<RecipeStoreValue["createIngredientGroup"]>(
+    async (recipeId, versionId, payload) => {
+      await requestJson<Recipe>(
+        `/api/recipes/${recipeId}/versions/${versionId}/groups`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+    },
+    [queryClient],
+  );
+
+  const updateIngredientGroup = useCallback<RecipeStoreValue["updateIngredientGroup"]>(
+    async (recipeId, versionId, groupId, payload) => {
+      await requestJson<Recipe>(
+        `/api/recipes/${recipeId}/versions/${versionId}/groups/${groupId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        },
+      );
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+    },
+    [queryClient],
+  );
+
+  const migrateToGroups = useCallback<RecipeStoreValue["migrateToGroups"]>(
+    async (recipeId, versionId, payload) => {
+      await requestJson<Recipe>(
+        `/api/recipes/${recipeId}/versions/${versionId}/migrate`,
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        },
+      );
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+    },
+    [queryClient],
+  );
+
+  const deleteIngredientGroup = useCallback<RecipeStoreValue["deleteIngredientGroup"]>(
+    async (recipeId, versionId, groupId) => {
+      await requestJson<Recipe>(
+        `/api/recipes/${recipeId}/versions/${versionId}/groups/${groupId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+    },
+    [queryClient],
+  );
+
   const getIngredientSuggestions = useCallback<
     RecipeStoreValue["getIngredientSuggestions"]
   >(
@@ -794,6 +887,10 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       updateIngredient,
       batchUpdateIngredients,
       deleteIngredient,
+      createIngredientGroup,
+      updateIngredientGroup,
+      deleteIngredientGroup,
+      migrateToGroups,
       getIngredientSuggestions,
     }),
     [

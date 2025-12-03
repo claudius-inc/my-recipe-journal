@@ -259,9 +259,9 @@ export interface CloneVersionInput {
 export async function createVersionFromBase(input: CloneVersionInput): Promise<Recipe> {
   const baseVersion = input.baseVersionId
     ? await prisma.recipeVersion.findFirst({
-        where: { id: input.baseVersionId, recipeId: input.recipeId },
-        include: { ingredients: true },
-      })
+      where: { id: input.baseVersionId, recipeId: input.recipeId },
+      include: { ingredients: true },
+    })
     : null;
 
   if (input.baseVersionId && !baseVersion) {
@@ -352,6 +352,7 @@ export interface UpsertIngredientInput {
   recipeId: string;
   versionId: string;
   ingredientId?: string;
+  groupId?: string;
   ingredient: {
     name: string;
     quantity: number;
@@ -378,6 +379,7 @@ export async function addIngredientToVersion(
   await prisma.ingredient.create({
     data: {
       versionId: input.versionId,
+      groupId: input.groupId,
       name: input.ingredient.name,
       quantity: input.ingredient.quantity,
       unit: input.ingredient.unit,
@@ -404,6 +406,7 @@ export async function updateIngredientDetails(
     role: IngredientRole;
     notes: string | null;
     sortOrder: number;
+    groupId: string | null;
   }>,
 ): Promise<Recipe> {
   await prisma.ingredient.update({
@@ -428,6 +431,7 @@ export async function batchUpdateIngredients(
     role?: IngredientRole;
     notes?: string | null;
     sortOrder?: number;
+    groupId?: string | null;
   }>,
 ): Promise<Recipe> {
   // Use Prisma transaction to update all ingredients atomically
@@ -442,6 +446,7 @@ export async function batchUpdateIngredients(
           ...(update.role !== undefined && { role: update.role }),
           ...(update.notes !== undefined && { notes: update.notes }),
           ...(update.sortOrder !== undefined && { sortOrder: update.sortOrder }),
+          ...(update.groupId !== undefined && { groupId: update.groupId }),
         },
       }),
     ),
@@ -464,6 +469,93 @@ export async function deleteIngredient(
   if (!recipe) {
     throw new Error("Recipe not found after ingredient deletion");
   }
+  return recipe;
+}
+
+export interface CreateIngredientGroupInput {
+  recipeId: string;
+  versionId: string;
+  name: string;
+  enableBakersPercent?: boolean;
+}
+
+export async function createIngredientGroup(input: CreateIngredientGroupInput): Promise<Recipe> {
+  const highestOrder = await prisma.ingredientGroup.findFirst({
+    where: { versionId: input.versionId },
+    orderBy: { orderIndex: "desc" },
+    select: { orderIndex: true },
+  });
+
+  const orderIndex = (highestOrder?.orderIndex ?? -1) + 1;
+
+  await prisma.ingredientGroup.create({
+    data: {
+      versionId: input.versionId,
+      name: input.name,
+      enableBakersPercent: input.enableBakersPercent ?? false,
+      orderIndex,
+    },
+  });
+
+  const recipe = await getRecipe(input.recipeId);
+  if (!recipe) throw new Error("Recipe not found");
+  return recipe;
+}
+
+export async function updateIngredientGroup(
+  recipeId: string,
+  groupId: string,
+  data: Partial<{ name: string; enableBakersPercent: boolean; orderIndex: number }>
+): Promise<Recipe> {
+  await prisma.ingredientGroup.update({
+    where: { id: groupId },
+    data,
+  });
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found");
+  return recipe;
+}
+
+export async function deleteIngredientGroup(
+  recipeId: string,
+  groupId: string
+): Promise<Recipe> {
+  await prisma.ingredientGroup.delete({
+    where: { id: groupId },
+  });
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found");
+  return recipe;
+}
+
+export async function migrateIngredientsToGroup(
+  recipeId: string,
+  versionId: string,
+  groupName: string,
+  enableBakersPercent: boolean
+): Promise<Recipe> {
+  await prisma.$transaction(async (tx) => {
+    // Create group
+    const group = await tx.ingredientGroup.create({
+      data: {
+        versionId,
+        name: groupName,
+        enableBakersPercent,
+        orderIndex: 0,
+      },
+    });
+
+    // Update all ingredients for this version to have this groupId
+    await tx.ingredient.updateMany({
+      where: { versionId },
+      data: { groupId: group.id },
+    });
+  });
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found");
   return recipe;
 }
 
@@ -592,15 +684,15 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
         textureNotes: input.copyRatings ? activeVersion.textureNotes : null,
         ingredients: input.copyIngredients
           ? {
-              create: activeVersion.ingredients.map((ingredient) => ({
-                name: ingredient.name,
-                quantity: ingredient.quantity,
-                unit: ingredient.unit,
-                role: ingredient.role,
-                notes: ingredient.notes,
-                sortOrder: ingredient.sortOrder,
-              })),
-            }
+            create: activeVersion.ingredients.map((ingredient) => ({
+              name: ingredient.name,
+              quantity: ingredient.quantity,
+              unit: ingredient.unit,
+              role: ingredient.role,
+              notes: ingredient.notes,
+              sortOrder: ingredient.sortOrder,
+            })),
+          }
           : undefined,
       },
     });

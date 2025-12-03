@@ -1,5 +1,6 @@
 import type {
   Ingredient,
+  IngredientGroup,
   IngredientRole,
   Recipe,
   RecipeCategory,
@@ -15,6 +16,14 @@ export const recipeWithRelations = {
   versions: {
     include: {
       ingredients: true,
+      ingredientGroups: {
+        include: {
+          ingredients: true,
+        },
+        orderBy: {
+          orderIndex: "asc",
+        },
+      },
     },
   },
 } as const;
@@ -27,6 +36,16 @@ type PrismaIngredientRecord = {
   role: IngredientRole;
   notes: string | null;
   sortOrder: number;
+};
+
+
+
+type PrismaIngredientGroupRecord = {
+  id: string;
+  name: string;
+  orderIndex: number;
+  enableBakersPercent: boolean;
+  ingredients: PrismaIngredientRecord[];
 };
 
 type PrismaRecipeVersionRecord = {
@@ -44,6 +63,7 @@ type PrismaRecipeVersionRecord = {
   visualNotes: string | null;
   textureNotes: string | null;
   ingredients: PrismaIngredientRecord[];
+  ingredientGroups: PrismaIngredientGroupRecord[];
 };
 
 type PrismaRecipeRecord = {
@@ -85,6 +105,15 @@ export const toRecipeVersion = (version: PrismaRecipeVersionRecord): RecipeVersi
     id: version.id,
     title: version.title,
     createdAt: version.createdAt.toISOString(),
+    ingredientGroups: version.ingredientGroups?.map((group) => ({
+      id: group.id,
+      name: group.name,
+      order: group.orderIndex,
+      enableBakersPercent: group.enableBakersPercent,
+      ingredients: group.ingredients
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((ingredient) => toIngredient(ingredient)),
+    })),
     ingredients: [...version.ingredients]
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((ingredient) => toIngredient(ingredient)),

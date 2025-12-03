@@ -134,6 +134,15 @@ export const INGREDIENT_ROLES: IngredientRole[] = [
   "other",
 ];
 
+// Ingredient Groups - for organizing ingredients into sections
+export interface IngredientGroup {
+  id: string;
+  name: string;
+  order: number;
+  enableBakersPercent: boolean;
+  ingredients: Ingredient[];
+}
+
 export interface RecipeStep {
   order: number;
   text: string;
@@ -145,6 +154,10 @@ export interface RecipeVersion {
   id: string;
   title: string;
   createdAt: string;
+  // NEW: Ingredient groups for organized recipes
+  ingredientGroups?: IngredientGroup[];
+  // LEGACY: Flat ingredients array (kept for backward compatibility)
+  // Will be migrated to ingredientGroups on first load
   ingredients: Ingredient[];
   steps?: RecipeSteps;
   notes: string;
