@@ -289,8 +289,8 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
   return createVersion({
     recipeId: input.recipeId,
     title: newTitle,
-    notes: input.notes ?? baseVersion?.notes ?? "",
-    nextSteps: input.nextSteps ?? baseVersion?.nextSteps ?? "",
+    notes: input.notes ?? "",
+    nextSteps: input.nextSteps ?? "",
     ingredients,
     setActive: input.setActive,
   });
