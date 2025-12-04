@@ -647,7 +647,8 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           recipeCategory={selectedRecipe.category}
           onAddGroup={async (name, enableBakersPercent) => {
             const hasGroups =
-              selectedVersion.ingredientGroups && selectedVersion.ingredientGroups.length > 0;
+              selectedVersion.ingredientGroups &&
+              selectedVersion.ingredientGroups.length > 0;
             const hasIngredients =
               selectedVersion.ingredients && selectedVersion.ingredients.length > 0;
 
@@ -696,7 +697,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
                 selectedRecipe.id,
                 selectedVersion.id,
                 ingredientId,
-                data
+                data,
               );
             } finally {
               setSavingIngredient((prev) => ({ ...prev, [ingredientId]: false }));
@@ -827,13 +828,15 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           }}
           scalingMethod={
             selectedScalingIngredient && selectedVersion
-              ? `Scaling based on ${selectedVersion.ingredients.find(
-                (i) => i.id === selectedScalingIngredient,
-              )?.name
-              } to ${targetQuantity} ${selectedVersion.ingredients.find(
-                (i) => i.id === selectedScalingIngredient,
-              )?.unit
-              }`
+              ? `Scaling based on ${
+                  selectedVersion.ingredients.find(
+                    (i) => i.id === selectedScalingIngredient,
+                  )?.name
+                } to ${targetQuantity} ${
+                  selectedVersion.ingredients.find(
+                    (i) => i.id === selectedScalingIngredient,
+                  )?.unit
+                }`
               : ""
           }
         />

@@ -766,13 +766,10 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
 
   const createIngredientGroup = useCallback<RecipeStoreValue["createIngredientGroup"]>(
     async (recipeId, versionId, payload) => {
-      await requestJson<Recipe>(
-        `/api/recipes/${recipeId}/versions/${versionId}/groups`,
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-        },
-      );
+      await requestJson<Recipe>(`/api/recipes/${recipeId}/versions/${versionId}/groups`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
 
       await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
     },
@@ -922,6 +919,10 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       updateIngredient,
       batchUpdateIngredients,
       deleteIngredient,
+      createIngredientGroup,
+      updateIngredientGroup,
+      deleteIngredientGroup,
+      migrateToGroups,
       getIngredientSuggestions,
     ],
   );

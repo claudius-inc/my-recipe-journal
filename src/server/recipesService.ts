@@ -259,9 +259,9 @@ export interface CloneVersionInput {
 export async function createVersionFromBase(input: CloneVersionInput): Promise<Recipe> {
   const baseVersion = input.baseVersionId
     ? await prisma.recipeVersion.findFirst({
-      where: { id: input.baseVersionId, recipeId: input.recipeId },
-      include: { ingredients: true },
-    })
+        where: { id: input.baseVersionId, recipeId: input.recipeId },
+        include: { ingredients: true },
+      })
     : null;
 
   if (input.baseVersionId && !baseVersion) {
@@ -479,7 +479,9 @@ export interface CreateIngredientGroupInput {
   enableBakersPercent?: boolean;
 }
 
-export async function createIngredientGroup(input: CreateIngredientGroupInput): Promise<Recipe> {
+export async function createIngredientGroup(
+  input: CreateIngredientGroupInput,
+): Promise<Recipe> {
   const highestOrder = await prisma.ingredientGroup.findFirst({
     where: { versionId: input.versionId },
     orderBy: { orderIndex: "desc" },
@@ -505,7 +507,7 @@ export async function createIngredientGroup(input: CreateIngredientGroupInput): 
 export async function updateIngredientGroup(
   recipeId: string,
   groupId: string,
-  data: Partial<{ name: string; enableBakersPercent: boolean; orderIndex: number }>
+  data: Partial<{ name: string; enableBakersPercent: boolean; orderIndex: number }>,
 ): Promise<Recipe> {
   await prisma.ingredientGroup.update({
     where: { id: groupId },
@@ -519,7 +521,7 @@ export async function updateIngredientGroup(
 
 export async function deleteIngredientGroup(
   recipeId: string,
-  groupId: string
+  groupId: string,
 ): Promise<Recipe> {
   await prisma.ingredientGroup.delete({
     where: { id: groupId },
@@ -534,7 +536,7 @@ export async function migrateIngredientsToGroup(
   recipeId: string,
   versionId: string,
   groupName: string,
-  enableBakersPercent: boolean
+  enableBakersPercent: boolean,
 ): Promise<Recipe> {
   await prisma.$transaction(async (tx) => {
     // Create group
@@ -684,15 +686,15 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
         textureNotes: input.copyRatings ? activeVersion.textureNotes : null,
         ingredients: input.copyIngredients
           ? {
-            create: activeVersion.ingredients.map((ingredient) => ({
-              name: ingredient.name,
-              quantity: ingredient.quantity,
-              unit: ingredient.unit,
-              role: ingredient.role,
-              notes: ingredient.notes,
-              sortOrder: ingredient.sortOrder,
-            })),
-          }
+              create: activeVersion.ingredients.map((ingredient) => ({
+                name: ingredient.name,
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+                role: ingredient.role,
+                notes: ingredient.notes,
+                sortOrder: ingredient.sortOrder,
+              })),
+            }
           : undefined,
       },
     });

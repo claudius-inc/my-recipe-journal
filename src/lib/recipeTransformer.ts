@@ -38,8 +38,6 @@ type PrismaIngredientRecord = {
   sortOrder: number;
 };
 
-
-
 type PrismaIngredientGroupRecord = {
   id: string;
   name: string;
