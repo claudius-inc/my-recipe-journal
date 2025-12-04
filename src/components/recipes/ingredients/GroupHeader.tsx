@@ -36,11 +36,16 @@ export function GroupHeader({
     }
   }, [group.name, isEditingName]);
 
-  const handleSaveName = async () => {
-    if (editedName.trim() && editedName !== group.name) {
-      await onUpdateGroup({ name: editedName.trim() });
+  const handleSaveName = () => {
+    const trimmedName = editedName.trim();
+    setIsEditingName(false); // Close immediately for snappy UX
+
+    if (trimmedName && trimmedName !== group.name) {
+      // Fire and forget - let API call happen in background
+      onUpdateGroup({ name: trimmedName }).catch((error) => {
+        console.error("Failed to save group name:", error);
+      });
     }
-    setIsEditingName(false);
   };
 
   const handleToggleBakersPercent = async () => {
@@ -109,7 +114,7 @@ export function GroupHeader({
       {isBakingCategory && (
         <Flex gap="2" align="center" className="hidden md:flex">
           <Text size="2" weight="medium" className="text-neutral-700">
-            📊 Baker&apos;s %
+            Baker&apos;s %
           </Text>
           <Switch
             size="1"
@@ -164,7 +169,7 @@ export function GroupHeader({
                 <div className="w-full px-4 py-2 md:hidden">
                   <Flex gap="2" align="center" justify="between">
                     <Text size="2" className="text-neutral-700">
-                      📊 Baker&apos;s %
+                      Baker&apos;s %
                     </Text>
                     <Switch
                       size="1"

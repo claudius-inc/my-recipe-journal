@@ -10,16 +10,6 @@
   --accent: 34 197 94;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --surface: 15 15 18;
-    --surface-card: 28 28 32;
-    --foreground: 233 233 237;
-    --accent: 59 130 246;
-  }
-}
-
 * {
   border-color: rgba(var(--foreground), 0.08);
 }
