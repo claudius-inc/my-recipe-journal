@@ -308,6 +308,13 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         clearTimeout(saveStepsTimeoutRef.current);
       }
 
+      // Skip saving if all steps are empty (e.g., auto-created placeholder step)
+      // This prevents showing "Saving..." when user opens accordion but hasn't typed anything
+      const hasNonEmptySteps = steps.some((step) => step.text.trim().length > 0);
+      if (!hasNonEmptySteps && steps.length > 0) {
+        return;
+      }
+
       // Different debounce delays based on action type
       const debounceDelays = {
         delete: 0, // Persist deletes immediately
