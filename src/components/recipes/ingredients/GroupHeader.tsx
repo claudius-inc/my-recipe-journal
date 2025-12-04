@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDownIcon, DragHandleDots2Icon } from "@radix-ui/react-icons";
 import { Switch, Text, Flex } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,13 @@ export function GroupHeader({
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(group.name);
   const [showMenu, setShowMenu] = useState(false);
+
+  // Sync editedName when group.name changes from parent (e.g., after API update)
+  useEffect(() => {
+    if (!isEditingName) {
+      setEditedName(group.name);
+    }
+  }, [group.name, isEditingName]);
 
   const handleSaveName = async () => {
     if (editedName.trim() && editedName !== group.name) {
