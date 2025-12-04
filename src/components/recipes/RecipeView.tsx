@@ -638,6 +638,18 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onCompare={handleCompareVersion}
         />
 
+        <PhotoUploadSection
+          version={selectedVersion}
+          onUpload={handlePhotoUpload}
+          onRemove={() =>
+            removePhoto(selectedVersion.photoUrl ?? null, selectedVersion.r2Key ?? null)
+          }
+          isUploading={isUploading}
+          uploadProgress={photoUploadProgress}
+          uploadError={photoUploadError}
+          isRemoving={isRemovingPhoto}
+        />
+
         <IngredientGroupList
           version={selectedVersion}
           recipeId={selectedRecipe.id}
@@ -717,18 +729,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onTargetQuantityChange={setTargetQuantity}
           onPreviewScaling={handlePreviewScaling}
           isPreviewingScaling={isPreviewingScaling}
-        />
-
-        <PhotoUploadSection
-          version={selectedVersion}
-          onUpload={handlePhotoUpload}
-          onRemove={() =>
-            removePhoto(selectedVersion.photoUrl ?? null, selectedVersion.r2Key ?? null)
-          }
-          isUploading={isUploading}
-          uploadProgress={photoUploadProgress}
-          uploadError={photoUploadError}
-          isRemoving={isRemovingPhoto}
         />
 
         <RecipeSteps
