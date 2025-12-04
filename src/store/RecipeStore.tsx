@@ -255,7 +255,8 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       fetchRecipesPage(pageParam ?? null),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: 1000 * 30,
+    staleTime: Infinity, // Data is considered fresh indefinitely
+    gcTime: 1000 * 60 * 60 * 24, // Keep unused data in cache for 24 hours
   });
 
   const recipes = useMemo(() => {

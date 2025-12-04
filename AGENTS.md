@@ -259,6 +259,15 @@ For deeper understanding, consult:
 - Mobile-first CSS for faster mobile loads
 - Ingredient autocomplete is debounced
 
+## Caching Strategy
+
+To ensure an "instant" and offline-first experience, we use an aggressive caching strategy:
+
+1.  **Stale Time:** `Infinity`. Data is considered fresh indefinitely.
+2.  **Persistence:** The React Query cache is persisted to `IndexedDB` (via `idb-keyval`) and restored on app launch.
+3.  **Invalidation:** We rely entirely on explicit invalidation (e.g., `queryClient.invalidateQueries`) after mutations to update data.
+4.  **Garbage Collection:** `gcTime` is set to 24 hours to match the persistence `maxAge`.
+
 ## Security Notes
 
 - Magic link authentication requires proper URL configuration
