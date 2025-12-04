@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDownIcon, DragHandleDots2Icon } from "@radix-ui/react-icons";
+import { Switch, Text, Flex } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { IngredientGroup } from "@/types/recipes";
 
@@ -36,7 +37,11 @@ export function GroupHeader({
   };
 
   const handleToggleBakersPercent = async () => {
-    await onUpdateGroup({ enableBakersPercent: !group.enableBakersPercent });
+    try {
+      await onUpdateGroup({ enableBakersPercent: !group.enableBakersPercent });
+    } catch (error) {
+      console.error("Failed to toggle baker's percentage:", error);
+    }
   };
 
   return (
@@ -93,21 +98,19 @@ export function GroupHeader({
         )}
       </div>
 
-      {/* Baker's Percentage Toggle (only for baking categories) */}
+      {/* Baker's Percentage Toggle (only for baking categories, hidden on mobile) */}
       {isBakingCategory && (
-        <button
-          type="button"
-          onClick={handleToggleBakersPercent}
-          className={cn(
-            "rounded-full px-3 py-1 text-xs font-medium transition",
-            group.enableBakersPercent
-              ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200",
-          )}
-          aria-label={`Baker's percentage: ${group.enableBakersPercent ? "enabled" : "disabled"}`}
-        >
-          📊 Baker&apos;s %: {group.enableBakersPercent ? "ON" : "OFF"}
-        </button>
+        <Flex gap="2" align="center" className="hidden md:flex">
+          <Text size="2" weight="medium" className="text-neutral-700">
+            📊 Baker&apos;s %
+          </Text>
+          <Switch
+            size="1"
+            checked={group.enableBakersPercent}
+            onCheckedChange={handleToggleBakersPercent}
+            aria-label="Toggle baker's percentage"
+          />
+        </Flex>
       )}
 
       {/* Menu Button */}
@@ -149,6 +152,25 @@ export function GroupHeader({
               >
                 Rename
               </button>
+              {/* Baker's Percentage Toggle (mobile only) */}
+              {isBakingCategory && (
+                <div className="w-full px-4 py-2 md:hidden">
+                  <Flex gap="2" align="center" justify="between">
+                    <Text size="2" className="text-neutral-700">
+                      📊 Baker&apos;s %
+                    </Text>
+                    <Switch
+                      size="1"
+                      checked={group.enableBakersPercent}
+                      onCheckedChange={(checked) => {
+                        handleToggleBakersPercent();
+                        setShowMenu(false);
+                      }}
+                      aria-label="Toggle baker's percentage"
+                    />
+                  </Flex>
+                </div>
+              )}
               {canDelete && (
                 <button
                   type="button"
