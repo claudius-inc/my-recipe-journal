@@ -716,3 +716,94 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
 
   return newRecipe;
 }
+
+// ============================================
+// Version Photo Functions (Multi-Photo Support)
+// ============================================
+
+const MAX_PHOTOS_PER_VERSION = 10;
+
+export interface AddVersionPhotoInput {
+  recipeId: string;
+  versionId: string;
+  photoUrl: string;
+  r2Key?: string;
+}
+
+export async function addVersionPhoto(input: AddVersionPhotoInput): Promise<Recipe> {
+  // Check current photo count
+  const photoCount = await prisma.versionPhoto.count({
+    where: { versionId: input.versionId },
+  });
+
+  if (photoCount >= MAX_PHOTOS_PER_VERSION) {
+    throw new Error(`Maximum ${MAX_PHOTOS_PER_VERSION} photos per version allowed`);
+  }
+
+  // Get the highest order
+  const highestOrder = await prisma.versionPhoto.findFirst({
+    where: { versionId: input.versionId },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+
+  const order = (highestOrder?.order ?? -1) + 1;
+
+  await prisma.versionPhoto.create({
+    data: {
+      versionId: input.versionId,
+      photoUrl: input.photoUrl,
+      r2Key: input.r2Key ?? null,
+      order,
+    },
+  });
+
+  const recipe = await getRecipe(input.recipeId);
+  if (!recipe) {
+    throw new Error("Recipe not found after adding photo");
+  }
+  return recipe;
+}
+
+export async function removeVersionPhoto(
+  recipeId: string,
+  photoId: string,
+): Promise<{ recipe: Recipe; r2Key: string | null }> {
+  // Get the photo to return r2Key for deletion
+  const photo = await prisma.versionPhoto.findUnique({
+    where: { id: photoId },
+    select: { r2Key: true },
+  });
+
+  await prisma.versionPhoto.delete({
+    where: { id: photoId },
+  });
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) {
+    throw new Error("Recipe not found after removing photo");
+  }
+  return { recipe, r2Key: photo?.r2Key ?? null };
+}
+
+export async function reorderVersionPhotos(
+  recipeId: string,
+  versionId: string,
+  photoIds: string[],
+): Promise<Recipe> {
+  // Update order for each photo
+  await prisma.$transaction(
+    photoIds.map((id, index) =>
+      prisma.versionPhoto.update({
+        where: { id },
+        data: { order: index },
+      }),
+    ),
+  );
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) {
+    throw new Error("Recipe not found after reordering photos");
+  }
+  return recipe;
+}

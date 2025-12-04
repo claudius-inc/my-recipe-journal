@@ -156,8 +156,11 @@ model RecipeVersion {
   steps         Json?          @default("[]")
   notes         String         @default("")
   nextSteps     String         @default("")
+  // Legacy single photo fields - kept for backward compatibility
   photoUrl      String?
   r2Key         String?        // R2 object key for photo (if using R2 storage)
+  // Multi-photo support
+  photos        VersionPhoto[]
   tasteRating   Int?
   visualRating  Int?
   textureRating Int?
@@ -168,6 +171,19 @@ model RecipeVersion {
   updatedAt     DateTime       @updatedAt
   ingredients   Ingredient[]
   ingredientGroups IngredientGroup[]
+}
+
+model VersionPhoto {
+  id        String        @id @default(cuid())
+  versionId String
+  version   RecipeVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  photoUrl  String
+  r2Key     String?
+  order     Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  @@index([versionId])
+  @@index([versionId, order])
 }
 
 model IngredientGroup {

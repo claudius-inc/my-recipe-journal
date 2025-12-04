@@ -24,6 +24,11 @@ export const recipeWithRelations = {
           orderIndex: "asc",
         },
       },
+      photos: {
+        orderBy: {
+          order: "asc",
+        },
+      },
     },
   },
 } as const;
@@ -46,6 +51,14 @@ type PrismaIngredientGroupRecord = {
   ingredients: PrismaIngredientRecord[];
 };
 
+type PrismaVersionPhotoRecord = {
+  id: string;
+  photoUrl: string;
+  r2Key: string | null;
+  order: number;
+  createdAt: Date;
+};
+
 type PrismaRecipeVersionRecord = {
   id: string;
   title: string;
@@ -62,6 +75,7 @@ type PrismaRecipeVersionRecord = {
   textureNotes: string | null;
   ingredients: PrismaIngredientRecord[];
   ingredientGroups: PrismaIngredientGroupRecord[];
+  photos?: PrismaVersionPhotoRecord[];
 };
 
 type PrismaRecipeRecord = {
@@ -118,6 +132,15 @@ export const toRecipeVersion = (version: PrismaRecipeVersionRecord): RecipeVersi
     steps,
     notes: version.notes,
     nextSteps: version.nextSteps,
+    // Multi-photo support
+    photos: (version.photos ?? []).map((photo) => ({
+      id: photo.id,
+      photoUrl: photo.photoUrl,
+      r2Key: photo.r2Key ?? undefined,
+      order: photo.order,
+      createdAt: photo.createdAt.toISOString(),
+    })),
+    // Legacy single photo field
     photoUrl: version.photoUrl ?? undefined,
     tasteRating: version.tasteRating ?? undefined,
     visualRating: version.visualRating ?? undefined,

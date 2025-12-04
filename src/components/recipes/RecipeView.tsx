@@ -127,8 +127,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
 
   // Initialize photo upload hook
   const {
-    handlePhotoUpload,
+    addPhoto,
     removePhoto,
+    reorderPhotos,
     isUploading,
     photoUploadProgress,
     photoUploadError,
@@ -640,10 +641,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
 
         <PhotoUploadSection
           version={selectedVersion}
-          onUpload={handlePhotoUpload}
-          onRemove={() =>
-            removePhoto(selectedVersion.photoUrl ?? null, selectedVersion.r2Key ?? null)
-          }
+          onUpload={addPhoto}
+          onRemove={removePhoto}
+          onReorder={reorderPhotos}
           isUploading={isUploading}
           uploadProgress={photoUploadProgress}
           uploadError={photoUploadError}

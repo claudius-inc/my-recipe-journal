@@ -150,6 +150,15 @@ export interface RecipeStep {
 
 export type RecipeSteps = RecipeStep[];
 
+// Version Photo for multi-photo support
+export interface VersionPhoto {
+  id: string;
+  photoUrl: string;
+  r2Key?: string;
+  order: number;
+  createdAt: string;
+}
+
 export interface RecipeVersion {
   id: string;
   title: string;
@@ -162,6 +171,9 @@ export interface RecipeVersion {
   steps?: RecipeSteps;
   notes: string;
   nextSteps: string;
+  // Multi-photo support
+  photos: VersionPhoto[];
+  // Legacy single photo fields (kept for backward compatibility)
   photoUrl?: string;
   r2Key?: string;
   tasteRating?: number;
