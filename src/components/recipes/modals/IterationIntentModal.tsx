@@ -70,7 +70,7 @@ export function IterationIntentModal({
         <div className="space-y-4 mt-4">
           {/* Intent Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               What are you testing or changing?
             </label>
             <TextArea
@@ -82,7 +82,7 @@ export function IterationIntentModal({
               onFocus={() => setUseQuickStart(true)}
               placeholder="e.g., Testing higher hydration or trying a new flour brand"
               rows={2}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
             />
 
             {/* Quick intent suggestions */}
@@ -107,7 +107,7 @@ export function IterationIntentModal({
 
           {/* Hypothesis Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-neutral-300 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Your hypothesis (optional)
             </label>
             <TextArea
@@ -115,7 +115,7 @@ export function IterationIntentModal({
               onChange={(e) => setHypothesis(e.target.value)}
               placeholder="e.g., I think increasing hydration to 75% will improve the open crumb"
               rows={2}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
             />
           </div>
 

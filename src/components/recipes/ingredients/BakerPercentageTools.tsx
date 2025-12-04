@@ -51,16 +51,16 @@ export function BakerPercentageTools({
   ).length;
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
         <div className="space-y-2 lg:flex-1 lg:max-w-xl">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+            <h3 className="text-sm font-semibold text-neutral-800">
               Baker&apos;s percentages
             </h3>
             <div
               onClick={onToggleAllIngredients}
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100 cursor-pointer dark:text-neutral-400 dark:hover:bg-neutral-800"
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium text-neutral-600 transition hover:bg-neutral-100 cursor-pointer"
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
@@ -87,7 +87,7 @@ export function BakerPercentageTools({
               </span>
             </div>
           </div>
-          <ul className="space-y-1 text-sm text-neutral-600 dark:text-neutral-300">
+          <ul className="space-y-1 text-sm text-neutral-600">
             {version.ingredients.map((ingredient) => {
               const isChecked = checkedIngredients.has(ingredient.id);
               return (
@@ -95,9 +95,7 @@ export function BakerPercentageTools({
                   key={ingredient.id}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-2 py-1.5 transition",
-                    isChecked
-                      ? "bg-green-50 dark:bg-green-900/20"
-                      : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50",
+                    isChecked ? "bg-green-50" : "hover:bg-neutral-50",
                   )}
                 >
                   <Checkbox
@@ -121,9 +119,7 @@ export function BakerPercentageTools({
                   <span
                     className={cn(
                       "text-sm whitespace-nowrap",
-                      isChecked
-                        ? "text-neutral-400 dark:text-neutral-500"
-                        : "text-neutral-500 dark:text-neutral-400",
+                      isChecked ? "text-neutral-400" : "text-neutral-500",
                     )}
                   >
                     {ingredient.quantity} {ingredient.unit}
@@ -144,24 +140,22 @@ export function BakerPercentageTools({
             })}
           </ul>
         </div>
-        <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm lg:w-72 lg:flex-shrink-0 dark:border-neutral-700 dark:bg-neutral-900/60">
+        <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm lg:w-72 lg:flex-shrink-0">
           <p className="flex items-center justify-between">
-            <span className="text-neutral-500 dark:text-neutral-400">Total flour</span>
-            <span className="font-semibold text-neutral-800 dark:text-neutral-100">
+            <span className="text-neutral-500">Total flour</span>
+            <span className="font-semibold text-neutral-800">
               {flourTotal.toFixed(1)} g
             </span>
           </p>
           <p className="flex items-center justify-between">
-            <span className="text-neutral-500 dark:text-neutral-400">
-              Total dough weight
-            </span>
-            <span className="font-semibold text-neutral-800 dark:text-neutral-100">
+            <span className="text-neutral-500">Total dough weight</span>
+            <span className="font-semibold text-neutral-800">
               {totalWeight.toFixed(1)} g
             </span>
           </p>
           <p className="flex items-center justify-between">
-            <span className="text-neutral-500 dark:text-neutral-400">Hydration</span>
-            <span className="font-semibold text-neutral-800 dark:text-neutral-100">
+            <span className="text-neutral-500">Hydration</span>
+            <span className="font-semibold text-neutral-800">
               {formatPercent(hydration)}
             </span>
           </p>
@@ -175,9 +169,7 @@ export function BakerPercentageTools({
           {isScalingOpen && (
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-neutral-500 dark:text-neutral-400 mb-1">
-                  Scale by ingredient
-                </label>
+                <label className="block text-neutral-500 mb-1">Scale by ingredient</label>
                 <Select.Root
                   value={selectedScalingIngredient}
                   onValueChange={(value) => setSelectedScalingIngredient(value)}
@@ -194,7 +186,7 @@ export function BakerPercentageTools({
               </div>
               {selectedIngredient && (
                 <div>
-                  <label className="block text-neutral-500 dark:text-neutral-400 mb-1">
+                  <label className="block text-neutral-500 mb-1">
                     Target amount ({selectedIngredient.unit})
                   </label>
                   <div className="flex gap-2">
@@ -203,7 +195,7 @@ export function BakerPercentageTools({
                       value={targetQuantity}
                       onChange={(event) => setTargetQuantity(event.target.value)}
                       placeholder={`Current: ${selectedIngredient.quantity.toFixed(1)}`}
-                      className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                      className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                     />
                     <Button
                       onClick={onPreviewScaling}
@@ -213,7 +205,7 @@ export function BakerPercentageTools({
                       Preview
                     </Button>
                   </div>
-                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                  <p className="mt-1 text-xs text-neutral-500">
                     All other ingredients will be scaled proportionally
                   </p>
                 </div>

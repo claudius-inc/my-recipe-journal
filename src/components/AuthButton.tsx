@@ -34,7 +34,7 @@ export function AuthButton() {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
         <button
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-9)] text-sm font-medium text-white transition hover:bg-[var(--accent-10)] dark:bg-[var(--accent-9)] dark:text-white"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-9)] text-sm font-medium text-white transition hover:bg-[var(--accent-10)]"
           aria-label="User menu"
         >
           {session.user?.email?.charAt(0).toUpperCase() || "U"}
@@ -44,8 +44,8 @@ export function AuthButton() {
       <DropdownMenu.Content align="end" className="min-w-[16rem]">
         <DropdownMenu.Label>
           <div className="px-1 py-1.5">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">Signed in as</p>
-            <p className="mt-1 truncate text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            <p className="text-xs text-neutral-500">Signed in as</p>
+            <p className="mt-1 truncate text-sm font-medium text-neutral-900">
               {session.user?.email}
             </p>
           </div>

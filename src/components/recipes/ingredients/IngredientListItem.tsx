@@ -117,12 +117,12 @@ export function IngredientListItem({
   return (
     <div
       className={cn(
-        "rounded-md bg-white text-sm transition-all dark:bg-neutral-950",
+        "rounded-md bg-white text-sm transition-all",
         isChecked
-          ? "bg-green-50 dark:bg-green-900/20"
+          ? "bg-green-50"
           : isExpanded
             ? ""
-            : "border-transparent hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:border-neutral-600 dark:hover:bg-neutral-900/50",
+            : "border-transparent hover:border-neutral-300 hover:bg-neutral-50",
       )}
     >
       {/* Main Row - Mobile: Single row, Desktop: Grid */}
@@ -148,7 +148,7 @@ export function IngredientListItem({
           onClick={(e) => {
             e.stopPropagation();
           }}
-          className="flex h-8 w-5 flex-shrink-0 items-center justify-center rounded transition hover:bg-neutral-100 dark:hover:bg-neutral-800 md:col-span-1"
+          className="flex h-8 w-5 flex-shrink-0 items-center justify-center rounded transition hover:bg-neutral-100 md:col-span-1"
         >
           <Checkbox
             checked={isChecked}
@@ -178,7 +178,7 @@ export function IngredientListItem({
                     e.stopPropagation();
                     setShowNotePopover(!showNotePopover);
                   }}
-                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-blue-600 transition hover:bg-blue-50"
                   aria-label="View ingredient notes"
                 >
                   <InfoCircledIcon className="w-4 h-4 text-gray-600" />
@@ -194,9 +194,9 @@ export function IngredientListItem({
                       }}
                     />
                     {/* Popover */}
-                    <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
+                    <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg">
                       <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                        <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
                           Notes
                         </span>
                         <button
@@ -206,14 +206,12 @@ export function IngredientListItem({
                             setShowNotePopover(false);
                             onToggleExpand(ingredient.id);
                           }}
-                          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                          className="text-xs text-blue-600 hover:underline"
                         >
                           Edit
                         </button>
                       </div>
-                      <p className="text-xs text-neutral-700 dark:text-neutral-300">
-                        {ingredient.notes}
-                      </p>
+                      <p className="text-xs text-neutral-700">{ingredient.notes}</p>
                     </div>
                   </>
                 )}
@@ -225,7 +223,7 @@ export function IngredientListItem({
         {/* Amount + Unit (inline on mobile, separate on desktop) */}
         <span
           className={cn(
-            "flex-shrink-0 text-sm text-neutral-500 md:col-span-2 md:text-center dark:text-neutral-400",
+            "flex-shrink-0 text-sm text-neutral-500 md:col-span-2 md:text-center",
             isChecked && "opacity-60",
           )}
         >
@@ -239,7 +237,7 @@ export function IngredientListItem({
         {/* Unit (desktop only) */}
         <span
           className={cn(
-            "hidden text-sm text-neutral-500 md:col-span-1 md:inline md:text-center dark:text-neutral-400",
+            "hidden text-sm text-neutral-500 md:col-span-1 md:inline md:text-center",
             isChecked && "opacity-60",
           )}
         >
@@ -249,7 +247,7 @@ export function IngredientListItem({
         {/* Role (desktop only) */}
         <span
           className={cn(
-            "hidden text-xs text-neutral-500 md:col-span-2 md:inline md:text-center dark:text-neutral-400",
+            "hidden text-xs text-neutral-500 md:col-span-2 md:inline md:text-center",
             isChecked && "opacity-60",
           )}
         >
@@ -260,7 +258,7 @@ export function IngredientListItem({
         {bakerPercentage && (
           <span
             className={cn(
-              "flex-shrink-0 font-mono text-xs text-neutral-400 md:col-span-1 md:text-center dark:text-neutral-500",
+              "flex-shrink-0 font-mono text-xs text-neutral-400 md:col-span-1 md:text-center",
               isChecked && "opacity-60",
             )}
           >
@@ -281,7 +279,7 @@ export function IngredientListItem({
             onToggleExpand(ingredient.id);
           }}
           className={cn(
-            "flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition-transform duration-300 hover:bg-neutral-100 md:col-span-1 dark:hover:bg-neutral-800",
+            "flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition-transform duration-300 hover:bg-neutral-100 md:col-span-1",
             isExpanded && "rotate-180",
           )}
           aria-label={isExpanded ? "Collapse" : "Expand"}
@@ -292,11 +290,11 @@ export function IngredientListItem({
 
       {/* Expanded Edit Section */}
       {isExpanded && (
-        <div className="animate-slideDown border-t border-neutral-200 px-4 pb-4 pt-3 dark:border-neutral-700">
+        <div className="animate-slideDown border-t border-neutral-200 px-4 pb-4 pt-3">
           <div className="space-y-3">
             {/* Name Input */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+              <label className="text-xs font-medium text-neutral-500">
                 Ingredient Name
               </label>
               <div className="flex items-center gap-2">
@@ -308,7 +306,7 @@ export function IngredientListItem({
                     setEditState((prev) => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="Ingredient name"
-                  className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                  className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                 />
                 <SaveIndicator isSaving={isSaving} />
               </div>
@@ -324,9 +322,7 @@ export function IngredientListItem({
             {/* Quantity + Unit Row */}
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                  Quantity
-                </label>
+                <label className="text-xs font-medium text-neutral-500">Quantity</label>
                 <TextField.Root
                   type="number"
                   value={editState.quantity}
@@ -334,29 +330,25 @@ export function IngredientListItem({
                     setEditState((prev) => ({ ...prev, quantity: e.target.value }))
                   }
                   placeholder="Amount"
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                  Unit
-                </label>
+                <label className="text-xs font-medium text-neutral-500">Unit</label>
                 <TextField.Root
                   value={editState.unit}
                   onChange={(e) =>
                     setEditState((prev) => ({ ...prev, unit: e.target.value }))
                   }
                   placeholder="Unit"
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                 />
               </div>
             </div>
 
             {/* Role Selector */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                Role
-              </label>
+              <label className="text-xs font-medium text-neutral-500">Role</label>
               <select
                 value={editState.role}
                 onChange={(e) =>
@@ -365,7 +357,7 @@ export function IngredientListItem({
                     role: e.target.value as Ingredient["role"],
                   }))
                 }
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
               >
                 {INGREDIENT_ROLES.map((role) => (
                   <option key={role} value={role}>
@@ -378,7 +370,7 @@ export function IngredientListItem({
             {/* Interactive Percentage Editor (for Baker's Percentage) */}
             {enableBakersPercent && flourTotal > 0 && (
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+                <label className="text-xs font-medium text-neutral-500">
                   Baker&apos;s Percentage
                 </label>
                 <div className="flex items-center gap-2">
@@ -394,7 +386,7 @@ export function IngredientListItem({
                     }}
                     isSaving={isSaving}
                   />
-                  <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                  <span className="text-xs text-neutral-500">
                     (Click percentage to edit)
                   </span>
                 </div>
@@ -403,7 +395,7 @@ export function IngredientListItem({
 
             {/* Notes Textarea */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+              <label className="text-xs font-medium text-neutral-500">
                 Notes (optional)
               </label>
               <textarea
@@ -413,7 +405,7 @@ export function IngredientListItem({
                 }
                 placeholder="Optional notes on ingredient tweaks"
                 rows={2}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
               />
             </div>
 
@@ -423,7 +415,7 @@ export function IngredientListItem({
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : "Save"}
               </button>
@@ -431,7 +423,7 @@ export function IngredientListItem({
                 type="button"
                 onClick={handleCancel}
                 disabled={isSaving}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -439,7 +431,7 @@ export function IngredientListItem({
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={isSaving}
-                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-800/60 dark:text-red-400 dark:hover:bg-red-900/30"
+                className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Delete
               </button>
@@ -451,11 +443,9 @@ export function IngredientListItem({
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg dark:bg-neutral-900">
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
-              Delete ingredient?
-            </h3>
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-neutral-900">Delete ingredient?</h3>
+            <p className="mt-2 text-sm text-neutral-600">
               Are you sure you want to delete <strong>{ingredient.name}</strong>? This
               action cannot be undone.
             </p>
@@ -464,7 +454,7 @@ export function IngredientListItem({
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isDeleting}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -472,7 +462,7 @@ export function IngredientListItem({
                 type="button"
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-600 dark:hover:bg-red-700"
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>

@@ -179,7 +179,7 @@ export function RecipeSteps({
 
   return (
     <Collapsible.Root open={isOpen} onOpenChange={handleOpenChange}>
-      <section className="rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-neutral-200 bg-white">
         {/* ARIA announcement for screen readers */}
         {isEditing && wasEmptyOnExpandRef.current && steps.length === 1 && (
           <div role="status" aria-live="polite" className="sr-only">
@@ -200,9 +200,7 @@ export function RecipeSteps({
               ) : (
                 <ChevronRightIcon className="w-4 h-4" />
               )}
-              <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-                Recipe Steps
-              </h3>
+              <h3 className="text-sm font-semibold text-neutral-800">Recipe Steps</h3>
             </Flex>
 
             <Flex align="center" gap="4" className="ml-auto">
@@ -294,7 +292,7 @@ export function RecipeSteps({
                         placeholder="Enter step instructions..."
                         aria-label={`Step ${step.order}`}
                         rows={1}
-                        className="flex-1 min-h-[32px] p-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm resize-none overflow-hidden field-sizing-content"
+                        className="flex-1 min-h-[32px] p-2 rounded border border-gray-300 bg-white text-sm resize-none overflow-hidden field-sizing-content"
                         style={{
                           height: "auto",
                         }}

@@ -142,9 +142,7 @@ export function ImportFromUrlModal({
           // Step 1: URL input
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Recipe URL
-              </label>
+              <label className="text-sm font-medium text-neutral-700">Recipe URL</label>
               <TextField.Root
                 placeholder="https://www.cotta.jp/recipe/recipe.php?recipeid=00016428"
                 value={url}
@@ -157,13 +155,13 @@ export function ImportFromUrlModal({
                   }
                 }}
               />
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-xs text-neutral-500">
                 Supports Cotta.jp and many other recipe websites via AI extraction
               </p>
             </div>
 
             {extractError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {extractError}
               </div>
             )}
@@ -182,20 +180,20 @@ export function ImportFromUrlModal({
         ) : (
           // Step 2: Preview and edit
           <div className="space-y-4">
-            <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-400">
+            <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
               Recipe extracted successfully! Review and edit before saving.
             </div>
 
             {editableImageUrl && (
               <div>
-                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                <label className="text-sm font-medium text-neutral-700">
                   Recipe Photo
                 </label>
                 <div className="mt-1 relative group">
                   <img
                     src={editableImageUrl}
                     alt="Recipe preview"
-                    className="w-full h-48 object-cover rounded-lg border border-neutral-200 dark:border-neutral-700"
+                    className="w-full h-48 object-cover rounded-lg border border-neutral-200"
                   />
                   <button
                     onClick={() => setEditableImageUrl(undefined)}
@@ -221,9 +219,7 @@ export function ImportFromUrlModal({
             )}
 
             <div>
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Recipe Name
-              </label>
+              <label className="text-sm font-medium text-neutral-700">Recipe Name</label>
               <TextField.Root
                 value={editableName}
                 onChange={(e) => setEditableName(e.target.value)}
@@ -232,9 +228,7 @@ export function ImportFromUrlModal({
             </div>
 
             <div>
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Category
-              </label>
+              <label className="text-sm font-medium text-neutral-700">Category</label>
               <div className="mt-1">
                 <CategorySelector
                   value={editableCategory}
@@ -244,9 +238,7 @@ export function ImportFromUrlModal({
             </div>
 
             <div>
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                Description
-              </label>
+              <label className="text-sm font-medium text-neutral-700">Description</label>
               <TextField.Root
                 value={editableDescription}
                 onChange={(e) => setEditableDescription(e.target.value)}
@@ -256,13 +248,13 @@ export function ImportFromUrlModal({
             </div>
 
             <div>
-              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+              <label className="text-sm font-medium text-neutral-700">
                 Ingredients ({extractedData.ingredients.length})
               </label>
-              <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+              <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
                 <ul className="space-y-1">
                   {extractedData.ingredients.map((ing, idx) => (
-                    <li key={idx} className="text-neutral-700 dark:text-neutral-300">
+                    <li key={idx} className="text-neutral-700">
                       {ing.quantity} {ing.unit} {ing.name}
                       {ing.notes && (
                         <span className="ml-2 text-neutral-500">({ing.notes})</span>
@@ -275,19 +267,17 @@ export function ImportFromUrlModal({
 
             {extractedData.steps && extractedData.steps.length > 0 && (
               <div>
-                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                <label className="text-sm font-medium text-neutral-700">
                   Recipe Steps ({extractedData.steps.length})
                 </label>
-                <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+                <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
                   <ol className="space-y-2">
                     {extractedData.steps.map((step) => (
                       <li key={step.order} className="flex gap-2">
                         <span className="font-semibold text-neutral-500">
                           {step.order}.
                         </span>
-                        <span className="flex-1 text-neutral-700 dark:text-neutral-300">
-                          {step.text}
-                        </span>
+                        <span className="flex-1 text-neutral-700">{step.text}</span>
                       </li>
                     ))}
                   </ol>
@@ -301,14 +291,14 @@ export function ImportFromUrlModal({
                 href={extractedData.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline dark:text-blue-400"
+                className="text-blue-600 hover:underline"
               >
                 {extractedData.sourceUrl}
               </a>
             </div>
 
             {extractError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {extractError}
               </div>
             )}

@@ -52,7 +52,7 @@ export function RecipeList({
 
   if (recipes.length === 0) {
     return (
-      <p className="px-3 text-sm text-neutral-500 dark:text-neutral-400">
+      <p className="px-3 text-sm text-neutral-500">
         {query
           ? `No recipes found for "${query}"`
           : showArchived

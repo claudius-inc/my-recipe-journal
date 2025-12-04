@@ -122,7 +122,7 @@ export function IngredientAutocomplete({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled || isLoading}
-        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+        className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
         autoComplete="off"
         role="combobox"
         aria-expanded={showDropdown}
@@ -142,7 +142,7 @@ export function IngredientAutocomplete({
         <div
           id="ingredient-suggestions"
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-neutral-300 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-neutral-300 bg-white shadow-lg"
         >
           {filteredSuggestions.map((suggestion, index) => (
             <button
@@ -156,8 +156,8 @@ export function IngredientAutocomplete({
               className={cn(
                 "w-full px-3 py-2 text-left text-sm transition-colors",
                 index === highlightedIndex
-                  ? "bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50"
-                  : "text-neutral-700 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800",
+                  ? "bg-neutral-100 text-neutral-900"
+                  : "text-neutral-700 hover:bg-neutral-50",
               )}
             >
               {suggestion}

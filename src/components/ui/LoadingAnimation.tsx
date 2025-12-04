@@ -14,7 +14,7 @@ export function LoadingAnimation({ className = "", size = 120 }: LoadingAnimatio
         viewBox="0 0 200 200"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="text-[var(--accent-9)] dark:text-[var(--accent-4)]"
+        className="text-[var(--accent-9)]"
       >
         <style>
           {`

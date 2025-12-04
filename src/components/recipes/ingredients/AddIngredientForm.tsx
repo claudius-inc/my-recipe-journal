@@ -84,9 +84,9 @@ export function AddIngredientForm({
   };
 
   return (
-    <div className="mt-6 border-t border-neutral-200 pt-6 dark:border-neutral-800">
+    <div className="mt-6 border-t border-neutral-200 pt-6">
       <div className="mb-3 flex items-center justify-between">
-        <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
           Add ingredient
         </h4>
       </div>
@@ -144,9 +144,7 @@ export function AddIngredientForm({
         {/* Role Selection - Horizontal Scrollable Chips */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <span className="text-xs text-neutral-500 dark:text-neutral-400 shrink-0">
-              Role:
-            </span>
+            <span className="text-xs text-neutral-500 shrink-0">Role:</span>
             {INGREDIENT_ROLES.map((role) => (
               <button
                 key={role}
@@ -155,8 +153,8 @@ export function AddIngredientForm({
                 className={cn(
                   "flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
                   draft.role === role
-                    ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700",
+                    ? "bg-neutral-900 text-white"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200",
                 )}
               >
                 {IngredientRoleLabels[role]}
@@ -177,7 +175,7 @@ export function AddIngredientForm({
                     key={unit}
                     type="button"
                     onClick={() => setQuickUnit(unit)}
-                    className="shrink-0 rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                    className="shrink-0 rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
                   >
                     {unit}
                   </button>

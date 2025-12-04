@@ -91,19 +91,17 @@ export function DuplicateRecipeModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && !isLoading && onCancel()}>
       <Dialog.Content className="max-w-md">
-        <Dialog.Title className="text-lg font-semibold text-neutral-900 dark:text-white">
+        <Dialog.Title className="text-lg font-semibold text-neutral-900">
           Duplicate Recipe
         </Dialog.Title>
 
         <div className="mt-4 space-y-4">
           {/* Source Recipe Info */}
-          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-700 dark:bg-neutral-800">
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
               Duplicating from
             </p>
-            <p className="mt-1 font-semibold text-neutral-900 dark:text-white">
-              {sourceRecipe.name}
-            </p>
+            <p className="mt-1 font-semibold text-neutral-900">{sourceRecipe.name}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Badge color="gold" variant="soft">
                 {formatCategoryLabel(sourceRecipe.category)}
@@ -124,7 +122,7 @@ export function DuplicateRecipeModal({
 
           {/* New Recipe Name */}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            <label className="text-xs font-medium text-neutral-500">
               New recipe name *
             </label>
             <TextField.Root
@@ -138,16 +136,14 @@ export function DuplicateRecipeModal({
 
           {/* Category Selector */}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-              Category
-            </label>
+            <label className="text-xs font-medium text-neutral-500">Category</label>
             <CategorySelector value={category} onChange={setCategory} />
           </div>
 
           {/* What to Copy Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              <label className="text-xs font-medium uppercase tracking-wide text-neutral-500">
                 What to copy from original recipe
               </label>
               <Button
@@ -163,7 +159,7 @@ export function DuplicateRecipeModal({
 
             <div className="space-y-2">
               {/* Copy Tags */}
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:bg-neutral-50">
                 <Checkbox
                   checked={copyTags}
                   onCheckedChange={(checked) => {
@@ -173,9 +169,7 @@ export function DuplicateRecipeModal({
                   }}
                 />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-neutral-900 dark:text-white">
-                    Copy tags
-                  </p>
+                  <p className="text-sm font-medium text-neutral-900">Copy tags</p>
                 </div>
                 {tagCount > 0 ? (
                   <Badge color="gray" variant="soft" className="text-xs">
@@ -187,7 +181,7 @@ export function DuplicateRecipeModal({
               </label>
 
               {/* Copy Ingredients */}
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:bg-neutral-50">
                 <Checkbox
                   checked={copyIngredients}
                   onCheckedChange={(checked) => {
@@ -197,12 +191,10 @@ export function DuplicateRecipeModal({
                   }}
                 />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-neutral-900 dark:text-white">
+                  <p className="text-sm font-medium text-neutral-900">
                     Copy ingredient list
                   </p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    From Ver. {versionNumber}
-                  </p>
+                  <p className="text-xs text-neutral-500">From Ver. {versionNumber}</p>
                 </div>
                 {ingredientCount > 0 ? (
                   <Badge color="gray" variant="soft" className="text-xs">
@@ -214,7 +206,7 @@ export function DuplicateRecipeModal({
               </label>
 
               {/* Copy Version Notes */}
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:bg-neutral-50">
                 <Checkbox
                   checked={copyNotes}
                   onCheckedChange={(checked) => {
@@ -224,17 +216,15 @@ export function DuplicateRecipeModal({
                   }}
                 />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-neutral-900 dark:text-white">
+                  <p className="text-sm font-medium text-neutral-900">
                     Copy version notes
                   </p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                    Process notes & next steps
-                  </p>
+                  <p className="text-xs text-neutral-500">Process notes & next steps</p>
                 </div>
               </label>
 
               {/* Copy Ratings */}
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:bg-neutral-50">
                 <Checkbox
                   checked={copyRatings}
                   onCheckedChange={(checked) => {
@@ -244,10 +234,10 @@ export function DuplicateRecipeModal({
                   }}
                 />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-neutral-900 dark:text-white">
+                  <p className="text-sm font-medium text-neutral-900">
                     Copy version ratings
                   </p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  <p className="text-xs text-neutral-500">
                     Taste, visual, texture + notes
                   </p>
                 </div>

@@ -136,7 +136,7 @@ export function IngredientGroup({
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
       {/* Group Header */}
       <GroupHeader
         group={group}
@@ -157,7 +157,7 @@ export function IngredientGroup({
               <button
                 type="button"
                 onClick={onToggleAllIngredients}
-                className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                className="text-xs text-blue-600 hover:underline"
               >
                 {group.ingredients.every((ing) => checkedIngredients.has(ing.id))
                   ? "Uncheck all"
@@ -189,7 +189,7 @@ export function IngredientGroup({
             {localPendingIngredients.map((pending) => (
               <div
                 key={pending.tempId}
-                className="animate-pulse rounded-md border border-neutral-200 bg-neutral-50 p-3 opacity-70 dark:border-neutral-800 dark:bg-neutral-900"
+                className="animate-pulse rounded-md border border-neutral-200 bg-neutral-50 p-3 opacity-70"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{pending.name}</span>
@@ -200,8 +200,8 @@ export function IngredientGroup({
 
             {/* Empty State */}
             {group.ingredients.length === 0 && localPendingIngredients.length === 0 && (
-              <div className="rounded-lg border border-dashed border-neutral-300 p-6 text-center dark:border-neutral-700">
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              <div className="rounded-lg border border-dashed border-neutral-300 p-6 text-center">
+                <p className="text-sm text-neutral-500">
                   No ingredients in this group yet
                 </p>
               </div>

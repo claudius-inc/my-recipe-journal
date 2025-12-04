@@ -32,11 +32,9 @@ export function ScalingControls({
         {isOpen ? "Hide scaling tools" : "Scale ingredients"}
       </Button>
       {isOpen && (
-        <div className="mt-3 space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs dark:border-neutral-700 dark:bg-neutral-900/60">
+        <div className="mt-3 space-y-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs">
           <div>
-            <label className="mb-1 block text-neutral-500 dark:text-neutral-400">
-              Scale by ingredient
-            </label>
+            <label className="mb-1 block text-neutral-500">Scale by ingredient</label>
             <Select.Root value={selectedIngredientId} onValueChange={onSelectIngredient}>
               <Select.Trigger className="w-full" placeholder="Select ingredient..." />
               <Select.Content>
@@ -50,7 +48,7 @@ export function ScalingControls({
           </div>
           {selectedIngredientId && (
             <div>
-              <label className="mb-1 block text-neutral-500 dark:text-neutral-400">
+              <label className="mb-1 block text-neutral-500">
                 Target amount ({selectedIngredient?.unit})
               </label>
               <div className="flex gap-2">
@@ -61,7 +59,7 @@ export function ScalingControls({
                   placeholder={`Current: ${
                     selectedIngredient?.quantity.toFixed(1) ?? ""
                   }`}
-                  className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                  className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                 />
                 <Button
                   type="button"
@@ -75,7 +73,7 @@ export function ScalingControls({
                   {isPreviewing ? "..." : "Preview"}
                 </Button>
               </div>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="mt-1 text-xs text-neutral-500">
                 All other ingredients will be scaled proportionally
               </p>
             </div>

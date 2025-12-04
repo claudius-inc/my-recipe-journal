@@ -588,7 +588,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }
 
     return (
-      <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500 dark:text-neutral-400">
+      <div className="flex-1 overflow-y-auto bg-surface px-6 py-8 text-neutral-500">
         <div className="mx-auto max-w-2xl text-center">
           <Button onClick={onOpenSidebar} variant="solid" size="3" className="mb-6">
             Browse recipes

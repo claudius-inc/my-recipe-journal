@@ -32,11 +32,11 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-[85vw] max-w-sm flex-col border-r border-neutral-200 bg-white shadow-xl transition-transform md:static md:z-auto md:h-full md:w-80 md:translate-x-0 md:shadow-none dark:border-neutral-800 dark:bg-neutral-900",
+          "fixed inset-y-0 left-0 z-40 flex w-[85vw] max-w-sm flex-col border-r border-neutral-200 bg-white shadow-xl transition-transform md:static md:z-auto md:h-full md:w-80 md:translate-x-0 md:shadow-none",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="space-y-3 border-b border-neutral-200 px-5 py-3 dark:border-neutral-800">
+        <div className="space-y-3 border-b border-neutral-200 px-5 py-3">
           <RecipeSearchHeader
             query={state.query}
             onQueryChange={actions.setQuery}
@@ -46,7 +46,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           />
 
           {(state.loading || state.error) && (
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
               {state.loading ? "Syncing recipes…" : state.error}
             </div>
           )}

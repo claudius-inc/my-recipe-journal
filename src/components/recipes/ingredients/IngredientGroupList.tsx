@@ -143,16 +143,16 @@ export function IngredientGroupList({
     );
 
   return (
-    <section className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-neutral-900 dark:text-white">
+        <h3 className="text-sm font-medium text-neutral-900">
           Ingredients ({totalIngredients})
         </h3>
         <button
           type="button"
           onClick={() => setIsAddingGroup(true)}
-          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+          className="text-xs text-blue-600 hover:underline"
         >
           + Add Group
         </button>
@@ -193,16 +193,14 @@ export function IngredientGroupList({
       {/* Add Group Modal */}
       {isAddingGroup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg dark:bg-neutral-900">
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-neutral-900">
               Add Ingredient Group
             </h3>
 
             {/* Group Name */}
             <div className="mt-4 flex flex-col gap-1">
-              <label className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                Group Name
-              </label>
+              <label className="text-xs font-medium text-neutral-500">Group Name</label>
               <input
                 autoFocus
                 type="text"
@@ -216,7 +214,7 @@ export function IngredientGroupList({
                   }
                 }}
                 placeholder="e.g., Pre-ferment, Main Dough, Topping"
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
               />
             </div>
 
@@ -227,7 +225,7 @@ export function IngredientGroupList({
                   key={suggestion}
                   type="button"
                   onClick={() => setNewGroupName(suggestion)}
-                  className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-700 transition hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                  className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-700 transition hover:bg-neutral-200"
                 >
                   {suggestion}
                 </button>
@@ -242,11 +240,11 @@ export function IngredientGroupList({
                   id="newGroupBakersPercent"
                   checked={newGroupBakersPercent}
                   onChange={(e) => setNewGroupBakersPercent(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-neutral-700"
+                  className="h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
                 />
                 <label
                   htmlFor="newGroupBakersPercent"
-                  className="text-sm text-neutral-700 dark:text-neutral-300"
+                  className="text-sm text-neutral-700"
                 >
                   Enable Baker&apos;s Percentages
                 </label>
@@ -262,7 +260,7 @@ export function IngredientGroupList({
                   setNewGroupName("");
                   setNewGroupBakersPercent(false);
                 }}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
               >
                 Cancel
               </button>
@@ -270,7 +268,7 @@ export function IngredientGroupList({
                 type="button"
                 onClick={handleAddGroup}
                 disabled={!newGroupName.trim()}
-                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
+                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Add Group
               </button>

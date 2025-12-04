@@ -84,12 +84,12 @@ export function InteractivePercentageEditor({
             placeholder="0.0"
             disabled={isSaving}
             step="0.1"
-            className="w-16 rounded-lg border border-blue-300 bg-blue-50 px-2 py-1 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed dark:border-blue-700 dark:bg-blue-900 dark:text-neutral-50"
+            className="w-16 rounded-lg border border-blue-300 bg-blue-50 px-2 py-1 text-sm font-mono outline-none focus:ring-2 focus:ring-blue-300 disabled:opacity-60 disabled:cursor-not-allowed"
           />
-          <span className="text-sm text-gray-600 dark:text-neutral-400">%</span>
+          <span className="text-sm text-gray-600">%</span>
         </div>
         {newQuantity > 0 && (
-          <span className="text-xs text-gray-500 dark:text-neutral-500">
+          <span className="text-xs text-gray-500">
             = {newQuantity.toFixed(1)}
             {ingredient.unit}
           </span>
@@ -98,14 +98,14 @@ export function InteractivePercentageEditor({
         <button
           onClick={handleSave}
           disabled={isSaving || !percentageInput || isNaN(Number(percentageInput))}
-          className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-blue-700 dark:hover:bg-blue-600"
+          className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CheckIcon className="w-3 h-3" />
         </button>
         <button
           onClick={handleCancel}
           disabled={isSaving}
-          className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600"
+          className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Cross2Icon className="w-3 h-3" />
         </button>
@@ -120,7 +120,7 @@ export function InteractivePercentageEditor({
         setPercentageInput(currentPercentage.toFixed(1));
       }}
       disabled={disabled || flourTotal === 0}
-      className="font-mono text-sm hover:bg-blue-50 px-2 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed dark:hover:bg-neutral-800"
+      className="font-mono text-sm hover:bg-blue-50 px-2 py-1 rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
       title="Click to edit percentage"
     >
       {formattedPercentage}

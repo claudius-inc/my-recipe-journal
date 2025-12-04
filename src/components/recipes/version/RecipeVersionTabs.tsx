@@ -27,7 +27,7 @@ export function RecipeVersionTabs({
   const [isSelectingVersion, setIsSelectingVersion] = useState<string | null>(null);
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900 relative">
+    <section className="rounded-2xl border border-neutral-200 bg-white p-4 relative">
       <div className="flex flex-col gap-3">
         <div className="flex gap-2 overflow-x-auto scrollbar-thin">
           {recipe.versions

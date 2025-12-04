@@ -39,8 +39,7 @@ export function RecipeListItem({
       className={cn(
         "flex items-stretch transition-all",
         isAnimatingOut && "animate-slideUp",
-        isJustMoved &&
-          "animate-fadeIn ring-2 ring-blue-400 dark:ring-blue-600 rounded-lg",
+        isJustMoved && "animate-fadeIn ring-2 ring-blue-400 rounded-lg",
       )}
     >
       <Button
@@ -48,9 +47,7 @@ export function RecipeListItem({
         size="3"
         className={cn(
           "flex-1 h-auto rounded-lg rounded-r-none px-4 py-2.5 text-left transition-shadow justify-start",
-          isSelected
-            ? "shadow-sm"
-            : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+          isSelected ? "shadow-sm" : "bg-neutral-50 hover:shadow-md",
           isAnimatingOut && "pointer-events-none opacity-50",
         )}
         onClick={() => onSelect(recipe.id)}
@@ -83,8 +80,8 @@ export function RecipeListItem({
           </div>
           <p
             className={cn(
-              "text-xs text-neutral-400 dark:text-neutral-500",
-              isSelected && "text-white dark:text-neutral-100 font-medium",
+              "text-xs text-neutral-400",
+              isSelected && "text-white font-medium",
             )}
           >
             Last updated {formatRelativeTime(recipe.updatedAt)}
@@ -98,7 +95,7 @@ export function RecipeListItem({
           color={recipe.pinnedAt ? "blue" : undefined}
           className={cn(
             "rounded-none rounded-tr-lg flex-1",
-            isSelected ? "" : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+            isSelected ? "" : "bg-neutral-50 hover:shadow-md",
           )}
           onClick={(e) => {
             e.stopPropagation();
@@ -116,7 +113,7 @@ export function RecipeListItem({
               size="3"
               className={cn(
                 "rounded-none rounded-br-lg flex-1",
-                isSelected ? "" : "bg-neutral-50 hover:shadow-md dark:bg-neutral-900/60",
+                isSelected ? "" : "bg-neutral-50 hover:shadow-md",
               )}
               aria-label="Recipe options"
               disabled={isAnimatingOut || isArchiveInProgress}

@@ -40,11 +40,11 @@ export function GroupHeader({
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-t-lg bg-neutral-50 px-4 py-3 dark:bg-neutral-900/60">
+    <div className="flex items-center gap-2 rounded-t-lg bg-neutral-50 px-4 py-3">
       {/* Drag Handle */}
       <button
         type="button"
-        className="cursor-grab text-neutral-400 transition hover:text-neutral-600 active:cursor-grabbing dark:hover:text-neutral-300"
+        className="cursor-grab text-neutral-400 transition hover:text-neutral-600 active:cursor-grabbing"
         aria-label="Drag to reorder group"
       >
         <DragHandleDots2Icon className="h-4 w-4" />
@@ -55,7 +55,7 @@ export function GroupHeader({
         type="button"
         onClick={onToggleCollapse}
         className={cn(
-          "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition-transform duration-200 hover:bg-neutral-100 dark:hover:bg-neutral-800",
+          "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition-transform duration-200 hover:bg-neutral-100",
           isCollapsed ? "" : "rotate-180",
         )}
         aria-label={isCollapsed ? "Expand group" : "Collapse group"}
@@ -80,13 +80,13 @@ export function GroupHeader({
                 setIsEditingName(false);
               }
             }}
-            className="w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm font-medium text-neutral-900 outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            className="w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm font-medium text-neutral-900 outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
           />
         ) : (
           <button
             type="button"
             onClick={() => setIsEditingName(true)}
-            className="text-sm font-medium text-neutral-900 hover:text-neutral-700 dark:text-white dark:hover:text-neutral-300"
+            className="text-sm font-medium text-neutral-900 hover:text-neutral-700"
           >
             {group.name} ({group.ingredients.length})
           </button>
@@ -101,8 +101,8 @@ export function GroupHeader({
           className={cn(
             "rounded-full px-3 py-1 text-xs font-medium transition",
             group.enableBakersPercent
-              ? "bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700",
+              ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200",
           )}
           aria-label={`Baker's percentage: ${group.enableBakersPercent ? "enabled" : "disabled"}`}
         >
@@ -115,7 +115,7 @@ export function GroupHeader({
         <button
           type="button"
           onClick={() => setShowMenu(!showMenu)}
-          className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
+          className="flex h-6 w-6 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
           aria-label="Group options"
         >
           <svg
@@ -138,14 +138,14 @@ export function GroupHeader({
             {/* Backdrop */}
             <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
             {/* Menu */}
-            <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border border-neutral-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-800">
+            <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border border-neutral-200 bg-white shadow-lg">
               <button
                 type="button"
                 onClick={() => {
                   setIsEditingName(true);
                   setShowMenu(false);
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
               >
                 Rename
               </button>
@@ -163,7 +163,7 @@ export function GroupHeader({
                     }
                     setShowMenu(false);
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
                 >
                   Delete
                 </button>

@@ -94,8 +94,8 @@ export function VersionComparisonModal({
 
   const getChangeColor = (percent: number | undefined): string => {
     if (percent === undefined) return "";
-    if (percent > 0) return "text-red-600 dark:text-red-400"; // Increased
-    if (percent < 0) return "text-blue-600 dark:text-blue-400"; // Decreased
+    if (percent > 0) return "text-red-600"; // Increased
+    if (percent < 0) return "text-blue-600"; // Decreased
     return "";
   };
 
@@ -125,26 +125,24 @@ export function VersionComparisonModal({
         <div className="mt-6">
           {!hasChanges ? (
             <div className="text-center py-12">
-              <p className="text-gray-600 dark:text-neutral-400">
+              <p className="text-gray-600">
                 No ingredient changes between these versions.
               </p>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Column headers for wide screens */}
-              <div className="hidden md:grid md:grid-cols-3 gap-4 pb-4 border-b border-gray-200 dark:border-neutral-700">
+              <div className="hidden md:grid md:grid-cols-3 gap-4 pb-4 border-b border-gray-200">
                 <div>
-                  <h3 className="font-semibold text-sm text-gray-700 dark:text-neutral-300">
-                    Ingredient
-                  </h3>
+                  <h3 className="font-semibold text-sm text-gray-700">Ingredient</h3>
                 </div>
                 <div className="text-center">
-                  <h3 className="font-semibold text-sm text-gray-700 dark:text-neutral-300">
+                  <h3 className="font-semibold text-sm text-gray-700">
                     {baseVersion.title}
                   </h3>
                 </div>
                 <div className="text-center">
-                  <h3 className="font-semibold text-sm text-gray-700 dark:text-neutral-300">
+                  <h3 className="font-semibold text-sm text-gray-700">
                     {comparisonVersion.title}
                   </h3>
                 </div>
@@ -157,30 +155,30 @@ export function VersionComparisonModal({
                     key={diff.ingredient.id}
                     className={`p-4 rounded-lg border ${
                       diff.isNew
-                        ? "border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-900/20"
+                        ? "border-green-200 bg-green-50"
                         : diff.isRemoved
-                          ? "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20"
-                          : "border-yellow-200 bg-yellow-50 dark:border-yellow-900/50 dark:bg-yellow-900/20"
+                          ? "border-red-200 bg-red-50"
+                          : "border-yellow-200 bg-yellow-50"
                     }`}
                   >
                     {/* Mobile view */}
                     <div className="md:hidden space-y-3">
                       <div className="flex items-start justify-between">
                         <div>
-                          <h4 className="font-medium text-gray-900 dark:text-neutral-50">
+                          <h4 className="font-medium text-gray-900">
                             {diff.ingredient.name}
                           </h4>
-                          <p className="text-xs text-gray-600 dark:text-neutral-400 mt-1">
+                          <p className="text-xs text-gray-600 mt-1">
                             Role: {diff.ingredient.role}
                           </p>
                         </div>
                         <span
                           className={`text-sm font-semibold px-2 py-1 rounded ${
                             diff.isNew
-                              ? "bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              ? "bg-green-200 text-green-800"
                               : diff.isRemoved
-                                ? "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : "bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                ? "bg-red-200 text-red-800"
+                                : "bg-yellow-200 text-yellow-800"
                           }`}
                         >
                           {diff.isNew ? "New" : diff.isRemoved ? "Removed" : "Changed"}
@@ -189,16 +187,16 @@ export function VersionComparisonModal({
 
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <p className="text-xs text-gray-600 dark:text-neutral-400 font-medium">
+                          <p className="text-xs text-gray-600 font-medium">
                             {baseVersion.title}
                           </p>
                           {diff.previousQuantity !== null ? (
                             <>
-                              <p className="font-mono text-gray-700 dark:text-neutral-300">
+                              <p className="font-mono text-gray-700">
                                 {diff.previousQuantity.toFixed(1)} {diff.previousUnit}
                               </p>
                               {flourTotal > 0 && (
-                                <p className="text-xs text-gray-500 dark:text-neutral-500">
+                                <p className="text-xs text-gray-500">
                                   {getBakersPercentage({
                                     ...diff.ingredient,
                                     quantity: diff.previousQuantity,
@@ -207,20 +205,18 @@ export function VersionComparisonModal({
                               )}
                             </>
                           ) : (
-                            <p className="text-gray-500 dark:text-neutral-400 italic">
-                              —
-                            </p>
+                            <p className="text-gray-500 italic">—</p>
                           )}
                         </div>
                         <div>
-                          <p className="text-xs text-gray-600 dark:text-neutral-400 font-medium">
+                          <p className="text-xs text-gray-600 font-medium">
                             {comparisonVersion.title}
                           </p>
-                          <p className="font-mono text-gray-700 dark:text-neutral-300">
+                          <p className="font-mono text-gray-700">
                             {diff.ingredient.quantity.toFixed(1)} {diff.ingredient.unit}
                           </p>
                           {flourTotal > 0 && (
-                            <p className="text-xs text-gray-500 dark:text-neutral-500">
+                            <p className="text-xs text-gray-500">
                               {getBakersPercentage(diff.ingredient)}
                             </p>
                           )}
@@ -244,10 +240,10 @@ export function VersionComparisonModal({
                     {/* Desktop view */}
                     <div className="hidden md:grid md:grid-cols-3 gap-4 items-center">
                       <div>
-                        <h4 className="font-medium text-gray-900 dark:text-neutral-50">
+                        <h4 className="font-medium text-gray-900">
                           {diff.ingredient.name}
                         </h4>
-                        <p className="text-xs text-gray-600 dark:text-neutral-400 mt-1">
+                        <p className="text-xs text-gray-600 mt-1">
                           {diff.ingredient.role}
                         </p>
                       </div>
@@ -255,11 +251,11 @@ export function VersionComparisonModal({
                       <div className="text-center">
                         {diff.previousQuantity !== null ? (
                           <>
-                            <p className="font-mono text-gray-700 dark:text-neutral-300">
+                            <p className="font-mono text-gray-700">
                               {diff.previousQuantity.toFixed(1)} {diff.previousUnit}
                             </p>
                             {flourTotal > 0 && (
-                              <p className="text-xs text-gray-500 dark:text-neutral-500">
+                              <p className="text-xs text-gray-500">
                                 {getBakersPercentage({
                                   ...diff.ingredient,
                                   quantity: diff.previousQuantity,
@@ -268,16 +264,16 @@ export function VersionComparisonModal({
                             )}
                           </>
                         ) : (
-                          <p className="text-gray-500 dark:text-neutral-400 italic">—</p>
+                          <p className="text-gray-500 italic">—</p>
                         )}
                       </div>
 
                       <div className="text-center">
-                        <p className="font-mono text-gray-700 dark:text-neutral-300">
+                        <p className="font-mono text-gray-700">
                           {diff.ingredient.quantity.toFixed(1)} {diff.ingredient.unit}
                         </p>
                         {flourTotal > 0 && (
-                          <p className="text-xs text-gray-500 dark:text-neutral-500">
+                          <p className="text-xs text-gray-500">
                             {getBakersPercentage(diff.ingredient)}
                           </p>
                         )}
@@ -299,10 +295,10 @@ export function VersionComparisonModal({
                       <span
                         className={`text-xs font-semibold px-2 py-1 rounded inline-block ${
                           diff.isNew
-                            ? "bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            ? "bg-green-200 text-green-800"
                             : diff.isRemoved
-                              ? "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-200"
-                              : "bg-yellow-200 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              ? "bg-red-200 text-red-800"
+                              : "bg-yellow-200 text-yellow-800"
                         }`}
                       >
                         {diff.isNew
@@ -317,34 +313,30 @@ export function VersionComparisonModal({
               </div>
 
               {/* Summary stats */}
-              <div className="mt-8 pt-6 border-t border-gray-200 dark:border-neutral-700">
-                <h3 className="font-semibold text-gray-900 dark:text-neutral-50 mb-3">
-                  Summary
-                </h3>
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <h3 className="font-semibold text-gray-900 mb-3">Summary</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-600 dark:text-neutral-400">Changed</p>
-                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    <p className="text-gray-600">Changed</p>
+                    <p className="text-2xl font-bold text-yellow-600">
                       {diffs.filter((d) => !d.isNew && !d.isRemoved).length}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600 dark:text-neutral-400">New</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    <p className="text-gray-600">New</p>
+                    <p className="text-2xl font-bold text-green-600">
                       {diffs.filter((d) => d.isNew).length}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600 dark:text-neutral-400">Removed</p>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    <p className="text-gray-600">Removed</p>
+                    <p className="text-2xl font-bold text-red-600">
                       {diffs.filter((d) => d.isRemoved).length}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600 dark:text-neutral-400">Total</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-neutral-50">
-                      {diffs.length}
-                    </p>
+                    <p className="text-gray-600">Total</p>
+                    <p className="text-2xl font-bold text-gray-900">{diffs.length}</p>
                   </div>
                 </div>
               </div>
@@ -353,7 +345,7 @@ export function VersionComparisonModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end mt-6 pt-4 border-t border-gray-200 dark:border-neutral-700">
+        <div className="flex justify-end mt-6 pt-4 border-t border-gray-200">
           <Dialog.Close>
             <Button variant="soft" size="2">
               Close

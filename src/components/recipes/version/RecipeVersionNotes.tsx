@@ -115,15 +115,13 @@ export function RecipeVersionNotes({
   };
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-      <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-        Version journal
-      </h3>
+    <section className="rounded-2xl border border-neutral-200 bg-white p-4">
+      <h3 className="text-sm font-semibold text-neutral-800">Version journal</h3>
       <div className="mt-3 grid gap-6">
         {/* Process Notes */}
         <div className="grid gap-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500">
               Process notes
             </label>
             <SaveIndicator isSaving={savingNotes["notes"] ?? false} />
@@ -134,24 +132,22 @@ export function RecipeVersionNotes({
             onBlur={(event) => onSave("notes", event.target.value)}
             rows={4}
             placeholder="Observations during mixing, fermentation, shaping, or baking."
-            className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
           />
-          <p className="text-xs text-neutral-400 dark:text-neutral-500">
+          <p className="text-xs text-neutral-400">
             Observations during mixing, fermentation, shaping, or baking.
           </p>
         </div>
 
         {/* Taste Review */}
         <div className="grid gap-3">
-          <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          <label className="text-xs font-medium uppercase tracking-wide text-neutral-500">
             Taste Review
           </label>
           {ratings.map(({ key, label, rating, note, noteField, ratingField }) => (
             <div key={key} className="grid gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                  {label}
-                </span>
+                <span className="text-sm text-neutral-700">{label}</span>
                 <div className="flex items-center gap-2">
                   {/* Star Rating */}
                   <div className="flex gap-0.5">
@@ -236,10 +232,8 @@ export function RecipeVersionNotes({
               {/* Show existing note */}
               {note && editingRatingNote !== key && (
                 <div className="ml-0 mt-1">
-                  <div className="flex items-start justify-between gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-800">
-                    <p className="text-sm text-neutral-700 dark:text-neutral-300 flex-1">
-                      {note}
-                    </p>
+                  <div className="flex items-start justify-between gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
+                    <p className="text-sm text-neutral-700 flex-1">{note}</p>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -269,7 +263,7 @@ export function RecipeVersionNotes({
                     onChange={(event) => setRatingNoteDraft(event.target.value)}
                     rows={2}
                     placeholder={`Notes on ${label.toLowerCase()}`}
-                    className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+                    className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                     autoFocus
                   />
                   <div className="flex gap-2">
@@ -293,7 +287,7 @@ export function RecipeVersionNotes({
         {/* Next Iteration Plan */}
         <div className="grid gap-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            <label className="text-xs font-medium uppercase tracking-wide text-neutral-500">
               Next iteration plan
             </label>
             <SaveIndicator isSaving={savingNotes["nextSteps"] ?? false} />
@@ -306,9 +300,9 @@ export function RecipeVersionNotes({
             onBlur={(event) => onSave("nextSteps", event.target.value)}
             rows={4}
             placeholder="Call out the next tweaks to try, schedules to adjust, or ingredients to swap."
-            className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
           />
-          <p className="text-xs text-neutral-400 dark:text-neutral-500">
+          <p className="text-xs text-neutral-400">
             Call out the next tweaks to try, schedules to adjust, or ingredients to swap.
           </p>
         </div>

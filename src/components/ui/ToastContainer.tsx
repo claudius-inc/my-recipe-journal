@@ -16,10 +16,10 @@ export function ToastContainer() {
             shadow-lg transition-all animate-in slide-in-from-bottom-4
             ${
               toast.type === "success"
-                ? "bg-green-500 text-white dark:bg-green-600"
+                ? "bg-green-500 text-white"
                 : toast.type === "error"
-                  ? "bg-red-500 text-white dark:bg-red-600"
-                  : "bg-blue-500 text-white dark:bg-blue-600"
+                  ? "bg-red-500 text-white"
+                  : "bg-blue-500 text-white"
             }
           `}
           role="alert"

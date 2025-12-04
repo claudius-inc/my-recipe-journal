@@ -203,13 +203,11 @@ export function RecipeAIAssistant({
   return (
     <div
       ref={panelRef}
-      className="fixed inset-x-0 bottom-0 z-50 flex h-[90vh] flex-col rounded-t-lg border-t border-neutral-200 bg-white shadow-2xl transition-all duration-300 supports-[height:90dvh]:h-[90dvh] dark:border-neutral-700 dark:bg-neutral-900 sm:inset-x-auto sm:right-6 sm:w-[480px] sm:rounded-lg sm:border"
+      className="fixed inset-x-0 bottom-0 z-50 flex h-[90vh] flex-col rounded-t-lg border-t border-neutral-200 bg-white shadow-2xl transition-all duration-300 supports-[height:90dvh]:h-[90dvh] sm:inset-x-auto sm:right-6 sm:w-[480px] sm:rounded-lg sm:border"
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3 dark:border-neutral-700">
-        <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-          Recipe Helper
-        </h3>
+      <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3">
+        <h3 className="text-sm font-semibold text-neutral-900">Recipe Helper</h3>
         <Tooltip content="Close">
           <IconButton
             type="button"
@@ -229,10 +227,8 @@ export function RecipeAIAssistant({
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
             <div className="text-4xl">✨</div>
             <div>
-              <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                How can I help?
-              </h4>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <h4 className="text-sm font-semibold text-neutral-900">How can I help?</h4>
+              <p className="mt-1 text-xs text-neutral-500">
                 Ask me about ingredients, techniques, or improvements
               </p>
             </div>
@@ -299,7 +295,7 @@ export function RecipeAIAssistant({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-neutral-200 px-5 py-4 dark:border-neutral-700">
+      <div className="border-t border-neutral-200 px-5 py-4">
         <div className="flex items-end gap-2">
           <TextArea
             ref={inputRef}
@@ -309,7 +305,7 @@ export function RecipeAIAssistant({
             placeholder="Ask about ingredients, techniques..."
             disabled={isGenerating}
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            className="flex-1 resize-none rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
             style={{
               maxHeight: "100px",
               height: "auto",
@@ -326,12 +322,12 @@ export function RecipeAIAssistant({
             disabled={!inputValue.trim() || isGenerating}
             variant="solid"
             size="2"
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 dark:from-purple-500 dark:to-blue-500 dark:hover:from-purple-600 dark:hover:to-blue-600"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
           >
             {isGenerating ? "..." : "Send"}
           </Button>
         </div>
-        <p className="mt-2 text-[10px] text-neutral-400 dark:text-neutral-500">
+        <p className="mt-2 text-[10px] text-neutral-400">
           Press Enter to send, Shift+Enter for new line
         </p>
       </div>

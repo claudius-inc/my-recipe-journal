@@ -57,7 +57,7 @@ export function SpeedDialFAB({
         onArchive();
         setIsOpen(false);
       },
-      color: isArchived ? "text-orange-600 dark:text-orange-400" : "",
+      color: isArchived ? "text-orange-600" : "",
       ariaLabel: isArchived ? "Unarchive recipe" : "Archive recipe",
     },
   ];
@@ -119,7 +119,7 @@ export function SpeedDialFAB({
                 }}
               >
                 {/* Label */}
-                <span className="whitespace-nowrap rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg dark:bg-neutral-100 dark:text-neutral-900">
+                <span className="whitespace-nowrap rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white shadow-lg">
                   {action.label}
                 </span>
 
@@ -131,7 +131,7 @@ export function SpeedDialFAB({
                     variant="solid"
                     size="3"
                     radius="full"
-                    className={`group flex h-12 w-12 items-center justify-center border border-neutral-700 bg-neutral-800 text-white shadow-lg transition-all hover:scale-110 hover:bg-neutral-900 hover:shadow-xl active:scale-95 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100 ${
+                    className={`group flex h-12 w-12 items-center justify-center border border-neutral-700 bg-neutral-800 text-white shadow-lg transition-all hover:scale-110 hover:bg-neutral-900 hover:shadow-xl active:scale-95 ${
                       action.color || ""
                     }`}
                     aria-label={action.ariaLabel}
@@ -152,7 +152,7 @@ export function SpeedDialFAB({
             variant="solid"
             size="4"
             radius="full"
-            className={`group flex h-14 w-14 items-center justify-center border border-neutral-700 bg-neutral-800 text-white shadow-lg transition-all hover:scale-105 hover:bg-neutral-900 hover:shadow-xl active:scale-95 dark:border-neutral-300 dark:bg-neutral-200 dark:text-neutral-900 dark:hover:bg-neutral-100 ${
+            className={`group flex h-14 w-14 items-center justify-center border border-neutral-700 bg-neutral-800 text-white shadow-lg transition-all hover:scale-105 hover:bg-neutral-900 hover:shadow-xl active:scale-95 ${
               isOpen ? "rotate-45" : "rotate-0"
             }`}
             aria-label={isOpen ? "Close quick actions menu" : "Open quick actions menu"}

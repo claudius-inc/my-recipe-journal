@@ -37,16 +37,11 @@ export function CollapsibleSection({
   };
 
   return (
-    <section
-      className={cn(
-        "rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900",
-        className,
-      )}
-    >
+    <section className={cn("rounded-2xl border border-neutral-200 bg-white", className)}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between p-4 text-left transition hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+        className="flex w-full items-center justify-between p-4 text-left transition hover:bg-neutral-50"
       >
         <div className="flex items-center gap-3">
           <ChevronRightIcon
@@ -56,35 +51,24 @@ export function CollapsibleSection({
             )}
           />
           <div>
-            <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-              {title}
-            </h3>
-            {subtitle && (
-              <p className="text-xs text-neutral-500 dark:text-neutral-400">{subtitle}</p>
-            )}
+            <h3 className="text-sm font-semibold text-neutral-800">{title}</h3>
+            {subtitle && <p className="text-xs text-neutral-500">{subtitle}</p>}
           </div>
         </div>
         {badge && (
           <span
             className={cn(
               "rounded-full px-2 py-1 text-xs font-medium",
-              badge === "complete" &&
-                "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-              badge === "partial" &&
-                "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-              badge === "empty" &&
-                "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400",
+              badge === "complete" && "bg-green-100 text-green-700",
+              badge === "partial" && "bg-amber-100 text-amber-700",
+              badge === "empty" && "bg-neutral-100 text-neutral-500",
             )}
           >
             {getBadgeIcon()}
           </span>
         )}
       </button>
-      {isOpen && (
-        <div className="border-t border-neutral-200 p-4 dark:border-neutral-700">
-          {children}
-        </div>
-      )}
+      {isOpen && <div className="border-t border-neutral-200 p-4">{children}</div>}
     </section>
   );
 }

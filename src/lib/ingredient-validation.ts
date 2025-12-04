@@ -121,11 +121,11 @@ export function validateIngredients(
 export function getValidationColor(severity: ValidationWarning["severity"]): string {
   switch (severity) {
     case "error":
-      return "text-red-600 dark:text-red-400";
+      return "text-red-600";
     case "warning":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-amber-600";
     case "info":
-      return "text-blue-600 dark:text-blue-400";
+      return "text-blue-600";
   }
 }
 

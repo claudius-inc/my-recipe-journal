@@ -35,7 +35,7 @@ export function RecipeHeader({
   savingCategory,
 }: RecipeHeaderProps) {
   return (
-    <section className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+    <section className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5">
       <div className="flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
@@ -51,7 +51,7 @@ export function RecipeHeader({
         </div>
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
               Description
             </span>
             <SaveIndicator isSaving={savingDescription} />
@@ -62,13 +62,13 @@ export function RecipeHeader({
             onBlur={() => onBlur("description")}
             placeholder="Describe this recipe iteration."
             rows={3}
-            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50 dark:focus:border-neutral-500 dark:focus:ring-neutral-700"
+            className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
           />
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              <label className="text-xs font-medium uppercase tracking-wide text-neutral-500">
                 Category
               </label>
               <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export function RecipeHeader({
               </div>
             </div>
           </div>
-          <span className="text-xs text-neutral-400 dark:text-neutral-500">
+          <span className="text-xs text-neutral-400">
             Last updated {formatDateTime(recipe.updatedAt)}
           </span>
         </div>
