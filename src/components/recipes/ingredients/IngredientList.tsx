@@ -43,8 +43,6 @@ interface IngredientListProps {
   checkedIngredients?: Set<string>;
   onToggleIngredientCheck?: (id: string) => void;
   onToggleAllIngredients?: () => void;
-  pendingIngredients?: PendingIngredient[];
-  onPendingIngredientsChange?: (ingredients: PendingIngredient[]) => void;
   // Scaling props
   isScalingOpen?: boolean;
   onToggleScaling?: () => void;
@@ -71,8 +69,6 @@ export function IngredientList({
   checkedIngredients = new Set(),
   onToggleIngredientCheck,
   onToggleAllIngredients,
-  pendingIngredients = [],
-  onPendingIngredientsChange,
   isScalingOpen = false,
   onToggleScaling,
   selectedScalingIngredient = "",
@@ -98,13 +94,6 @@ export function IngredientList({
     },
     [onToggleIngredientCheck],
   );
-
-  // Sync local pending ingredients with prop if provided
-  useEffect(() => {
-    if (onPendingIngredientsChange) {
-      onPendingIngredientsChange(localPendingIngredients);
-    }
-  }, [localPendingIngredients, onPendingIngredientsChange]);
 
   // Clear pending ingredients when real ingredients update (optimistic UI success)
   useEffect(() => {

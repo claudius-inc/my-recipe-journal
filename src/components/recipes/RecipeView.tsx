@@ -113,16 +113,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [savingIngredient, setSavingIngredient] = useState<Record<string, boolean>>({});
   // Baking checklist (ephemeral, not persisted)
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
-  // Pending ingredients for optimistic UI
-  const [pendingIngredients, setPendingIngredients] = useState<
-    Array<{
-      tempId: string;
-      name: string;
-      quantity: number;
-      unit: string;
-      role: Ingredient["role"];
-    }>
-  >([]);
   // Star rating states
   const [savingRating, setSavingRating] = useState<string | null>(null);
   const [hoverRating, setHoverRating] = useState<{
@@ -712,8 +702,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           checkedIngredients={checkedIngredients}
           onToggleIngredientCheck={handleToggleIngredientCheck}
           onToggleAllIngredients={handleToggleAllIngredients}
-          pendingIngredients={pendingIngredients}
-          onPendingIngredientsChange={setPendingIngredients}
           isScalingOpen={isScalingOpen}
           onToggleScaling={() => setIsScalingOpen(!isScalingOpen)}
           selectedScalingIngredient={selectedScalingIngredient}

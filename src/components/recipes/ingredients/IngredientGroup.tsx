@@ -49,8 +49,6 @@ interface IngredientGroupProps {
   checkedIngredients?: Set<string>;
   onToggleIngredientCheck?: (id: string) => void;
   onToggleAllIngredients?: () => void;
-  pendingIngredients?: PendingIngredient[];
-  onPendingIngredientsChange?: (ingredients: PendingIngredient[]) => void;
 }
 
 export function IngredientGroup({
@@ -71,8 +69,6 @@ export function IngredientGroup({
   checkedIngredients = new Set(),
   onToggleIngredientCheck,
   onToggleAllIngredients,
-  pendingIngredients = [],
-  onPendingIngredientsChange,
 }: IngredientGroupProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [localPendingIngredients, setLocalPendingIngredients] = useState<
@@ -97,13 +93,6 @@ export function IngredientGroup({
     },
     [onToggleIngredientCheck],
   );
-
-  // Sync local pending ingredients with prop if provided
-  useEffect(() => {
-    if (onPendingIngredientsChange) {
-      onPendingIngredientsChange(localPendingIngredients);
-    }
-  }, [localPendingIngredients, onPendingIngredientsChange]);
 
   // Clear pending ingredients when real ingredients update
   useEffect(() => {

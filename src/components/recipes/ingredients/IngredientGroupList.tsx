@@ -50,8 +50,6 @@ interface IngredientGroupListProps {
   checkedIngredients?: Set<string>;
   onToggleIngredientCheck?: (id: string) => void;
   onToggleAllIngredients?: () => void;
-  pendingIngredients?: PendingIngredient[];
-  onPendingIngredientsChange?: (ingredients: PendingIngredient[]) => void;
   // Scaling props (for future integration)
   isScalingOpen?: boolean;
   onToggleScaling?: () => void;
@@ -79,8 +77,6 @@ export function IngredientGroupList({
   checkedIngredients = new Set(),
   onToggleIngredientCheck,
   onToggleAllIngredients,
-  pendingIngredients = [],
-  onPendingIngredientsChange,
 }: IngredientGroupListProps) {
   // Get ingredient groups (auto-migrates if needed)
   const groups = getIngredientGroups(version, recipeCategory);
@@ -184,8 +180,6 @@ export function IngredientGroupList({
             checkedIngredients={checkedIngredients}
             onToggleIngredientCheck={onToggleIngredientCheck}
             onToggleAllIngredients={() => handleToggleAllInGroup(group)}
-            pendingIngredients={pendingIngredients}
-            onPendingIngredientsChange={onPendingIngredientsChange}
           />
         ))}
       </div>
