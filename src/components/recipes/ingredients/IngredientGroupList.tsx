@@ -9,6 +9,7 @@ import type {
   RecipeVersion,
 } from "@/types/recipes";
 import { IngredientGroup } from "./IngredientGroup";
+import { ScalingControls } from "./ScalingControls";
 import { getIngredientGroups } from "@/lib/migration-utils";
 import { suggestGroupNames } from "@/lib/migration-utils";
 
@@ -77,6 +78,15 @@ export function IngredientGroupList({
   checkedIngredients = new Set(),
   onToggleIngredientCheck,
   onToggleAllIngredients,
+  // Scaling props
+  isScalingOpen = false,
+  onToggleScaling,
+  selectedScalingIngredient = "",
+  onSelectScalingIngredient,
+  targetQuantity = "",
+  onTargetQuantityChange,
+  onPreviewScaling,
+  isPreviewingScaling = false,
 }: IngredientGroupListProps) {
   // Get ingredient groups (auto-migrates if needed)
   const groups = getIngredientGroups(version, recipeCategory);
@@ -183,6 +193,24 @@ export function IngredientGroupList({
           />
         ))}
       </div>
+
+      {/* Scaling Controls */}
+      {onToggleScaling &&
+        onSelectScalingIngredient &&
+        onTargetQuantityChange &&
+        onPreviewScaling && (
+          <ScalingControls
+            isOpen={isScalingOpen}
+            onToggle={onToggleScaling}
+            ingredients={version.ingredients}
+            selectedIngredientId={selectedScalingIngredient}
+            onSelectIngredient={onSelectScalingIngredient}
+            targetQuantity={targetQuantity}
+            onTargetQuantityChange={onTargetQuantityChange}
+            onPreview={onPreviewScaling}
+            isPreviewing={isPreviewingScaling}
+          />
+        )}
 
       {/* Add Group Modal */}
       {isAddingGroup && (
