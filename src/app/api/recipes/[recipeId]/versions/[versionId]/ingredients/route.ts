@@ -32,6 +32,7 @@ export async function POST(
     role?: IngredientRole;
     notes?: string | null;
     sortOrder?: number;
+    groupId?: string;
   };
 
   if (!payload.name?.trim()) {
@@ -56,6 +57,7 @@ export async function POST(
   const updatedRecipe = await addIngredientToVersion({
     recipeId,
     versionId,
+    groupId: payload.groupId,
     ingredient: {
       name: payload.name.trim(),
       quantity: payload.quantity,
