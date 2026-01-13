@@ -4,7 +4,7 @@ This document provides essential context for AI agents working on this codebase.
 
 ## Project Overview
 
-Mobile-first recipe journaling app for bakers and beverage creatives. Built with Next.js App Router, Prisma ORM, React Query, and Radix UI. Features photo-to-recipe extraction via Gemini Vision AI, version tracking, ingredient intelligence with autocomplete, and baker's percentage calculations.
+**Whisker** — A recipe journaling app for bakers and beverage creatives. Built with Next.js App Router, Prisma ORM, React Query, and Radix UI. Features photo-to-recipe extraction via Gemini Vision AI, version tracking, ingredient intelligence with autocomplete, and baker's percentage calculations.
 
 ## Core Technologies
 

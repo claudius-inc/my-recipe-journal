@@ -1,7 +1,7 @@
 {
-  "name": "My Recipe Journal",
-  "short_name": "Recipes",
-  "description": "Mobile-first journal for iterating on bread, drinks, and experimental recipes.",
+  "name": "Whisker",
+  "short_name": "Whisker",
+  "description": "A recipe journaling app for bakers and beverage creatives.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

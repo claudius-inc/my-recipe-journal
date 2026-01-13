@@ -57,9 +57,23 @@ export function Header({ onMenuClick }: HeaderProps) {
         )}
 
         {/* Logo/Title */}
-        <Heading size="4" style={{ margin: 0, fontWeight: 600 }}>
-          My Recipe Journal
-        </Heading>
+        <div className="flex items-center gap-2">
+          <img
+            src="/icon-192.png"
+            alt="Whisker logo"
+            width={36}
+            height={36}
+            className="rounded-lg"
+          />
+          <div className="flex flex-col">
+            <Heading size="4" style={{ margin: 0, fontWeight: 600, lineHeight: 1.2 }}>
+              Whisker
+            </Heading>
+            <span className="text-xs text-gray-500" style={{ lineHeight: 1.2 }}>
+              a recipe journaling app
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Auth Button */}
