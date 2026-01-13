@@ -55,7 +55,7 @@ export default function LoginPage() {
           }}
         >
           {!isEmailSent && (
-            <Heading size="5" style={{ marginBottom: "1rem", textAlign: "center" }}>
+            <Heading size="5" style={{ marginBottom: "1rem" }}>
               Log in to your account
             </Heading>
           )}
@@ -95,6 +95,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="h-12 p-3"
                 />
               </Box>
 
