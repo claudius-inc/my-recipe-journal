@@ -4,8 +4,8 @@
   "description": "Mobile-first journal for iterating on bread, drinks, and experimental recipes.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#111113",
-  "theme_color": "#111113",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "portrait-primary",
   "icons": [
     {
