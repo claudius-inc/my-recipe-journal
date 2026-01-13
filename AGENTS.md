@@ -14,6 +14,7 @@ Mobile-first recipe journaling app for bakers and beverage creatives. Built with
 - **State Management:** React Query + custom RecipeStore context
 - **AI Integration:** Google Gemini Vision API for photo extraction
 - **Auth:** Better Auth with magic links (Resend)
+- **PWA:** next-pwa for installable app experience and offline caching
 
 ## Project Structure
 

@@ -12,6 +12,19 @@ export const metadata: Metadata = {
   title: "My Recipe Journal",
   description:
     "Mobile-first journal for iterating on bread, drinks, and experimental recipes.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Recipes",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport: Viewport = {
@@ -19,6 +32,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   interactiveWidget: "resizes-content",
+  themeColor: "#111113",
 };
 
 export default function RootLayout({
