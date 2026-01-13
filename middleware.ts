@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
     cookie.has("__Secure-better-auth.session_token");
 
   // If accessing protected route without auth, redirect to login
-  if (!hasAuth && pathname === "/") {
+  if (!hasAuth) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
