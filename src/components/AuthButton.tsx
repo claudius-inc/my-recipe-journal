@@ -1,17 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Button, Box, Text, Spinner, DropdownMenu } from "@radix-ui/themes";
 import { LockOpen1Icon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
 
 export function AuthButton() {
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending, error } = useSession();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  // Add a safety timeout to prevent infinite loading state
+  const [isLongLoading, setIsLongLoading] = useState(false);
 
-  if (isPending) {
+  // If isPending is true, we generally show loading.
+  // However, if it hangs (e.g. network issue), we should eventually default to "Sign In"
+  // to allow the user to try again.
+  const showLoading = isPending && !error && !isLongLoading;
+
+  // Force loading to stop after 1.5 seconds if it's still pending
+  // This prevents the spinner from getting stuck if the auth check hangs
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (isPending) {
+      timer = setTimeout(() => setIsLongLoading(true), 1500);
+    } else {
+      setIsLongLoading(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isPending]);
+
+  if (showLoading) {
     return (
       <Box style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <Spinner size="2" />
