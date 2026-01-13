@@ -16,9 +16,11 @@ export const auth = betterAuth({
     ? [`https://${process.env.VERCEL_URL}`]
     : undefined,
   session: {
+    expiresIn: 60 * 60 * 24 * 365, // 1 year session
+    updateAge: 60 * 60 * 24, // Update expiry every 24 hours (sliding session)
     cookieCache: {
       enabled: true,
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 30, // 30 day cookie cache
     },
   },
   emailAndPassword: {
