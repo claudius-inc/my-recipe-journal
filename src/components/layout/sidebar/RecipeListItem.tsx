@@ -76,8 +76,8 @@ export function RecipeListItem({
                     sizes="48px"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100">
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-50 via-amber-100 to-yellow-100">
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 via-primary-50 to-primary-100 opacity-70">
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-50 via-primary-100 to-primary-100">
                       <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                         {/* Cookie edge - bumpy circle */}
                         {Array.from({ length: 16 }).map((_, i) => {
