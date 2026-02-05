@@ -40,54 +40,23 @@ export function usePhotoUpload({ recipeId, versionId }: UsePhotoUploadOptions) {
         let photoUrl: string;
         let r2Key: string | undefined;
 
-        // Try R2 presigned URL upload first
-        const presignedResponse = await fetch("/api/photos/presigned-url", {
+        // Try server-side R2 upload first
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("recipeId", recipeId);
+        formData.append("versionId", versionId);
+
+        const uploadResponse = await fetch("/api/photos/upload", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipeId,
-            versionId,
-            contentType: file.type,
-            fileSize: file.size,
-          }),
+          body: formData,
         });
 
-        if (presignedResponse.ok) {
-          // R2 is configured - use presigned URL upload
-          const presignedData = await presignedResponse.json();
-          const { presignedUrl, publicUrl, r2Key: uploadR2Key } = presignedData;
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          setPhotoUploadProgress(100);
 
-          // Upload directly to R2 with progress tracking
-          const xhr = new XMLHttpRequest();
-
-          await new Promise<void>((resolve, reject) => {
-            xhr.upload.addEventListener("progress", (event) => {
-              if (event.lengthComputable) {
-                const progress = Math.round((event.loaded / event.total) * 100);
-                setPhotoUploadProgress(progress);
-              }
-            });
-
-            xhr.addEventListener("load", () => {
-              if (xhr.status === 200) {
-                resolve();
-              } else {
-                reject(new Error(`Upload failed with status ${xhr.status}`));
-              }
-            });
-
-            xhr.addEventListener("error", () =>
-              reject(new Error("Network error during upload")),
-            );
-            xhr.addEventListener("abort", () => reject(new Error("Upload aborted")));
-
-            xhr.open("PUT", presignedUrl);
-            xhr.setRequestHeader("Content-Type", file.type);
-            xhr.send(file);
-          });
-
-          photoUrl = publicUrl;
-          r2Key = uploadR2Key;
+          photoUrl = uploadData.publicUrl;
+          r2Key = uploadData.r2Key;
         } else {
           // R2 not configured - fallback to Base64
           const reader = new FileReader();
