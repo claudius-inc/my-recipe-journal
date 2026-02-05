@@ -98,6 +98,7 @@ export function IngredientGroupList({
   const [isAddingGroup, setIsAddingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupBakersPercent, setNewGroupBakersPercent] = useState(false);
+  const [isSavingGroup, setIsSavingGroup] = useState(false);
 
   const handleToggleCollapse = useCallback((groupId: string) => {
     setCollapsedGroups((prev) => {
@@ -113,11 +114,15 @@ export function IngredientGroupList({
 
   const handleAddGroup = async () => {
     if (!newGroupName.trim()) return;
-
-    await onAddGroup(newGroupName.trim(), newGroupBakersPercent);
-    setIsAddingGroup(false);
-    setNewGroupName("");
-    setNewGroupBakersPercent(false);
+    setIsSavingGroup(true);
+    try {
+      await onAddGroup(newGroupName.trim(), newGroupBakersPercent);
+      setIsAddingGroup(false);
+      setNewGroupName("");
+      setNewGroupBakersPercent(false);
+    } finally {
+      setIsSavingGroup(false);
+    }
   };
 
   const handleToggleAllInGroup = useCallback(
@@ -158,7 +163,8 @@ export function IngredientGroupList({
         <button
           type="button"
           onClick={() => setIsAddingGroup(true)}
-          className="text-xs text-blue-600 hover:underline"
+          disabled={isSavingGroup}
+          className="text-xs text-blue-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
         >
           + Add Group
         </button>
@@ -231,12 +237,13 @@ export function IngredientGroupList({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleAddGroup();
-                  } else if (e.key === "Escape") {
+                  } else if (e.key === "Escape" && !isSavingGroup) {
                     setIsAddingGroup(false);
                   }
                 }}
+                disabled={isSavingGroup}
                 placeholder="e.g., Pre-ferment, Main Dough, Topping"
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
               />
             </div>
 
@@ -247,7 +254,8 @@ export function IngredientGroupList({
                   key={suggestion}
                   type="button"
                   onClick={() => setNewGroupName(suggestion)}
-                  className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-700 transition hover:bg-neutral-200"
+                  disabled={isSavingGroup}
+                  className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-700 transition hover:bg-neutral-200 disabled:opacity-50"
                 >
                   {suggestion}
                 </button>
@@ -282,17 +290,39 @@ export function IngredientGroupList({
                   setNewGroupName("");
                   setNewGroupBakersPercent(false);
                 }}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+                disabled={isSavingGroup}
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleAddGroup}
-                disabled={!newGroupName.trim()}
+                disabled={isSavingGroup || !newGroupName.trim()}
                 className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Add Group
+                {isSavingGroup ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Adding...
+                  </span>
+                ) : (
+                  "Add Group"
+                )}
               </button>
             </div>
           </div>
