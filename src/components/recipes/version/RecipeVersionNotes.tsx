@@ -24,7 +24,7 @@ export interface VersionNotesProps {
   onChange: (value: VersionNotesProps["notesDraft"]) => void;
   onSave: (field: keyof VersionNotesProps["notesDraft"], value: string) => Promise<void>;
   savingNotes?: Record<string, boolean>;
-  savingRating: string | null;
+  savingRating: Set<string>;
   hoverRating: {
     field: string | null;
     value: number | null;
@@ -152,7 +152,7 @@ export function RecipeVersionNotes({
                   {/* Star Rating */}
                   <div className="flex gap-0.5">
                     {Array.from({ length: 5 }).map((_, i) => {
-                      const isLoading = savingRating === ratingField;
+                      const isLoading = savingRating.has(ratingField);
                       const pendingValue = pendingRatings[ratingField];
                       const displayRating =
                         hoverRating.field === ratingField && hoverRating.value !== null
@@ -212,7 +212,7 @@ export function RecipeVersionNotes({
                       size="1"
                       className={cn(
                         "transition-opacity duration-200",
-                        savingRating === ratingField ? "opacity-100" : "opacity-0",
+                        savingRating.has(ratingField) ? "opacity-100" : "opacity-0",
                       )}
                     />
                   </div>

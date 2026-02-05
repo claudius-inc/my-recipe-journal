@@ -95,16 +95,16 @@ export function usePhotoUpload({ recipeId, versionId }: UsePhotoUploadOptions) {
         }
 
         setPhotoUploadProgress(0);
+        setIsUploading(false);
         addToast("Photo added successfully", "success");
 
-        // Refresh recipe data to get updated photos
-        await refresh();
+        // Refresh recipe data to get updated photos (non-blocking)
+        refresh();
       } catch (error) {
         setPhotoUploadError(
           error instanceof Error ? error.message : "Failed to upload photo",
         );
         addToast("Failed to upload photo", "error");
-      } finally {
         setIsUploading(false);
       }
     },

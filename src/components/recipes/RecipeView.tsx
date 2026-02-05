@@ -114,7 +114,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   // Baking checklist (ephemeral, not persisted)
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
   // Star rating states
-  const [savingRating, setSavingRating] = useState<string | null>(null);
+  const [savingRatings, setSavingRatings] = useState<Set<string>>(new Set());
   const [hoverRating, setHoverRating] = useState<{
     field: string | null;
     value: number | null;
@@ -159,6 +159,33 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       setStepsDraft((selectedVersion.steps as RecipeStep[]) || []);
     }
   }, [selectedVersion]);
+
+  // Clear pending ratings only when server data confirms the saved value
+  const serverTaste = selectedVersion?.tasteRating;
+  const serverVisual = selectedVersion?.visualRating;
+  const serverTexture = selectedVersion?.textureRating;
+  useEffect(() => {
+    setPendingRatings((prev) => {
+      const updated = { ...prev };
+      let changed = false;
+      if (updated.tasteRating !== undefined && serverTaste === updated.tasteRating) {
+        delete updated.tasteRating;
+        changed = true;
+      }
+      if (updated.visualRating !== undefined && serverVisual === updated.visualRating) {
+        delete updated.visualRating;
+        changed = true;
+      }
+      if (
+        updated.textureRating !== undefined &&
+        serverTexture === updated.textureRating
+      ) {
+        delete updated.textureRating;
+        changed = true;
+      }
+      return changed ? updated : prev;
+    });
+  }, [serverTaste, serverVisual, serverTexture]);
 
   useEffect(() => {
     if (!selectedRecipe) {
@@ -359,19 +386,23 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       }
       // Set pending value for optimistic UI update
       setPendingRatings((prev) => ({ ...prev, [field]: value }));
-      setSavingRating(field);
+      setSavingRatings((prev) => new Set(prev).add(field));
       try {
         await updateVersion(selectedRecipe.id, selectedVersion.id, { [field]: value });
       } catch (error) {
         console.error("Failed to save rating:", error);
         addToast("Failed to save rating", "error");
-      } finally {
-        setSavingRating(null);
-        // Clear pending value after save completes
+        // Revert optimistic value on error
         setPendingRatings((prev) => {
           const updated = { ...prev };
           delete updated[field];
           return updated;
+        });
+      } finally {
+        setSavingRatings((prev) => {
+          const next = new Set(prev);
+          next.delete(field);
+          return next;
         });
       }
     },
@@ -751,7 +782,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           visualRating={selectedVersion.visualRating}
           textureRating={selectedVersion.textureRating}
           onRatingChange={handleRatingChange}
-          savingRating={savingRating}
+          savingRating={savingRatings}
           hoverRating={hoverRating}
           setHoverRating={setHoverRating}
           pendingRatings={pendingRatings}
