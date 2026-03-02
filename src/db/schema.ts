@@ -171,7 +171,7 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 
 export const recipesRelations = relations(recipes, ({ one, many }) => ({
   user: one(users, { fields: [recipes.userId], references: [users.id] }),
-  versions: many(recipeVersions),
+  versions: many(recipeVersions, { relationName: "recipeVersions" }),
   activeVersion: one(recipeVersions, { 
     fields: [recipes.activeVersionId], 
     references: [recipeVersions.id],
@@ -180,7 +180,11 @@ export const recipesRelations = relations(recipes, ({ one, many }) => ({
 }));
 
 export const recipeVersionsRelations = relations(recipeVersions, ({ one, many }) => ({
-  recipe: one(recipes, { fields: [recipeVersions.recipeId], references: [recipes.id] }),
+  recipe: one(recipes, { 
+    fields: [recipeVersions.recipeId], 
+    references: [recipes.id],
+    relationName: "recipeVersions"
+  }),
   recipeActive: one(recipes, { 
     fields: [recipeVersions.id], 
     references: [recipes.activeVersionId],
