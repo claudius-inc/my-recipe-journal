@@ -1,25 +1,126 @@
-import { prisma } from "@/lib/prisma";
-import {
-  Prisma,
-  PrimaryCategory,
-  SecondaryCategory,
-  RecipeCategory as PrismaRecipeCategory,
-} from "@prisma/client";
-import {
-  recipeWithRelations,
-  toRecipe,
-  toRecipes,
-  type RecipeWithRelations,
-} from "@/lib/recipeTransformer";
-import type {
-  IngredientRole,
-  Recipe,
-  RecipeCategory,
-  RecipeVersion,
-} from "@/types/recipes";
+import { eq, desc, and, gt, sql, asc } from "drizzle-orm";
+import { db, recipes, recipeVersions, ingredients, ingredientGroups, versionPhotos } from "@/db";
+import type { 
+  RecipeCategory as RecipeCategoryType, 
+  PrimaryCategory as PrimaryCategoryType, 
+  SecondaryCategory as SecondaryCategoryType,
+  IngredientRole 
+} from "@/db/schema";
+import type { Recipe, RecipeVersion, RecipeCategory } from "@/types/recipes";
+
+// ID generator
+const createId = () => crypto.randomUUID();
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
+
+// ============ TRANSFORMERS ============
+
+type DbRecipe = typeof recipes.$inferSelect;
+type DbVersion = typeof recipeVersions.$inferSelect;
+type DbIngredient = typeof ingredients.$inferSelect;
+type DbIngredientGroup = typeof ingredientGroups.$inferSelect;
+type DbVersionPhoto = typeof versionPhotos.$inferSelect;
+
+interface RecipeWithRelations extends DbRecipe {
+  versions: Array<DbVersion & {
+    ingredients: DbIngredient[];
+    ingredientGroups: Array<DbIngredientGroup & { ingredients: DbIngredient[] }>;
+    photos: DbVersionPhoto[];
+  }>;
+}
+
+function toISOString(date: Date | null): string | null {
+  return date ? date.toISOString() : null;
+}
+
+function toRecipe(record: RecipeWithRelations): Recipe {
+  const category: RecipeCategory = {
+    primary: record.primaryCategory || "other",
+    secondary: record.secondaryCategory || "other",
+  };
+
+  return {
+    id: record.id,
+    name: record.name,
+    category,
+    description: record.description ?? undefined,
+    tags: record.tags || undefined,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    archivedAt: toISOString(record.archivedAt),
+    pinnedAt: toISOString(record.pinnedAt),
+    activeVersionId: record.activeVersionId,
+    versions: record.versions.map((v) => ({
+      id: v.id,
+      title: v.title,
+      steps: Array.isArray(v.steps) ? v.steps as { order: number; text: string }[] : [],
+      notes: v.notes,
+      nextSteps: v.nextSteps,
+      photoUrl: v.photoUrl ?? undefined,
+      r2Key: v.r2Key ?? undefined,
+      photos: v.photos.map((p) => ({
+        id: p.id,
+        photoUrl: p.photoUrl,
+        r2Key: p.r2Key ?? undefined,
+        order: p.order,
+        createdAt: p.createdAt.toISOString(),
+      })),
+      tasteRating: v.tasteRating ?? undefined,
+      visualRating: v.visualRating ?? undefined,
+      textureRating: v.textureRating ?? undefined,
+      tasteNotes: v.tasteNotes ?? undefined,
+      visualNotes: v.visualNotes ?? undefined,
+      textureNotes: v.textureNotes ?? undefined,
+      createdAt: v.createdAt.toISOString(),
+      ingredients: v.ingredients.filter((i) => !i.groupId).map((i) => ({
+        id: i.id,
+        name: i.name,
+        quantity: i.quantity,
+        unit: i.unit,
+        role: i.role,
+        notes: i.notes ?? undefined,
+      })),
+      ingredientGroups: v.ingredientGroups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        order: g.orderIndex,
+        enableBakersPercent: g.enableBakersPercent,
+        ingredients: g.ingredients.map((i) => ({
+          id: i.id,
+          name: i.name,
+          quantity: i.quantity,
+          unit: i.unit,
+          role: i.role,
+          notes: i.notes ?? undefined,
+        })),
+      })),
+    })),
+  };
+}
+
+// ============ RECIPE QUERIES ============
+
+async function fetchRecipeWithRelations(recipeId: string): Promise<RecipeWithRelations | null> {
+  const recipe = await db.query.recipes.findFirst({
+    where: eq(recipes.id, recipeId),
+    with: {
+      versions: {
+        with: {
+          ingredients: true,
+          ingredientGroups: {
+            with: { ingredients: true },
+            orderBy: [asc(ingredientGroups.orderIndex)],
+          },
+          photos: {
+            orderBy: [asc(versionPhotos.order)],
+          },
+        },
+      },
+    },
+  });
+  return recipe as RecipeWithRelations | null;
+}
 
 export interface ListRecipesOptions {
   userId: string;
@@ -39,32 +140,46 @@ export async function listRecipes({
 }: ListRecipesOptions): Promise<ListRecipesResult> {
   const take = Math.min(Math.max(limit ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
 
-  const query: {
-    where: { userId: string };
-    include: typeof recipeWithRelations;
-    orderBy: ({ updatedAt: "desc" } | { id: "desc" })[];
-    take: number;
-    cursor?: { id: string };
-    skip?: number;
-  } = {
-    where: { userId },
-    include: recipeWithRelations,
-    orderBy: [{ updatedAt: "desc" as const }, { id: "desc" as const }],
-    take: take + 1,
-  };
-
+  // Build conditions
+  const conditions = [eq(recipes.userId, userId)];
+  
   if (cursor) {
-    query.cursor = { id: cursor };
-    query.skip = 1;
+    // Get cursor recipe's updatedAt for pagination
+    const cursorRecipe = await db.query.recipes.findFirst({
+      where: eq(recipes.id, cursor),
+      columns: { updatedAt: true },
+    });
+    if (cursorRecipe) {
+      conditions.push(sql`(${recipes.updatedAt} < ${cursorRecipe.updatedAt} OR (${recipes.updatedAt} = ${cursorRecipe.updatedAt} AND ${recipes.id} < ${cursor}))`);
+    }
   }
 
-  const records = await prisma.recipe.findMany(query);
+  const records = await db.query.recipes.findMany({
+    where: and(...conditions),
+    with: {
+      versions: {
+        with: {
+          ingredients: true,
+          ingredientGroups: {
+            with: { ingredients: true },
+            orderBy: [asc(ingredientGroups.orderIndex)],
+          },
+          photos: {
+            orderBy: [asc(versionPhotos.order)],
+          },
+        },
+      },
+    },
+    orderBy: [desc(recipes.updatedAt), desc(recipes.id)],
+    limit: take + 1,
+  });
+
   const hasNext = records.length > take;
   const page = hasNext ? records.slice(0, take) : records;
   const nextCursor = hasNext ? (page[page.length - 1]?.id ?? null) : null;
 
   return {
-    recipes: toRecipes(page as RecipeWithRelations[]),
+    recipes: page.map((r) => toRecipe(r as RecipeWithRelations)),
     nextCursor,
   };
 }
@@ -73,18 +188,16 @@ export async function getRecipe(
   recipeId: string,
   userId?: string,
 ): Promise<Recipe | null> {
-  const record = await prisma.recipe.findUnique({
-    where: { id: recipeId },
-    include: recipeWithRelations,
-  });
-
-  // If userId is provided, verify the recipe belongs to the user
+  const record = await fetchRecipeWithRelations(recipeId);
+  
   if (userId && record && record.userId !== userId) {
     return null;
   }
 
-  return record ? toRecipe(record as RecipeWithRelations) : null;
+  return record ? toRecipe(record) : null;
 }
+
+// ============ RECIPE MUTATIONS ============
 
 export interface CreateRecipeInput {
   userId: string;
@@ -95,40 +208,33 @@ export interface CreateRecipeInput {
 }
 
 export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
-  const recipeId = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const recipe = await tx.recipe.create({
-      data: {
-        userId: input.userId,
-        name: input.name.trim(),
-        category: PrismaRecipeCategory.other, // Legacy field, will be removed
-        primaryCategory: input.category.primary as PrimaryCategory,
-        secondaryCategory: input.category.secondary as SecondaryCategory,
-        description: input.description?.trim() || null,
-        tags: input.tags?.length ? input.tags : undefined,
-      },
-    });
+  const recipeId = createId();
+  const versionId = createId();
 
-    const version = await tx.recipeVersion.create({
-      data: {
-        recipeId: recipe.id,
-        title: "Ver. 1",
-        notes: "",
-        nextSteps: "",
-      },
-    });
+  // Insert recipe
+  await db.insert(recipes).values({
+    id: recipeId,
+    userId: input.userId,
+    name: input.name.trim(),
+    category: "other" as RecipeCategoryType, // Legacy field
+    primaryCategory: input.category.primary as PrimaryCategoryType,
+    secondaryCategory: input.category.secondary as SecondaryCategoryType,
+    description: input.description?.trim() || null,
+    tags: input.tags?.length ? input.tags : null,
+    activeVersionId: versionId,
+  });
 
-    await tx.recipe.update({
-      where: { id: recipe.id },
-      data: { activeVersionId: version.id },
-    });
-
-    return recipe.id;
+  // Insert initial version
+  await db.insert(recipeVersions).values({
+    id: versionId,
+    recipeId,
+    title: "Ver. 1",
+    notes: "",
+    nextSteps: "",
   });
 
   const recipe = await getRecipe(recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after creation");
-  }
+  if (!recipe) throw new Error("Recipe not found after creation");
   return recipe;
 }
 
@@ -136,55 +242,41 @@ export async function updateRecipeDetails(
   recipeId: string,
   data: Partial<Pick<Recipe, "name" | "description" | "category" | "tags">>,
 ): Promise<Recipe | null> {
-  const payload: {
-    name?: string;
-    description?: string | null;
-    category?: PrismaRecipeCategory;
-    primaryCategory?: PrimaryCategory;
-    secondaryCategory?: SecondaryCategory;
-    tags?: string[];
-  } = {};
+  const updates: Partial<typeof recipes.$inferInsert> = {
+    updatedAt: new Date(),
+  };
 
   if (data.name !== undefined) {
     const trimmed = data.name.trim();
-    if (trimmed) {
-      payload.name = trimmed;
-    }
+    if (trimmed) updates.name = trimmed;
   }
-
   if (data.description !== undefined) {
-    payload.description = data.description?.trim() || null;
+    updates.description = data.description?.trim() || null;
   }
-
   if (data.category !== undefined) {
-    payload.category = PrismaRecipeCategory.other; // Legacy field
-    payload.primaryCategory = data.category.primary as PrimaryCategory;
-    payload.secondaryCategory = data.category.secondary as SecondaryCategory;
+    updates.category = "other" as RecipeCategoryType;
+    updates.primaryCategory = data.category.primary as PrimaryCategoryType;
+    updates.secondaryCategory = data.category.secondary as SecondaryCategoryType;
   }
-
   if (data.tags !== undefined) {
-    payload.tags = data.tags?.length ? data.tags : undefined;
+    updates.tags = data.tags?.length ? data.tags : null;
   }
 
-  const updated = await prisma.recipe.update({
-    where: { id: recipeId },
-    data: payload,
-    include: recipeWithRelations,
-  });
-  return updated ? toRecipe(updated as RecipeWithRelations) : null;
+  await db.update(recipes).set(updates).where(eq(recipes.id, recipeId));
+  return getRecipe(recipeId);
 }
 
 export async function setActiveVersion(
   recipeId: string,
   versionId: string | null,
 ): Promise<Recipe | null> {
-  const updated = await prisma.recipe.update({
-    where: { id: recipeId },
-    data: { activeVersionId: versionId },
-    include: recipeWithRelations,
-  });
-  return updated ? toRecipe(updated as RecipeWithRelations) : null;
+  await db.update(recipes)
+    .set({ activeVersionId: versionId, updatedAt: new Date() })
+    .where(eq(recipes.id, recipeId));
+  return getRecipe(recipeId);
 }
+
+// ============ VERSION MUTATIONS ============
 
 export interface CreateVersionInput {
   recipeId: string;
@@ -203,46 +295,44 @@ export interface CreateVersionInput {
   setActive?: boolean;
 }
 
-type CreateVersionIngredientInput = NonNullable<
-  CreateVersionInput["ingredients"]
->[number];
-
 export async function createVersion(input: CreateVersionInput): Promise<Recipe> {
-  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const createdVersion = await tx.recipeVersion.create({
-      data: {
-        recipeId: input.recipeId,
-        title: input.title,
-        steps: input.steps || [],
-        notes: input.notes,
-        nextSteps: input.nextSteps,
-        ingredients: {
-          create: (input.ingredients ?? []).map(
-            (ingredient: CreateVersionIngredientInput, index: number) => ({
-              name: ingredient.name,
-              quantity: ingredient.quantity,
-              unit: ingredient.unit,
-              role: ingredient.role,
-              notes: ingredient.notes ?? null,
-              sortOrder: ingredient.sortOrder ?? index,
-            }),
-          ),
-        },
-      },
-    });
+  const versionId = createId();
 
-    if (input.setActive ?? true) {
-      await tx.recipe.update({
-        where: { id: input.recipeId },
-        data: { activeVersionId: createdVersion.id },
-      });
-    }
+  // Insert version
+  await db.insert(recipeVersions).values({
+    id: versionId,
+    recipeId: input.recipeId,
+    title: input.title,
+    steps: input.steps || [],
+    notes: input.notes,
+    nextSteps: input.nextSteps,
   });
 
-  const recipe = await getRecipe(input.recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after version creation");
+  // Insert ingredients if provided
+  if (input.ingredients?.length) {
+    await db.insert(ingredients).values(
+      input.ingredients.map((ing, index) => ({
+        id: createId(),
+        versionId,
+        name: ing.name,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        role: ing.role,
+        notes: ing.notes ?? null,
+        sortOrder: ing.sortOrder ?? index,
+      }))
+    );
   }
+
+  // Set as active if requested
+  if (input.setActive ?? true) {
+    await db.update(recipes)
+      .set({ activeVersionId: versionId, updatedAt: new Date() })
+      .where(eq(recipes.id, input.recipeId));
+  }
+
+  const recipe = await getRecipe(input.recipeId);
+  if (!recipe) throw new Error("Recipe not found after version creation");
   return recipe;
 }
 
@@ -257,15 +347,19 @@ export interface CloneVersionInput {
 }
 
 export async function createVersionFromBase(input: CloneVersionInput): Promise<Recipe> {
-  const baseVersion = input.baseVersionId
-    ? await prisma.recipeVersion.findFirst({
-        where: { id: input.baseVersionId, recipeId: input.recipeId },
-        include: { ingredients: true },
-      })
-    : null;
+  let baseVersion: (DbVersion & { ingredients: DbIngredient[] }) | null = null;
 
-  if (input.baseVersionId && !baseVersion) {
-    throw new Error("Base version not found");
+  if (input.baseVersionId) {
+    const version = await db.query.recipeVersions.findFirst({
+      where: and(
+        eq(recipeVersions.id, input.baseVersionId),
+        eq(recipeVersions.recipeId, input.recipeId)
+      ),
+      with: { ingredients: true },
+    });
+    
+    if (!version) throw new Error("Base version not found");
+    baseVersion = version;
   }
 
   const factor = input.scalingFactor && input.scalingFactor > 0 ? input.scalingFactor : 1;
@@ -275,23 +369,21 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
       ? `${baseVersion.title}${factor !== 1 ? ` x${factor}` : " copy"}`
       : "New version";
 
-  const ingredients = (baseVersion?.ingredients ?? []).map(
-    (ingredient: any, index: number) => ({
-      name: ingredient.name,
-      quantity: Number(ingredient.quantity) * factor,
-      unit: ingredient.unit,
-      role: ingredient.role as IngredientRole,
-      notes: ingredient.notes ?? null,
-      sortOrder: ingredient.sortOrder ?? index,
-    }),
-  );
+  const newIngredients = (baseVersion?.ingredients ?? []).map((ing, index) => ({
+    name: ing.name,
+    quantity: ing.quantity * factor,
+    unit: ing.unit,
+    role: ing.role as IngredientRole,
+    notes: ing.notes ?? null,
+    sortOrder: ing.sortOrder ?? index,
+  }));
 
   return createVersion({
     recipeId: input.recipeId,
     title: newTitle,
     notes: input.notes ?? "",
     nextSteps: input.nextSteps ?? "",
-    ingredients,
+    ingredients: newIngredients,
     setActive: input.setActive,
   });
 }
@@ -317,10 +409,23 @@ export async function updateVersionDetails(
     steps?: Array<{ order: number; text: string }>;
   },
 ): Promise<Recipe | null> {
-  await prisma.recipeVersion.update({
-    where: { id: versionId },
-    data,
-  });
+  const updates: Partial<typeof recipeVersions.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+
+  if (data.title !== undefined) updates.title = data.title;
+  if (data.notes !== undefined) updates.notes = data.notes;
+  if (data.nextSteps !== undefined) updates.nextSteps = data.nextSteps;
+  if (data.photoUrl !== undefined) updates.photoUrl = data.photoUrl;
+  if (data.steps !== undefined) updates.steps = data.steps;
+  if (data.tasteRating !== undefined) updates.tasteRating = data.tasteRating;
+  if (data.visualRating !== undefined) updates.visualRating = data.visualRating;
+  if (data.textureRating !== undefined) updates.textureRating = data.textureRating;
+  if (data.tasteNotes !== undefined) updates.tasteNotes = data.tasteNotes;
+  if (data.visualNotes !== undefined) updates.visualNotes = data.visualNotes;
+  if (data.textureNotes !== undefined) updates.textureNotes = data.textureNotes;
+
+  await db.update(recipeVersions).set(updates).where(eq(recipeVersions.id, versionId));
   return getRecipe(recipeId);
 }
 
@@ -328,25 +433,25 @@ export async function deleteVersion(
   recipeId: string,
   versionId: string,
 ): Promise<Recipe> {
-  await prisma.recipeVersion.delete({ where: { id: versionId } });
+  await db.delete(recipeVersions).where(eq(recipeVersions.id, versionId));
 
-  const [nextVersion] = await prisma.recipeVersion.findMany({
-    where: { recipeId },
-    orderBy: { createdAt: "desc" },
-    take: 1,
+  // Find next version to set as active
+  const nextVersion = await db.query.recipeVersions.findFirst({
+    where: eq(recipeVersions.recipeId, recipeId),
+    orderBy: [desc(recipeVersions.createdAt)],
+    columns: { id: true },
   });
 
-  await prisma.recipe.update({
-    where: { id: recipeId },
-    data: { activeVersionId: nextVersion?.id ?? null },
-  });
+  await db.update(recipes)
+    .set({ activeVersionId: nextVersion?.id ?? null, updatedAt: new Date() })
+    .where(eq(recipes.id, recipeId));
 
   const recipe = await getRecipe(recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after version deletion");
-  }
+  if (!recipe) throw new Error("Recipe not found after version deletion");
   return recipe;
 }
+
+// ============ INGREDIENT MUTATIONS ============
 
 export interface UpsertIngredientInput {
   recipeId: string;
@@ -363,36 +468,30 @@ export interface UpsertIngredientInput {
   };
 }
 
-export async function addIngredientToVersion(
-  input: UpsertIngredientInput,
-): Promise<Recipe> {
-  const highestSortOrder = await prisma.ingredient.findFirst({
-    where: { versionId: input.versionId },
-    orderBy: { sortOrder: "desc" },
-    select: { sortOrder: true },
+export async function addIngredientToVersion(input: UpsertIngredientInput): Promise<Recipe> {
+  // Get highest sort order
+  const highest = await db.query.ingredients.findFirst({
+    where: eq(ingredients.versionId, input.versionId),
+    orderBy: [desc(ingredients.sortOrder)],
+    columns: { sortOrder: true },
   });
 
-  const sortOrder =
-    input.ingredient.sortOrder ??
-    (highestSortOrder?.sortOrder !== undefined ? highestSortOrder.sortOrder + 1 : 1);
+  const sortOrder = input.ingredient.sortOrder ?? ((highest?.sortOrder ?? 0) + 1);
 
-  await prisma.ingredient.create({
-    data: {
-      versionId: input.versionId,
-      groupId: input.groupId,
-      name: input.ingredient.name,
-      quantity: input.ingredient.quantity,
-      unit: input.ingredient.unit,
-      role: input.ingredient.role,
-      notes: input.ingredient.notes ?? null,
-      sortOrder,
-    },
+  await db.insert(ingredients).values({
+    id: createId(),
+    versionId: input.versionId,
+    groupId: input.groupId ?? null,
+    name: input.ingredient.name,
+    quantity: input.ingredient.quantity,
+    unit: input.ingredient.unit,
+    role: input.ingredient.role,
+    notes: input.ingredient.notes ?? null,
+    sortOrder,
   });
 
   const recipe = await getRecipe(input.recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after ingredient creation");
-  }
+  if (!recipe) throw new Error("Recipe not found after ingredient creation");
   return recipe;
 }
 
@@ -409,15 +508,22 @@ export async function updateIngredientDetails(
     groupId: string | null;
   }>,
 ): Promise<Recipe> {
-  await prisma.ingredient.update({
-    where: { id: ingredientId },
-    data,
-  });
+  const updates: Partial<typeof ingredients.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.quantity !== undefined) updates.quantity = data.quantity;
+  if (data.unit !== undefined) updates.unit = data.unit;
+  if (data.role !== undefined) updates.role = data.role;
+  if (data.notes !== undefined) updates.notes = data.notes;
+  if (data.sortOrder !== undefined) updates.sortOrder = data.sortOrder;
+  if (data.groupId !== undefined) updates.groupId = data.groupId;
+
+  await db.update(ingredients).set(updates).where(eq(ingredients.id, ingredientId));
 
   const recipe = await getRecipe(recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after ingredient update");
-  }
+  if (!recipe) throw new Error("Recipe not found after ingredient update");
   return recipe;
 }
 
@@ -434,43 +540,36 @@ export async function batchUpdateIngredients(
     groupId?: string | null;
   }>,
 ): Promise<Recipe> {
-  // Use Prisma transaction to update all ingredients atomically
-  await prisma.$transaction(
-    updates.map((update) =>
-      prisma.ingredient.update({
-        where: { id: update.id },
-        data: {
-          ...(update.quantity !== undefined && { quantity: update.quantity }),
-          ...(update.name !== undefined && { name: update.name }),
-          ...(update.unit !== undefined && { unit: update.unit }),
-          ...(update.role !== undefined && { role: update.role }),
-          ...(update.notes !== undefined && { notes: update.notes }),
-          ...(update.sortOrder !== undefined && { sortOrder: update.sortOrder }),
-          ...(update.groupId !== undefined && { groupId: update.groupId }),
-        },
-      }),
-    ),
+  // Batch update using Promise.all (Turso handles concurrent requests well)
+  await Promise.all(
+    updates.map((update) => {
+      const data: Partial<typeof ingredients.$inferInsert> = { updatedAt: new Date() };
+      if (update.quantity !== undefined) data.quantity = update.quantity;
+      if (update.name !== undefined) data.name = update.name;
+      if (update.unit !== undefined) data.unit = update.unit;
+      if (update.role !== undefined) data.role = update.role;
+      if (update.notes !== undefined) data.notes = update.notes;
+      if (update.sortOrder !== undefined) data.sortOrder = update.sortOrder;
+      if (update.groupId !== undefined) data.groupId = update.groupId;
+      
+      return db.update(ingredients).set(data).where(eq(ingredients.id, update.id));
+    })
   );
 
   const recipe = await getRecipe(recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after batch ingredient update");
-  }
+  if (!recipe) throw new Error("Recipe not found after batch ingredient update");
   return recipe;
 }
 
-export async function deleteIngredient(
-  recipeId: string,
-  ingredientId: string,
-): Promise<Recipe> {
-  await prisma.ingredient.delete({ where: { id: ingredientId } });
+export async function deleteIngredient(recipeId: string, ingredientId: string): Promise<Recipe> {
+  await db.delete(ingredients).where(eq(ingredients.id, ingredientId));
 
   const recipe = await getRecipe(recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after ingredient deletion");
-  }
+  if (!recipe) throw new Error("Recipe not found after ingredient deletion");
   return recipe;
 }
+
+// ============ INGREDIENT GROUP MUTATIONS ============
 
 export interface CreateIngredientGroupInput {
   recipeId: string;
@@ -479,24 +578,21 @@ export interface CreateIngredientGroupInput {
   enableBakersPercent?: boolean;
 }
 
-export async function createIngredientGroup(
-  input: CreateIngredientGroupInput,
-): Promise<Recipe> {
-  const highestOrder = await prisma.ingredientGroup.findFirst({
-    where: { versionId: input.versionId },
-    orderBy: { orderIndex: "desc" },
-    select: { orderIndex: true },
+export async function createIngredientGroup(input: CreateIngredientGroupInput): Promise<Recipe> {
+  const highest = await db.query.ingredientGroups.findFirst({
+    where: eq(ingredientGroups.versionId, input.versionId),
+    orderBy: [desc(ingredientGroups.orderIndex)],
+    columns: { orderIndex: true },
   });
 
-  const orderIndex = (highestOrder?.orderIndex ?? -1) + 1;
+  const orderIndex = (highest?.orderIndex ?? -1) + 1;
 
-  await prisma.ingredientGroup.create({
-    data: {
-      versionId: input.versionId,
-      name: input.name,
-      enableBakersPercent: input.enableBakersPercent ?? false,
-      orderIndex,
-    },
+  await db.insert(ingredientGroups).values({
+    id: createId(),
+    versionId: input.versionId,
+    name: input.name,
+    enableBakersPercent: input.enableBakersPercent ?? false,
+    orderIndex,
   });
 
   const recipe = await getRecipe(input.recipeId);
@@ -509,23 +605,20 @@ export async function updateIngredientGroup(
   groupId: string,
   data: Partial<{ name: string; enableBakersPercent: boolean; orderIndex: number }>,
 ): Promise<Recipe> {
-  await prisma.ingredientGroup.update({
-    where: { id: groupId },
-    data,
-  });
+  const updates: Partial<typeof ingredientGroups.$inferInsert> = { updatedAt: new Date() };
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.enableBakersPercent !== undefined) updates.enableBakersPercent = data.enableBakersPercent;
+  if (data.orderIndex !== undefined) updates.orderIndex = data.orderIndex;
+
+  await db.update(ingredientGroups).set(updates).where(eq(ingredientGroups.id, groupId));
 
   const recipe = await getRecipe(recipeId);
   if (!recipe) throw new Error("Recipe not found");
   return recipe;
 }
 
-export async function deleteIngredientGroup(
-  recipeId: string,
-  groupId: string,
-): Promise<Recipe> {
-  await prisma.ingredientGroup.delete({
-    where: { id: groupId },
-  });
+export async function deleteIngredientGroup(recipeId: string, groupId: string): Promise<Recipe> {
+  await db.delete(ingredientGroups).where(eq(ingredientGroups.id, groupId));
 
   const recipe = await getRecipe(recipeId);
   if (!recipe) throw new Error("Recipe not found");
@@ -538,23 +631,21 @@ export async function migrateIngredientsToGroup(
   groupName: string,
   enableBakersPercent: boolean,
 ): Promise<Recipe> {
-  await prisma.$transaction(async (tx) => {
-    // Create group
-    const group = await tx.ingredientGroup.create({
-      data: {
-        versionId,
-        name: groupName,
-        enableBakersPercent,
-        orderIndex: 0,
-      },
-    });
+  const groupId = createId();
 
-    // Update all ingredients for this version to have this groupId
-    await tx.ingredient.updateMany({
-      where: { versionId },
-      data: { groupId: group.id },
-    });
+  // Create group
+  await db.insert(ingredientGroups).values({
+    id: groupId,
+    versionId,
+    name: groupName,
+    enableBakersPercent,
+    orderIndex: 0,
   });
+
+  // Update all ingredients for this version
+  await db.update(ingredients)
+    .set({ groupId })
+    .where(eq(ingredients.versionId, versionId));
 
   const recipe = await getRecipe(recipeId);
   if (!recipe) throw new Error("Recipe not found");
@@ -562,55 +653,73 @@ export async function migrateIngredientsToGroup(
 }
 
 export async function getIngredientSuggestions(recipeId?: string): Promise<string[]> {
-  const ingredients = await prisma.ingredient.findMany({
-    where: recipeId ? { version: { recipeId } } : undefined,
-    select: { name: true },
-  });
+  let query;
+  if (recipeId) {
+    // Get ingredients for this recipe's versions
+    const versions = await db.query.recipeVersions.findMany({
+      where: eq(recipeVersions.recipeId, recipeId),
+      columns: { id: true },
+    });
+    const versionIds = versions.map((v) => v.id);
+    
+    query = await db.query.ingredients.findMany({
+      where: sql`${ingredients.versionId} IN (${sql.join(versionIds.map(id => sql`${id}`), sql`, `)})`,
+      columns: { name: true },
+    });
+  } else {
+    query = await db.query.ingredients.findMany({
+      columns: { name: true },
+    });
+  }
 
-  const names = ingredients.map((item: { name: string }) => item.name);
-  const unique = Array.from(new Set<string>(names));
+  const names = query.map((i) => i.name);
+  const unique = Array.from(new Set(names));
   return unique.sort((a, b) => a.localeCompare(b));
 }
 
-export async function archiveRecipe(recipeId: string): Promise<Recipe> {
-  const updated = await prisma.recipe.update({
-    where: { id: recipeId },
-    data: { archivedAt: new Date() },
-    include: recipeWithRelations,
-  });
+// ============ ARCHIVE/PIN ============
 
-  return toRecipe(updated);
+export async function archiveRecipe(recipeId: string): Promise<Recipe> {
+  await db.update(recipes)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(eq(recipes.id, recipeId));
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found");
+  return recipe;
 }
 
 export async function unarchiveRecipe(recipeId: string): Promise<Recipe> {
-  const updated = await prisma.recipe.update({
-    where: { id: recipeId },
-    data: { archivedAt: null },
-    include: recipeWithRelations,
-  });
+  await db.update(recipes)
+    .set({ archivedAt: null, updatedAt: new Date() })
+    .where(eq(recipes.id, recipeId));
 
-  return toRecipe(updated);
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found");
+  return recipe;
 }
 
 export async function pinRecipe(recipeId: string): Promise<Recipe> {
-  const updated = await prisma.recipe.update({
-    where: { id: recipeId },
-    data: { pinnedAt: new Date() },
-    include: recipeWithRelations,
-  });
+  await db.update(recipes)
+    .set({ pinnedAt: new Date(), updatedAt: new Date() })
+    .where(eq(recipes.id, recipeId));
 
-  return toRecipe(updated);
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found");
+  return recipe;
 }
 
 export async function unpinRecipe(recipeId: string): Promise<Recipe> {
-  const updated = await prisma.recipe.update({
-    where: { id: recipeId },
-    data: { pinnedAt: null },
-    include: recipeWithRelations,
-  });
+  await db.update(recipes)
+    .set({ pinnedAt: null, updatedAt: new Date() })
+    .where(eq(recipes.id, recipeId));
 
-  return toRecipe(updated);
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found");
+  return recipe;
 }
+
+// ============ DUPLICATE ============
 
 export interface DuplicateRecipeInput {
   userId: string;
@@ -624,102 +733,66 @@ export interface DuplicateRecipeInput {
 }
 
 export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Recipe> {
-  // Fetch source recipe with active version and ingredients
-  const sourceRecipe = await prisma.recipe.findUnique({
-    where: { id: input.sourceRecipeId },
-    include: {
-      versions: {
-        include: {
-          ingredients: {
-            orderBy: { sortOrder: "asc" },
-          },
-        },
-      },
-    },
+  const sourceRecipe = await fetchRecipeWithRelations(input.sourceRecipeId);
+  if (!sourceRecipe) throw new Error("Source recipe not found");
+  if (sourceRecipe.userId !== input.userId) throw new Error("Unauthorized");
+
+  const activeVersion = sourceRecipe.versions.find((v) => v.id === sourceRecipe.activeVersionId);
+  if (!activeVersion) throw new Error("Source recipe has no active version");
+
+  const newRecipeId = createId();
+  const newVersionId = createId();
+
+  // Create new recipe
+  await db.insert(recipes).values({
+    id: newRecipeId,
+    userId: input.userId,
+    name: input.name.trim(),
+    category: "other" as RecipeCategoryType,
+    primaryCategory: input.category.primary as PrimaryCategoryType,
+    secondaryCategory: input.category.secondary as SecondaryCategoryType,
+    description: sourceRecipe.description,
+    tags: input.copyTags && sourceRecipe.tags ? sourceRecipe.tags : null,
+    activeVersionId: newVersionId,
   });
 
-  if (!sourceRecipe) {
-    throw new Error("Source recipe not found");
-  }
-
-  // Verify user owns the source recipe
-  if (sourceRecipe.userId !== input.userId) {
-    throw new Error("Unauthorized to duplicate this recipe");
-  }
-
-  // Find the active version
-  const activeVersion = sourceRecipe.versions.find(
-    (v) => v.id === sourceRecipe.activeVersionId,
-  );
-
-  if (!activeVersion) {
-    throw new Error("Source recipe has no active version");
-  }
-
-  // Create new recipe in a transaction
-  const newRecipeId = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    // Create the new recipe
-    const newRecipe = await tx.recipe.create({
-      data: {
-        userId: input.userId,
-        name: input.name.trim(),
-        category: PrismaRecipeCategory.other, // Legacy field
-        primaryCategory: input.category.primary as PrimaryCategory,
-        secondaryCategory: input.category.secondary as SecondaryCategory,
-        description: sourceRecipe.description,
-        tags: input.copyTags && sourceRecipe.tags ? sourceRecipe.tags : undefined,
-      },
-    });
-
-    // Create the initial version with data from source's active version
-    const newVersion = await tx.recipeVersion.create({
-      data: {
-        recipeId: newRecipe.id,
-        title: "Ver. 1",
-        notes: input.copyNotes ? activeVersion.notes : "",
-        nextSteps: input.copyNotes ? activeVersion.nextSteps : "",
-        tasteRating: input.copyRatings ? activeVersion.tasteRating : null,
-        visualRating: input.copyRatings ? activeVersion.visualRating : null,
-        textureRating: input.copyRatings ? activeVersion.textureRating : null,
-        tasteNotes: input.copyRatings ? activeVersion.tasteNotes : null,
-        visualNotes: input.copyRatings ? activeVersion.visualNotes : null,
-        textureNotes: input.copyRatings ? activeVersion.textureNotes : null,
-        ingredients: input.copyIngredients
-          ? {
-              create: activeVersion.ingredients.map((ingredient) => ({
-                name: ingredient.name,
-                quantity: ingredient.quantity,
-                unit: ingredient.unit,
-                role: ingredient.role,
-                notes: ingredient.notes,
-                sortOrder: ingredient.sortOrder,
-              })),
-            }
-          : undefined,
-      },
-    });
-
-    // Set the active version
-    await tx.recipe.update({
-      where: { id: newRecipe.id },
-      data: { activeVersionId: newVersion.id },
-    });
-
-    return newRecipe.id;
+  // Create version
+  await db.insert(recipeVersions).values({
+    id: newVersionId,
+    recipeId: newRecipeId,
+    title: "Ver. 1",
+    notes: input.copyNotes ? activeVersion.notes : "",
+    nextSteps: input.copyNotes ? activeVersion.nextSteps : "",
+    tasteRating: input.copyRatings ? activeVersion.tasteRating : null,
+    visualRating: input.copyRatings ? activeVersion.visualRating : null,
+    textureRating: input.copyRatings ? activeVersion.textureRating : null,
+    tasteNotes: input.copyRatings ? activeVersion.tasteNotes : null,
+    visualNotes: input.copyRatings ? activeVersion.visualNotes : null,
+    textureNotes: input.copyRatings ? activeVersion.textureNotes : null,
   });
 
-  // Fetch and return the complete new recipe
-  const newRecipe = await getRecipe(newRecipeId);
-  if (!newRecipe) {
-    throw new Error("Recipe not found after duplication");
+  // Copy ingredients if requested
+  if (input.copyIngredients && activeVersion.ingredients.length) {
+    await db.insert(ingredients).values(
+      activeVersion.ingredients.map((ing) => ({
+        id: createId(),
+        versionId: newVersionId,
+        name: ing.name,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        role: ing.role,
+        notes: ing.notes,
+        sortOrder: ing.sortOrder,
+      }))
+    );
   }
 
-  return newRecipe;
+  const recipe = await getRecipe(newRecipeId);
+  if (!recipe) throw new Error("Recipe not found after duplication");
+  return recipe;
 }
 
-// ============================================
-// Version Photo Functions (Multi-Photo Support)
-// ============================================
+// ============ VERSION PHOTOS ============
 
 const MAX_PHOTOS_PER_VERSION = 10;
 
@@ -731,37 +804,32 @@ export interface AddVersionPhotoInput {
 }
 
 export async function addVersionPhoto(input: AddVersionPhotoInput): Promise<Recipe> {
-  // Check current photo count
-  const photoCount = await prisma.versionPhoto.count({
-    where: { versionId: input.versionId },
-  });
+  const photoCount = await db.select({ count: sql<number>`count(*)` })
+    .from(versionPhotos)
+    .where(eq(versionPhotos.versionId, input.versionId));
 
-  if (photoCount >= MAX_PHOTOS_PER_VERSION) {
+  if (photoCount[0].count >= MAX_PHOTOS_PER_VERSION) {
     throw new Error(`Maximum ${MAX_PHOTOS_PER_VERSION} photos per version allowed`);
   }
 
-  // Get the highest order
-  const highestOrder = await prisma.versionPhoto.findFirst({
-    where: { versionId: input.versionId },
-    orderBy: { order: "desc" },
-    select: { order: true },
+  const highest = await db.query.versionPhotos.findFirst({
+    where: eq(versionPhotos.versionId, input.versionId),
+    orderBy: [desc(versionPhotos.order)],
+    columns: { order: true },
   });
 
-  const order = (highestOrder?.order ?? -1) + 1;
+  const order = (highest?.order ?? -1) + 1;
 
-  await prisma.versionPhoto.create({
-    data: {
-      versionId: input.versionId,
-      photoUrl: input.photoUrl,
-      r2Key: input.r2Key ?? null,
-      order,
-    },
+  await db.insert(versionPhotos).values({
+    id: createId(),
+    versionId: input.versionId,
+    photoUrl: input.photoUrl,
+    r2Key: input.r2Key ?? null,
+    order,
   });
 
   const recipe = await getRecipe(input.recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after adding photo");
-  }
+  if (!recipe) throw new Error("Recipe not found after adding photo");
   return recipe;
 }
 
@@ -769,20 +837,15 @@ export async function removeVersionPhoto(
   recipeId: string,
   photoId: string,
 ): Promise<{ recipe: Recipe; r2Key: string | null }> {
-  // Get the photo to return r2Key for deletion
-  const photo = await prisma.versionPhoto.findUnique({
-    where: { id: photoId },
-    select: { r2Key: true },
+  const photo = await db.query.versionPhotos.findFirst({
+    where: eq(versionPhotos.id, photoId),
+    columns: { r2Key: true },
   });
 
-  await prisma.versionPhoto.delete({
-    where: { id: photoId },
-  });
+  await db.delete(versionPhotos).where(eq(versionPhotos.id, photoId));
 
   const recipe = await getRecipe(recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after removing photo");
-  }
+  if (!recipe) throw new Error("Recipe not found after removing photo");
   return { recipe, r2Key: photo?.r2Key ?? null };
 }
 
@@ -791,19 +854,15 @@ export async function reorderVersionPhotos(
   versionId: string,
   photoIds: string[],
 ): Promise<Recipe> {
-  // Update order for each photo
-  await prisma.$transaction(
+  await Promise.all(
     photoIds.map((id, index) =>
-      prisma.versionPhoto.update({
-        where: { id },
-        data: { order: index },
-      }),
-    ),
+      db.update(versionPhotos)
+        .set({ order: index })
+        .where(eq(versionPhotos.id, id))
+    )
   );
 
   const recipe = await getRecipe(recipeId);
-  if (!recipe) {
-    throw new Error("Recipe not found after reordering photos");
-  }
+  if (!recipe) throw new Error("Recipe not found after reordering photos");
   return recipe;
 }
