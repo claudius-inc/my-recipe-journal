@@ -10,8 +10,11 @@ import type {
 } from "@/types/recipes";
 import { IngredientGroup } from "./IngredientGroup";
 import { ScalingControls } from "./ScalingControls";
+import { DesignModeToggle } from "./DesignModeToggle";
+import { IngredientDesignProvider, useIngredientDesign } from "./IngredientDesignContext";
 import { getIngredientGroups } from "@/lib/migration-utils";
 import { suggestGroupNames } from "@/lib/migration-utils";
+import { cn } from "@/lib/utils";
 
 interface IngredientGroupListProps {
   version: RecipeVersion;
@@ -62,7 +65,8 @@ interface IngredientGroupListProps {
   isPreviewingScaling?: boolean;
 }
 
-export function IngredientGroupList({
+// Inner component that uses the design context
+function IngredientGroupListInner({
   version,
   recipeId,
   recipeCategory,
@@ -88,6 +92,7 @@ export function IngredientGroupList({
   onPreviewScaling,
   isPreviewingScaling = false,
 }: IngredientGroupListProps) {
+  const { designMode } = useIngredientDesign();
   // Get ingredient groups (auto-migrates if needed)
   const groups = getIngredientGroups(version, recipeCategory);
 
@@ -154,24 +159,47 @@ export function IngredientGroupList({
     );
 
   return (
-    <section className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5">
+    <section className={cn(
+      "space-y-4",
+      designMode === "card" && "rounded-2xl border border-neutral-200 bg-white p-5",
+      designMode === "edge" && "bg-white",
+      designMode === "minimal" && "bg-white px-1"
+    )}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className={cn(
+        "flex items-center justify-between gap-2 flex-wrap",
+        designMode !== "card" && "px-3 pt-3"
+      )}>
         <h3 className="text-sm font-medium text-neutral-900">
           Ingredients ({totalIngredients})
         </h3>
-        <button
-          type="button"
-          onClick={() => setIsAddingGroup(true)}
-          disabled={isSavingGroup}
-          className="text-xs text-blue-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          + Add Group
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Design Mode Toggle - hidden on mobile by default */}
+          <div className="hidden sm:block">
+            <DesignModeToggle />
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAddingGroup(true)}
+            disabled={isSavingGroup}
+            className="text-xs text-blue-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            + Add Group
+          </button>
+        </div>
+      </div>
+      
+      {/* Mobile Design Toggle */}
+      <div className="sm:hidden px-3">
+        <DesignModeToggle />
       </div>
 
       {/* Groups */}
-      <div className="space-y-3">
+      <div className={cn(
+        designMode === "card" && "space-y-3",
+        designMode === "edge" && "divide-y divide-neutral-200",
+        designMode === "minimal" && "space-y-1"
+      )}>
         {groups.map((group) => (
           <IngredientGroup
             key={group.id}
@@ -183,6 +211,7 @@ export function IngredientGroupList({
             onUpdateGroup={(data) => onUpdateGroup(group.id, data)}
             onDeleteGroup={() => onDeleteGroup(group.id)}
             canDelete={groups.length > 1}
+            designMode={designMode}
             onAddIngredient={(data) => onAddIngredient(group.id, data)}
             onUpdateIngredient={(ingredientId, data) =>
               onUpdateIngredient(group.id, ingredientId, data)
@@ -329,5 +358,14 @@ export function IngredientGroupList({
         </div>
       )}
     </section>
+  );
+}
+
+// Exported component wrapped with provider
+export function IngredientGroupList(props: IngredientGroupListProps) {
+  return (
+    <IngredientDesignProvider>
+      <IngredientGroupListInner {...props} />
+    </IngredientDesignProvider>
   );
 }

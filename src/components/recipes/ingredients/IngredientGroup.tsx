@@ -12,7 +12,10 @@ import { IngredientListItem } from "./IngredientListItem";
 import { AddIngredientForm } from "./AddIngredientForm";
 import { BakersPercentageSummary } from "./BakersPercentageSummary";
 import { GroupHeader } from "./GroupHeader";
+import { GroupHeaderMinimal } from "./GroupHeaderMinimal";
 import { getGroupFlourTotal } from "@/lib/migration-utils";
+import { IngredientRoleDotColors } from "./constants";
+import type { IngredientDesignMode } from "./IngredientDesignContext";
 
 interface IngredientGroupProps {
   group: IngredientGroupType;
@@ -23,6 +26,7 @@ interface IngredientGroupProps {
   onUpdateGroup: (data: Partial<IngredientGroupType>) => Promise<void>;
   onDeleteGroup: () => void;
   canDelete: boolean;
+  designMode?: IngredientDesignMode;
   // Ingredient operations
   onAddIngredient: (data: {
     name: string;
@@ -60,6 +64,7 @@ export function IngredientGroup({
   onUpdateGroup,
   onDeleteGroup,
   canDelete,
+  designMode = "card",
   onAddIngredient,
   onUpdateIngredient,
   onDeleteIngredient,
@@ -94,7 +99,6 @@ export function IngredientGroup({
     [onToggleIngredientCheck],
   );
 
-  // Clear pending ingredients when real ingredients update
   useEffect(() => {
     if (localPendingIngredients.length > 0) {
       setLocalPendingIngredients([]);
@@ -108,7 +112,6 @@ export function IngredientGroup({
     role: Ingredient["role"];
     notes?: string;
   }) => {
-    // Add to pending ingredients immediately
     setLocalPendingIngredients((prev) => [
       ...prev,
       { ...payload, tempId: `pending-${Date.now()}` },
@@ -116,107 +119,170 @@ export function IngredientGroup({
 
     try {
       await onAddIngredient(payload);
-      // Success handled by useEffect clearing pending
     } catch (error) {
       console.error("Failed to add ingredient:", error);
-      // Remove from pending on error
       setLocalPendingIngredients((prev) => prev.filter((p) => p.name !== payload.name));
     }
   };
 
-  return (
-    <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-      {/* Group Header - Sticky within scroll container */}
-      <div className="sticky top-0 z-10">
-        <GroupHeader
-          group={group}
-          isCollapsed={isCollapsed}
-          onToggleCollapse={onToggleCollapse}
-          onUpdateGroup={onUpdateGroup}
-          onDeleteGroup={onDeleteGroup}
-          canDelete={canDelete}
-          isBakingCategory={isBakingCategory}
+  // Get dominant role color for edge mode accent
+  const getDominantRoleColor = () => {
+    if (group.ingredients.length === 0) return "bg-neutral-300";
+    const roleCounts: Record<string, number> = {};
+    group.ingredients.forEach((ing) => {
+      roleCounts[ing.role] = (roleCounts[ing.role] || 0) + 1;
+    });
+    const dominantRole = Object.entries(roleCounts).sort((a, b) => b[1] - a[1])[0]?.[0] as Ingredient["role"] || "other";
+    return IngredientRoleDotColors[dominantRole];
+  };
+
+  const ingredientList = (
+    <>
+      {/* Check All Button */}
+      {onToggleAllIngredients && group.ingredients.length > 0 && (
+        <div className="mb-2 flex justify-end">
+          <button
+            type="button"
+            onClick={onToggleAllIngredients}
+            className="text-xs text-blue-600 hover:underline"
+          >
+            {group.ingredients.every((ing) => checkedIngredients.has(ing.id))
+              ? "Uncheck all"
+              : "Check all"}
+          </button>
+        </div>
+      )}
+
+      {/* Ingredient List */}
+      <div className={cn(designMode === "minimal" ? "space-y-1" : "space-y-2")}>
+        {group.ingredients.map((ingredient) => (
+          <IngredientListItem
+            key={ingredient.id}
+            ingredient={ingredient}
+            isChecked={checkedIngredients.has(ingredient.id)}
+            isExpanded={expandedId === ingredient.id}
+            onToggleCheck={handleToggleCheck}
+            onToggleExpand={handleToggleExpand}
+            onSave={onUpdateIngredient}
+            onDelete={onDeleteIngredient}
+            enableBakersPercent={group.enableBakersPercent}
+            flourTotal={flourTotal}
+            isSaving={savingIngredient[ingredient.id]}
+            suggestions={suggestions}
+          />
+        ))}
+
+        {/* Pending Ingredients */}
+        {localPendingIngredients.map((pending) => (
+          <div
+            key={pending.tempId}
+            className="animate-pulse rounded-md border border-neutral-200 bg-neutral-50 p-3 opacity-70"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">{pending.name}</span>
+              <span className="text-sm text-neutral-500">Adding...</span>
+            </div>
+          </div>
+        ))}
+
+        {/* Empty State */}
+        {group.ingredients.length === 0 && localPendingIngredients.length === 0 && (
+          <div className="rounded-lg border border-dashed border-neutral-300 p-6 text-center">
+            <p className="text-sm text-neutral-500">
+              No ingredients in this group yet
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Add Ingredient Form */}
+      <div className="mt-3">
+        <AddIngredientForm
+          onAdd={handleAddIngredient}
+          suggestions={suggestions}
+          isLoadingSuggestions={isLoadingSuggestions}
         />
       </div>
 
-      {/* Group Content (collapsible) */}
-      {!isCollapsed && (
-        <div className="p-4">
-          {/* Check All Button */}
-          {onToggleAllIngredients && group.ingredients.length > 0 && (
-            <div className="mb-2 flex justify-end">
-              <button
-                type="button"
-                onClick={onToggleAllIngredients}
-                className="text-xs text-blue-600 hover:underline"
-              >
-                {group.ingredients.every((ing) => checkedIngredients.has(ing.id))
-                  ? "Uncheck all"
-                  : "Check all"}
-              </button>
-            </div>
-          )}
-
-          {/* Ingredient List */}
-          <div className="space-y-2">
-            {group.ingredients.map((ingredient) => (
-              <IngredientListItem
-                key={ingredient.id}
-                ingredient={ingredient}
-                isChecked={checkedIngredients.has(ingredient.id)}
-                isExpanded={expandedId === ingredient.id}
-                onToggleCheck={handleToggleCheck}
-                onToggleExpand={handleToggleExpand}
-                onSave={onUpdateIngredient}
-                onDelete={onDeleteIngredient}
-                enableBakersPercent={group.enableBakersPercent}
-                flourTotal={flourTotal}
-                isSaving={savingIngredient[ingredient.id]}
-                suggestions={suggestions}
-              />
-            ))}
-
-            {/* Pending Ingredients (Optimistic UI) */}
-            {localPendingIngredients.map((pending) => (
-              <div
-                key={pending.tempId}
-                className="animate-pulse rounded-md border border-neutral-200 bg-neutral-50 p-3 opacity-70"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{pending.name}</span>
-                  <span className="text-sm text-neutral-500">Adding...</span>
-                </div>
-              </div>
-            ))}
-
-            {/* Empty State */}
-            {group.ingredients.length === 0 && localPendingIngredients.length === 0 && (
-              <div className="rounded-lg border border-dashed border-neutral-300 p-6 text-center">
-                <p className="text-sm text-neutral-500">
-                  No ingredients in this group yet
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Add Ingredient Form */}
-          <div className="mt-3">
-            <AddIngredientForm
-              onAdd={handleAddIngredient}
-              suggestions={suggestions}
-              isLoadingSuggestions={isLoadingSuggestions}
-            />
-          </div>
-
-          {/* Baker's Percentage Summary */}
-          {group.enableBakersPercent && flourTotal > 0 && (
-            <BakersPercentageSummary
-              flourTotal={flourTotal}
-              ingredients={group.ingredients}
-            />
-          )}
-        </div>
+      {/* Baker's Percentage Summary */}
+      {group.enableBakersPercent && flourTotal > 0 && (
+        <BakersPercentageSummary
+          flourTotal={flourTotal}
+          ingredients={group.ingredients}
+        />
       )}
-    </div>
+    </>
   );
+
+  // Design Mode: Card (Default)
+  if (designMode === "card") {
+    return (
+      <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+        <div className="sticky top-0 z-10">
+          <GroupHeader
+            group={group}
+            isCollapsed={isCollapsed}
+            onToggleCollapse={onToggleCollapse}
+            onUpdateGroup={onUpdateGroup}
+            onDeleteGroup={onDeleteGroup}
+            canDelete={canDelete}
+            isBakingCategory={isBakingCategory}
+          />
+        </div>
+        {!isCollapsed && <div className="p-4">{ingredientList}</div>}
+      </div>
+    );
+  }
+
+  // Design Mode: Edge-to-Edge with accent border
+  if (designMode === "edge") {
+    return (
+      <div className="overflow-hidden bg-white">
+        {/* Full-width header */}
+        <div className="sticky top-0 z-10 bg-neutral-100 border-b border-neutral-200">
+          <GroupHeader
+            group={group}
+            isCollapsed={isCollapsed}
+            onToggleCollapse={onToggleCollapse}
+            onUpdateGroup={onUpdateGroup}
+            onDeleteGroup={onDeleteGroup}
+            canDelete={canDelete}
+            isBakingCategory={isBakingCategory}
+          />
+        </div>
+        {!isCollapsed && (
+          <div className={cn("border-l-4 pl-3 pr-2 py-3", getDominantRoleColor())}>
+            {ingredientList}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Design Mode: Minimal (typography hierarchy only)
+  if (designMode === "minimal") {
+    return (
+      <div className="py-2">
+        {/* Minimal header - just text */}
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm pb-2">
+          <GroupHeaderMinimal
+            group={group}
+            isCollapsed={isCollapsed}
+            onToggleCollapse={onToggleCollapse}
+            onUpdateGroup={onUpdateGroup}
+            onDeleteGroup={onDeleteGroup}
+            canDelete={canDelete}
+            isBakingCategory={isBakingCategory}
+          />
+        </div>
+        {!isCollapsed && (
+          <div className="mt-1">
+            {ingredientList}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 }
