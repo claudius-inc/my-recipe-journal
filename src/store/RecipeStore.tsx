@@ -178,6 +178,10 @@ interface RecipeStoreValue {
     versionId: string,
     groupId: string,
   ) => Promise<void>;
+  reorderIngredientGroups: (
+    recipeId: string,
+    groupIds: string[],
+  ) => Promise<void>;
   getIngredientSuggestions: (recipeId?: string) => Promise<string[]>;
 }
 
@@ -821,6 +825,21 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  const reorderIngredientGroups = useCallback<RecipeStoreValue["reorderIngredientGroups"]>(
+    async (recipeId, groupIds) => {
+      await requestJson<Recipe>(
+        `/api/recipes/${recipeId}/groups/reorder`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ groupIds }),
+        },
+      );
+
+      await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+    },
+    [queryClient],
+  );
+
   const getIngredientSuggestions = useCallback<
     RecipeStoreValue["getIngredientSuggestions"]
   >(
@@ -888,6 +907,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       createIngredientGroup,
       updateIngredientGroup,
       deleteIngredientGroup,
+      reorderIngredientGroups,
       migrateToGroups,
       getIngredientSuggestions,
     }),
@@ -923,6 +943,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       createIngredientGroup,
       updateIngredientGroup,
       deleteIngredientGroup,
+      reorderIngredientGroups,
       migrateToGroups,
       getIngredientSuggestions,
     ],

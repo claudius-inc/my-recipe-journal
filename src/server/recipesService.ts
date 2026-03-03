@@ -625,6 +625,24 @@ export async function deleteIngredientGroup(recipeId: string, groupId: string): 
   return recipe;
 }
 
+export async function reorderIngredientGroups(
+  recipeId: string,
+  groupIds: string[],
+): Promise<Recipe> {
+  // Update orderIndex for each group based on position in array
+  await Promise.all(
+    groupIds.map((groupId, index) =>
+      db.update(ingredientGroups)
+        .set({ orderIndex: index, updatedAt: new Date() })
+        .where(eq(ingredientGroups.id, groupId))
+    )
+  );
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found");
+  return recipe;
+}
+
 export async function migrateIngredientsToGroup(
   recipeId: string,
   versionId: string,

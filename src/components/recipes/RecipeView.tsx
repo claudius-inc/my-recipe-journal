@@ -56,6 +56,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     createIngredientGroup,
     updateIngredientGroup,
     deleteIngredientGroup,
+    reorderIngredientGroups,
     migrateToGroups,
     updateRecipe,
     archiveRecipe,
@@ -721,6 +722,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           }}
           onDeleteGroup={async (groupId) => {
             await deleteIngredientGroup(selectedRecipe.id, selectedVersion.id, groupId);
+          }}
+          onReorderGroups={async (groupIds) => {
+            await reorderIngredientGroups(selectedRecipe.id, groupIds);
           }}
           // Ingredient handlers (group-aware)
           onAddIngredient={async (groupId, data) => {
