@@ -81,14 +81,11 @@ export function RecipeListItem({
         )}
       </div>
 
-      {/* Name + Pin indicator */}
+      {/* Name + Archive indicator */}
       <div className="flex-1 min-w-0 flex items-center gap-2">
         <span className={cn("text-sm truncate", isSelected && "font-medium")}>
           {recipe.name}
         </span>
-        {recipe.pinnedAt && (
-          <DrawingPinFilledIcon className="h-3 w-3 text-blue-500 flex-shrink-0" />
-        )}
         {recipe.archivedAt && (
           <ArchiveIcon className="h-3 w-3 text-orange-500 flex-shrink-0" />
         )}
