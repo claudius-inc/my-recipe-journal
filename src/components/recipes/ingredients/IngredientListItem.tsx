@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, KeyboardEvent, TouchEvent } from "react";
-import { Checkbox, TextField } from "@radix-ui/themes";
+import { Checkbox } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
-import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
-import { ChevronDownIcon, InfoCircledIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
+import { InfoCircledIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
 import { IngredientRoleLabels, IngredientRoleColors, INGREDIENT_ROLES } from "./constants";
 
 interface IngredientListItemProps {
@@ -59,11 +58,18 @@ export function IngredientListItem({
   // Inline editing states
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPercent, setIsEditingPercent] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
   const [inlineQuantity, setInlineQuantity] = useState(ingredient.quantity.toString());
   const [inlineUnit, setInlineUnit] = useState(ingredient.unit);
   const [inlinePercent, setInlinePercent] = useState("");
+  const [inlineName, setInlineName] = useState(ingredient.name);
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const percentInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  
+  // Menu and modal states
+  const [showMenu, setShowMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
@@ -81,6 +87,7 @@ export function IngredientListItem({
     });
     setInlineQuantity(ingredient.quantity.toString());
     setInlineUnit(ingredient.unit);
+    setInlineName(ingredient.name);
   }, [ingredient]);
 
   // Focus input when inline editing starts
@@ -101,6 +108,13 @@ export function IngredientListItem({
       percentInputRef.current.select();
     }
   }, [isEditingPercent, flourTotal, ingredient.quantity]);
+
+  useEffect(() => {
+    if (isEditingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [isEditingName]);
 
   const handleSave = async () => {
     const parsed = Number(editState.quantity);
@@ -216,6 +230,37 @@ export function IngredientListItem({
     }
   };
 
+  // Inline name editing
+  const handleNameClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditingName(true);
+  };
+
+  const handleNameSave = async () => {
+    const trimmedName = inlineName.trim();
+    if (!trimmedName) {
+      setInlineName(ingredient.name);
+      setIsEditingName(false);
+      return;
+    }
+
+    if (trimmedName !== ingredient.name) {
+      await onSave(ingredient.id, { name: trimmedName });
+    }
+    setIsEditingName(false);
+  };
+
+  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleNameSave();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setInlineName(ingredient.name);
+      setIsEditingName(false);
+    }
+  };
+
   // Swipe handlers
   const handleTouchStart = (e: TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -321,29 +366,48 @@ export function IngredientListItem({
             />
           </div>
 
-          {/* Ingredient Name */}
+          {/* Ingredient Name - INLINE EDITABLE */}
           <div
             className={cn(
               "relative min-w-0 flex-1 md:col-span-4",
               isChecked && "opacity-60 line-through",
             )}
           >
-            <div className="flex items-center gap-2">
-              <span className="font-medium truncate">{ingredient.name}</span>
-              {ingredient.notes && (
+            {isEditingName ? (
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={inlineName}
+                onChange={(e) => setInlineName(e.target.value)}
+                onBlur={handleNameSave}
+                onKeyDown={handleNameKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full rounded border border-neutral-300 px-2 py-1 text-sm font-medium focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+              />
+            ) : (
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowNotePopover(!showNotePopover);
-                  }}
-                  className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-blue-600 transition hover:bg-blue-50"
-                  aria-label="View ingredient notes"
+                  onClick={handleNameClick}
+                  className="font-medium truncate text-left hover:text-neutral-600"
                 >
-                  <InfoCircledIcon className="w-4 h-4 text-gray-600" />
+                  {ingredient.name}
                 </button>
-              )}
-            </div>
+                {ingredient.notes && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowNotePopover(!showNotePopover);
+                    }}
+                    className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-blue-600 transition hover:bg-blue-50"
+                    aria-label="View ingredient notes"
+                  >
+                    <InfoCircledIcon className="w-4 h-4 text-gray-600" />
+                  </button>
+                )}
+              </div>
+            )}
             {/* Notes popover */}
             {showNotePopover && ingredient.notes && (
               <>
@@ -456,45 +520,77 @@ export function IngredientListItem({
             <span className="hidden md:col-span-2 md:inline"></span>
           )}
 
-          {/* Expand Arrow */}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand(ingredient.id);
-            }}
-            className={cn(
-              "flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition-transform duration-300 hover:bg-neutral-100 md:col-span-1",
-              isExpanded && "rotate-180",
+          {/* Three-dot Menu */}
+          <div className="relative md:col-span-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(!showMenu);
+              }}
+              className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
+              aria-label="Ingredient options"
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                <path
+                  d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5ZM8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5ZM13.625 7.5C13.625 8.12132 13.1213 8.625 12.5 8.625C11.8787 8.625 11.375 8.12132 11.375 7.5C11.375 6.87868 11.8787 6.375 12.5 6.375C13.1213 6.375 13.625 6.87868 13.625 7.5Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+            
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
+                <div className="absolute right-0 top-full z-30 mt-1 w-32 rounded-lg border border-neutral-200 bg-white shadow-lg py-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowEditModal(true);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowDeleteConfirm(true);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
             )}
-            aria-label={isExpanded ? "Collapse" : "Expand"}
-          >
-            <ChevronDownIcon className="w-4 h-4" />
-          </button>
+          </div>
         </div>
 
-        {/* Expanded Edit Section */}
-        {isExpanded && (
-          <div className="animate-slideDown border-t border-neutral-200 px-4 pb-4 pt-3">
-            <div className="space-y-3">
+      </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-neutral-900">Edit Ingredient</h3>
+            
+            <div className="mt-4 space-y-4">
               {/* Name Input */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-neutral-500">
-                  Ingredient Name
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    autoFocus
-                    list={`ingredient-suggestions-${ingredient.id}`}
-                    value={editState.name}
-                    onChange={(e) =>
-                      setEditState((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    placeholder="Ingredient name"
-                    className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                  />
-                  <SaveIndicator isSaving={isSaving} />
-                </div>
+                <label className="text-sm font-medium text-neutral-600">Name</label>
+                <input
+                  autoFocus
+                  list={`ingredient-suggestions-${ingredient.id}`}
+                  value={editState.name}
+                  onChange={(e) =>
+                    setEditState((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="Ingredient name"
+                  className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                />
                 {suggestions.length > 0 && (
                   <datalist id={`ingredient-suggestions-${ingredient.id}`}>
                     {suggestions.map((name) => (
@@ -505,35 +601,35 @@ export function IngredientListItem({
               </div>
 
               {/* Quantity + Unit Row */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-neutral-500">Quantity</label>
-                  <TextField.Root
+                  <label className="text-sm font-medium text-neutral-600">Quantity</label>
+                  <input
                     type="number"
                     value={editState.quantity}
                     onChange={(e) =>
                       setEditState((prev) => ({ ...prev, quantity: e.target.value }))
                     }
                     placeholder="Amount"
-                    className="w-full"
+                    className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-neutral-500">Unit</label>
-                  <TextField.Root
+                  <label className="text-sm font-medium text-neutral-600">Unit</label>
+                  <input
                     value={editState.unit}
                     onChange={(e) =>
                       setEditState((prev) => ({ ...prev, unit: e.target.value }))
                     }
                     placeholder="Unit"
-                    className="w-full"
+                    className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                   />
                 </div>
               </div>
 
               {/* Role Selector - Chips */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-neutral-500">Role</label>
+                <label className="text-sm font-medium text-neutral-600">Category</label>
                 <div className="flex flex-wrap gap-1.5">
                   {INGREDIENT_ROLES.map((role) => (
                     <button
@@ -543,7 +639,7 @@ export function IngredientListItem({
                       className={cn(
                         "rounded-full px-2.5 py-1 text-xs font-medium transition-all",
                         editState.role === role
-                          ? IngredientRoleColors[role]
+                          ? "bg-neutral-900 text-white"
                           : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
                       )}
                     >
@@ -553,37 +649,9 @@ export function IngredientListItem({
                 </div>
               </div>
 
-              {/* Interactive Percentage Editor */}
-              {enableBakersPercent && flourTotal > 0 && (
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-neutral-500">
-                    Baker&apos;s Percentage
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <InteractivePercentageEditor
-                      ingredient={ingredient}
-                      flourTotal={flourTotal}
-                      onSave={async (newQuantity) => {
-                        setEditState((prev) => ({
-                          ...prev,
-                          quantity: newQuantity.toString(),
-                        }));
-                        await onSave(ingredient.id, { quantity: newQuantity });
-                      }}
-                      isSaving={isSaving}
-                    />
-                    <span className="text-xs text-neutral-500">
-                      (Click percentage to edit)
-                    </span>
-                  </div>
-                </div>
-              )}
-
               {/* Notes */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-neutral-500">
-                  Notes (optional)
-                </label>
+                <label className="text-sm font-medium text-neutral-600">Notes</label>
                 <textarea
                   value={editState.notes}
                   onChange={(e) =>
@@ -591,41 +659,39 @@ export function IngredientListItem({
                   }
                   placeholder="Optional notes"
                   rows={2}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                  className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                 />
               </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                  className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={isSaving}
-                  className="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Delete
-                </button>
-              </div>
+            {/* Action Buttons */}
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  handleCancel();
+                  setShowEditModal(false);
+                }}
+                disabled={isSaving}
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleSave();
+                  setShowEditModal(false);
+                }}
+                disabled={isSaving}
+                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
