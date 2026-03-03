@@ -126,16 +126,18 @@ export function IngredientGroup({
 
   return (
     <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-      {/* Group Header */}
-      <GroupHeader
-        group={group}
-        isCollapsed={isCollapsed}
-        onToggleCollapse={onToggleCollapse}
-        onUpdateGroup={onUpdateGroup}
-        onDeleteGroup={onDeleteGroup}
-        canDelete={canDelete}
-        isBakingCategory={isBakingCategory}
-      />
+      {/* Group Header - Sticky within scroll container */}
+      <div className="sticky top-0 z-10">
+        <GroupHeader
+          group={group}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
+          onUpdateGroup={onUpdateGroup}
+          onDeleteGroup={onDeleteGroup}
+          canDelete={canDelete}
+          isBakingCategory={isBakingCategory}
+        />
+      </div>
 
       {/* Group Content (collapsible) */}
       {!isCollapsed && (

@@ -20,7 +20,7 @@ export const INGREDIENT_ROLES: IngredientRole[] = [
   "other",
 ];
 
-// Role colors for visual distinction
+// Role colors for visual distinction (chip backgrounds)
 export const IngredientRoleColors: Record<IngredientRole, string> = {
   flour: "bg-amber-100 text-amber-800",
   liquid: "bg-blue-100 text-blue-800",
@@ -29,4 +29,15 @@ export const IngredientRoleColors: Record<IngredientRole, string> = {
   sweetener: "bg-pink-100 text-pink-800",
   fat: "bg-yellow-100 text-yellow-800",
   other: "bg-neutral-100 text-neutral-600",
+};
+
+// Role dot colors (for small indicator dots)
+export const IngredientRoleDotColors: Record<IngredientRole, string> = {
+  flour: "bg-amber-500",
+  liquid: "bg-blue-500",
+  leavening: "bg-green-500",
+  salt: "bg-gray-400",
+  sweetener: "bg-pink-500",
+  fat: "bg-yellow-500",
+  other: "bg-neutral-400",
 };
