@@ -107,6 +107,7 @@ function IngredientGroupListInner({
   const [reorderList, setReorderList] = useState<IngredientGroupType[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [showScalingModal, setShowScalingModal] = useState(false);
 
   const handleToggleCollapse = useCallback((groupId: string) => {
     setCollapsedGroups((prev) => {
@@ -162,9 +163,9 @@ function IngredientGroupListInner({
     );
 
   return (
-    <section className="space-y-4 bg-white overflow-visible rounded-2xl border border-neutral-200 p-4">
+    <section className="bg-white overflow-visible rounded-2xl border border-neutral-200">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
+      <div className="flex items-center justify-between gap-2 flex-wrap px-4 py-3">
         <h3 className="text-sm font-medium text-neutral-900">
           Ingredients ({totalIngredients})
         </h3>
@@ -212,11 +213,11 @@ function IngredientGroupListInner({
                     Rearrange Groups
                   </button>
                 )}
-                {onToggleScaling && (
+                {onSelectScalingIngredient && (
                   <button
                     type="button"
                     onClick={() => {
-                      onToggleScaling();
+                      setShowScalingModal(true);
                       setShowGroupMenu(false);
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
@@ -231,7 +232,7 @@ function IngredientGroupListInner({
       </div>
 
       {/* Groups */}
-      <div className="overflow-visible divide-y divide-neutral-200">
+      <div className="overflow-visible">
         {groups.map((group) => (
           <IngredientGroup
             key={group.id}
@@ -260,23 +261,73 @@ function IngredientGroupListInner({
         ))}
       </div>
 
-      {/* Scaling Controls */}
-      {onToggleScaling &&
-        onSelectScalingIngredient &&
-        onTargetQuantityChange &&
-        onPreviewScaling && (
-          <ScalingControls
-            isOpen={isScalingOpen}
-            onToggle={onToggleScaling}
-            ingredients={version.ingredients}
-            selectedIngredientId={selectedScalingIngredient}
-            onSelectIngredient={onSelectScalingIngredient}
-            targetQuantity={targetQuantity}
-            onTargetQuantityChange={onTargetQuantityChange}
-            onPreview={onPreviewScaling}
-            isPreviewing={isPreviewingScaling}
-          />
-        )}
+      {/* Scaling Modal */}
+      {showScalingModal && onSelectScalingIngredient && onTargetQuantityChange && onPreviewScaling && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-neutral-900">Scale Ingredients</h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              Scale all ingredients based on a target amount.
+            </p>
+            
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1 block text-sm text-neutral-600">Scale by ingredient</label>
+                <select
+                  value={selectedScalingIngredient}
+                  onChange={(e) => onSelectScalingIngredient(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                >
+                  <option value="">Select ingredient...</option>
+                  {version.ingredients.map((ing) => (
+                    <option key={ing.id} value={ing.id}>
+                      {ing.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {selectedScalingIngredient && (
+                <div>
+                  <label className="mb-1 block text-sm text-neutral-600">
+                    Target amount ({version.ingredients.find(i => i.id === selectedScalingIngredient)?.unit})
+                  </label>
+                  <input
+                    type="number"
+                    value={targetQuantity}
+                    onChange={(e) => onTargetQuantityChange(e.target.value)}
+                    placeholder={`Current: ${version.ingredients.find(i => i.id === selectedScalingIngredient)?.quantity.toFixed(1) ?? ""}`}
+                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowScalingModal(false);
+                }}
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onPreviewScaling();
+                  setShowScalingModal(false);
+                }}
+                disabled={!selectedScalingIngredient || !targetQuantity || isPreviewingScaling}
+                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
+              >
+                {isPreviewingScaling ? "Scaling..." : "Scale"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Group Modal */}
       {isAddingGroup && (

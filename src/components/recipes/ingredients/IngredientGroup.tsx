@@ -144,9 +144,9 @@ export function IngredientGroup({
       </div>
       
       {!isCollapsed && (
-        <div className="px-3 py-3">
+        <div className="py-1">
           {/* Ingredient List */}
-          <div className="space-y-2">
+          <div>
             {group.ingredients.map((ingredient) => (
               <IngredientListItem
                 key={ingredient.id}
@@ -179,7 +179,7 @@ export function IngredientGroup({
 
             {/* Empty State */}
             {group.ingredients.length === 0 && localPendingIngredients.length === 0 && (
-              <div className="rounded-lg border border-dashed border-neutral-300 p-6 text-center">
+              <div className="mx-3 rounded-lg border border-dashed border-neutral-300 p-6 text-center">
                 <p className="text-sm text-neutral-500">
                   No ingredients in this group yet
                 </p>
@@ -188,7 +188,7 @@ export function IngredientGroup({
           </div>
 
           {/* Add Ingredient Form */}
-          <div className="mt-3">
+          <div className="mt-2 px-3">
             <AddIngredientForm
               onAdd={handleAddIngredient}
               suggestions={suggestions}
@@ -198,10 +198,12 @@ export function IngredientGroup({
 
           {/* Baker's Percentage Summary */}
           {group.enableBakersPercent && flourTotal > 0 && (
-            <BakersPercentageSummary
-              flourTotal={flourTotal}
-              ingredients={group.ingredients}
-            />
+            <div className="px-3">
+              <BakersPercentageSummary
+                flourTotal={flourTotal}
+                ingredients={group.ingredients}
+              />
+            </div>
           )}
         </div>
       )}
