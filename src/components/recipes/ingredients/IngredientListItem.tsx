@@ -7,7 +7,7 @@ import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
 import { ChevronDownIcon, InfoCircledIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
-import { IngredientRoleLabels, IngredientRoleColors, IngredientRoleDotColors, INGREDIENT_ROLES } from "./constants";
+import { IngredientRoleLabels, IngredientRoleColors, INGREDIENT_ROLES } from "./constants";
 
 interface IngredientListItemProps {
   ingredient: Ingredient;
@@ -321,7 +321,7 @@ export function IngredientListItem({
             />
           </div>
 
-          {/* Role Color Dot + Ingredient Name */}
+          {/* Ingredient Name */}
           <div
             className={cn(
               "relative min-w-0 flex-1 md:col-span-4",
@@ -329,14 +329,6 @@ export function IngredientListItem({
             )}
           >
             <div className="flex items-center gap-2">
-              {/* Role color dot */}
-              <span 
-                className={cn(
-                  "h-2 w-2 rounded-full flex-shrink-0",
-                  IngredientRoleDotColors[ingredient.role]
-                )}
-                title={IngredientRoleLabels[ingredient.role]}
-              />
               <span className="font-medium truncate">{ingredient.name}</span>
               {ingredient.notes && (
                 <button

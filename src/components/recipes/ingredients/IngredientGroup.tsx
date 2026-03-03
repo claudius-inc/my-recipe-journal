@@ -217,8 +217,8 @@ export function IngredientGroup({
   // Design Mode: Card (Default)
   if (designMode === "card") {
     return (
-      <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-        <div className="sticky top-0 z-10">
+      <div className="overflow-visible rounded-lg border border-neutral-200 bg-white">
+        <div className="sticky top-0 z-10 bg-neutral-50 rounded-t-lg">
           <GroupHeader
             group={group}
             isCollapsed={isCollapsed}
@@ -234,12 +234,12 @@ export function IngredientGroup({
     );
   }
 
-  // Design Mode: Edge-to-Edge with accent border
+  // Design Mode: Edge-to-Edge (clean, no colors)
   if (designMode === "edge") {
     return (
-      <div className="overflow-hidden bg-white">
-        {/* Full-width header */}
-        <div className="sticky top-0 z-10 bg-neutral-100 border-b border-neutral-200">
+      <div className="overflow-visible bg-white">
+        {/* Full-width header - sticky */}
+        <div className="sticky top-0 z-10 bg-neutral-50 border-b border-neutral-200">
           <GroupHeader
             group={group}
             isCollapsed={isCollapsed}
@@ -251,7 +251,7 @@ export function IngredientGroup({
           />
         </div>
         {!isCollapsed && (
-          <div className={cn("border-l-4 pl-3 pr-2 py-3", getDominantRoleColor())}>
+          <div className="px-3 py-3">
             {ingredientList}
           </div>
         )}

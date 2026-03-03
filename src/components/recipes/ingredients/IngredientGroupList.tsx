@@ -161,9 +161,9 @@ function IngredientGroupListInner({
   return (
     <section className={cn(
       "space-y-4",
-      designMode === "card" && "rounded-2xl border border-neutral-200 bg-white p-5",
-      designMode === "edge" && "bg-white",
-      designMode === "minimal" && "bg-white px-1"
+      designMode === "card" && "rounded-2xl border border-neutral-200 bg-white p-5 overflow-visible",
+      designMode === "edge" && "bg-white overflow-visible",
+      designMode === "minimal" && "bg-white px-1 overflow-visible"
     )}>
       {/* Header */}
       <div className={cn(
@@ -196,6 +196,7 @@ function IngredientGroupListInner({
 
       {/* Groups */}
       <div className={cn(
+        "overflow-visible",
         designMode === "card" && "space-y-3",
         designMode === "edge" && "divide-y divide-neutral-200",
         designMode === "minimal" && "space-y-1"
