@@ -44,6 +44,12 @@ export function PhotoUploadSection({
 
   // Optimistic local photos state for instant reordering
   const [localPhotos, setLocalPhotos] = useState<VersionPhoto[] | null>(null);
+  
+  // Track which photo is being removed for optimistic UI
+  const [removingPhotoId, setRemovingPhotoId] = useState<string | null>(null);
+  
+  // Delete confirmation state
+  const [deleteConfirmPhoto, setDeleteConfirmPhoto] = useState<VersionPhoto | null>(null);
 
   // Touch drag state for mobile reordering
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
@@ -262,19 +268,46 @@ export function PhotoUploadSection({
     setIsDragging(false);
   }, []);
 
-  // Remove current photo
-  const handleRemoveCurrentPhoto = useCallback(async () => {
-    const currentPhoto = photos[activePhotoIndex];
-    if (!currentPhoto) return;
-
-    await onRemove(currentPhoto);
-
-    if (photos.length <= 1) {
-      handleCloseGallery();
-    } else if (activePhotoIndex >= photos.length - 1) {
-      setActivePhotoIndex(Math.max(0, photos.length - 2));
+  // Remove photo with optimistic UI
+  const handleRemovePhoto = useCallback(async (photo: VersionPhoto) => {
+    setRemovingPhotoId(photo.id);
+    setDeleteConfirmPhoto(null);
+    
+    // Optimistically remove from local state
+    const currentPhotos = localPhotos ?? version.photos ?? [];
+    const updatedPhotos = currentPhotos.filter((p) => p.id !== photo.id);
+    setLocalPhotos(updatedPhotos);
+    
+    // Adjust active index if needed
+    const photoIndex = currentPhotos.findIndex((p) => p.id === photo.id);
+    if (activePhotoIndex >= updatedPhotos.length) {
+      setActivePhotoIndex(Math.max(0, updatedPhotos.length - 1));
+    } else if (photoIndex < activePhotoIndex) {
+      setActivePhotoIndex(activePhotoIndex - 1);
     }
-  }, [photos, activePhotoIndex, onRemove, handleCloseGallery]);
+    
+    // Close gallery if no photos left
+    if (updatedPhotos.length === 0) {
+      handleCloseGallery();
+    }
+    
+    try {
+      await onRemove(photo);
+    } catch (error) {
+      // Revert optimistic update on error
+      setLocalPhotos(null);
+    } finally {
+      setRemovingPhotoId(null);
+    }
+  }, [localPhotos, version.photos, activePhotoIndex, onRemove, handleCloseGallery]);
+
+  // Show confirmation for current photo
+  const handleRemoveCurrentPhoto = useCallback(() => {
+    const currentPhoto = photos[activePhotoIndex];
+    if (currentPhoto) {
+      setDeleteConfirmPhoto(currentPhoto);
+    }
+  }, [photos, activePhotoIndex]);
 
   // Desktop drag and drop reordering
   const handleDragStart = useCallback((e: React.DragEvent, photoId: string) => {
@@ -406,7 +439,7 @@ export function PhotoUploadSection({
           {/* Horizontally scrollable thumbnail container */}
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-neutral-300 scrollbar-track-transparent py-1 max-w-[calc(100%-120px)]">
             {/* Photo thumbnails */}
-            {photos.map((photo, index) => (
+            {photos.filter((p) => p.id !== removingPhotoId).map((photo, index) => (
               <div
                 key={photo.id}
                 ref={(el) => {
@@ -421,7 +454,7 @@ export function PhotoUploadSection({
                 onTouchStart={(e) => handleThumbnailTouchStart(e, photo.id, index)}
                 onTouchMove={handleThumbnailTouchMove}
                 onTouchEnd={handleThumbnailTouchEnd}
-                className={`relative group flex-shrink-0 transition-transform ${
+                className={`relative group flex-shrink-0 transition-all duration-200 ${
                   draggedThumbnailId === photo.id || touchDragId === photo.id
                     ? "opacity-50 scale-105"
                     : ""
@@ -618,6 +651,34 @@ export function PhotoUploadSection({
           {/* Navigation hint */}
           <div className="absolute bottom-6 right-4 z-20 text-white/60 text-xs hidden md:block">
             {scale > 1 ? `${Math.round(scale * 100)}%` : "Drag to navigate"}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmPhoto && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg mx-4">
+            <h3 className="text-lg font-semibold text-neutral-900">Delete photo?</h3>
+            <p className="mt-2 text-sm text-neutral-600">
+              This photo will be permanently deleted. This action cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmPhoto(null)}
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemovePhoto(deleteConfirmPhoto)}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
