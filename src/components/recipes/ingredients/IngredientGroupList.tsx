@@ -21,6 +21,7 @@ interface IngredientGroupListProps {
   onAddGroup: (name: string, enableBakersPercent: boolean) => Promise<void>;
   onUpdateGroup: (groupId: string, data: Partial<IngredientGroupType>) => Promise<void>;
   onDeleteGroup: (groupId: string) => Promise<void>;
+  onReorderGroups?: (groupIds: string[]) => Promise<void>;
   // Ingredient operations (group-aware)
   onAddIngredient: (
     groupId: string,
@@ -70,6 +71,7 @@ function IngredientGroupListInner({
   onAddGroup,
   onUpdateGroup,
   onDeleteGroup,
+  onReorderGroups,
   onAddIngredient,
   onUpdateIngredient,
   onDeleteIngredient,
@@ -102,6 +104,9 @@ function IngredientGroupListInner({
   const [isSavingGroup, setIsSavingGroup] = useState(false);
   const [showGroupMenu, setShowGroupMenu] = useState(false);
   const [showRearrangeModal, setShowRearrangeModal] = useState(false);
+  const [reorderList, setReorderList] = useState<IngredientGroupType[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   const handleToggleCollapse = useCallback((groupId: string) => {
     setCollapsedGroups((prev) => {
@@ -157,30 +162,33 @@ function IngredientGroupListInner({
     );
 
   return (
-    <section className="space-y-4 bg-white overflow-visible">
+    <section className="space-y-4 bg-white overflow-visible rounded-2xl border border-neutral-200 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 flex-wrap px-3 pt-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <h3 className="text-sm font-medium text-neutral-900">
           Ingredients ({totalIngredients})
         </h3>
         
-        {/* Group Actions Dropdown */}
+        {/* Actions Menu (three-dot icon) */}
         <div className="relative">
           <button
             type="button"
             onClick={() => setShowGroupMenu(!showGroupMenu)}
-            className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
+            aria-label="Ingredient options"
           >
-            Groups
-            <svg width="12" height="12" viewBox="0 0 15 15" fill="none" className="mt-0.5">
-              <path d="M4 6L7.5 9.5L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+              <path
+                d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5ZM8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5ZM13.625 7.5C13.625 8.12132 13.1213 8.625 12.5 8.625C11.8787 8.625 11.375 8.12132 11.375 7.5C11.375 6.87868 11.8787 6.375 12.5 6.375C13.1213 6.375 13.625 6.87868 13.625 7.5Z"
+                fill="currentColor"
+              />
             </svg>
           </button>
           
           {showGroupMenu && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setShowGroupMenu(false)} />
-              <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-lg border border-neutral-200 bg-white shadow-lg">
+              <div className="absolute right-0 top-full z-30 mt-1 w-48 rounded-lg border border-neutral-200 bg-white shadow-lg py-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -190,7 +198,7 @@ function IngredientGroupListInner({
                   disabled={isSavingGroup}
                   className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
                 >
-                  + Add Group
+                  Add Group
                 </button>
                 {groups.length > 1 && (
                   <button
@@ -202,6 +210,18 @@ function IngredientGroupListInner({
                     className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
                   >
                     Rearrange Groups
+                  </button>
+                )}
+                {onToggleScaling && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onToggleScaling();
+                      setShowGroupMenu(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    Scale Ingredients
                   </button>
                 )}
               </div>
@@ -381,29 +401,74 @@ function IngredientGroupListInner({
             </p>
             
             <div className="mt-4 space-y-2">
-              {groups.map((group, index) => (
+              {(reorderList.length > 0 ? reorderList : groups).map((group, index) => (
                 <div
                   key={group.id}
-                  className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3"
+                  draggable
+                  onDragStart={() => {
+                    setDraggedIndex(index);
+                    if (reorderList.length === 0) setReorderList([...groups]);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (draggedIndex === null || draggedIndex === index) return;
+                    
+                    const list = reorderList.length > 0 ? [...reorderList] : [...groups];
+                    const draggedItem = list[draggedIndex];
+                    list.splice(draggedIndex, 1);
+                    list.splice(index, 0, draggedItem);
+                    setReorderList(list);
+                    setDraggedIndex(index);
+                  }}
+                  onDragEnd={() => setDraggedIndex(null)}
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-grab active:cursor-grabbing transition-colors ${
+                    draggedIndex === index 
+                      ? "border-blue-400 bg-blue-50" 
+                      : "border-neutral-200 bg-neutral-50 hover:bg-neutral-100"
+                  }`}
                 >
-                  <span className="text-neutral-400 text-sm font-medium">{index + 1}</span>
-                  <span className="text-sm font-medium text-neutral-900">{group.name}</span>
+                  <svg width="12" height="12" viewBox="0 0 15 15" fill="none" className="text-neutral-400 flex-shrink-0">
+                    <path d="M5.5 4.625C6.12132 4.625 6.625 4.12132 6.625 3.5C6.625 2.87868 6.12132 2.375 5.5 2.375C4.87868 2.375 4.375 2.87868 4.375 3.5C4.375 4.12132 4.87868 4.625 5.5 4.625ZM9.5 4.625C10.1213 4.625 10.625 4.12132 10.625 3.5C10.625 2.87868 10.1213 2.375 9.5 2.375C8.87868 2.375 8.375 2.87868 8.375 3.5C8.375 4.12132 8.87868 4.625 9.5 4.625ZM6.625 7.5C6.625 8.12132 6.12132 8.625 5.5 8.625C4.87868 8.625 4.375 8.12132 4.375 7.5C4.375 6.87868 4.87868 6.375 5.5 6.375C6.12132 6.375 6.625 6.87868 6.625 7.5ZM9.5 8.625C10.1213 8.625 10.625 8.12132 10.625 7.5C10.625 6.87868 10.1213 6.375 9.5 6.375C8.87868 6.375 8.375 6.87868 8.375 7.5C8.375 8.12132 8.87868 8.625 9.5 8.625ZM6.625 11.5C6.625 12.1213 6.12132 12.625 5.5 12.625C4.87868 12.625 4.375 12.1213 4.375 11.5C4.375 10.8787 4.87868 10.375 5.5 10.375C6.12132 10.375 6.625 10.8787 6.625 11.5ZM9.5 12.625C10.1213 12.625 10.625 12.1213 10.625 11.5C10.625 10.8787 10.1213 10.375 9.5 10.375C8.87868 10.375 8.375 10.8787 8.375 11.5C8.375 12.1213 8.87868 12.625 9.5 12.625Z" fill="currentColor" />
+                  </svg>
+                  <span className="text-sm font-medium text-neutral-900 flex-1">{group.name}</span>
                   <span className="text-xs text-neutral-400">({group.ingredients.length})</span>
                 </div>
               ))}
             </div>
-            
-            <p className="mt-4 text-xs text-neutral-400 text-center">
-              Drag-and-drop reordering coming soon
-            </p>
 
-            <div className="mt-6">
+            <div className="mt-6 flex gap-3">
               <button
                 type="button"
-                onClick={() => setShowRearrangeModal(false)}
-                className="w-full rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+                onClick={() => {
+                  setShowRearrangeModal(false);
+                  setReorderList([]);
+                  setDraggedIndex(null);
+                }}
+                disabled={isSavingOrder}
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
               >
-                Close
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!onReorderGroups || reorderList.length === 0) {
+                    setShowRearrangeModal(false);
+                    return;
+                  }
+                  setIsSavingOrder(true);
+                  try {
+                    await onReorderGroups(reorderList.map(g => g.id));
+                    setShowRearrangeModal(false);
+                    setReorderList([]);
+                  } finally {
+                    setIsSavingOrder(false);
+                  }
+                }}
+                disabled={isSavingOrder || reorderList.length === 0}
+                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
+              >
+                {isSavingOrder ? "Saving..." : "Save Order"}
               </button>
             </div>
           </div>

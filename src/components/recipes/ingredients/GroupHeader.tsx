@@ -64,7 +64,7 @@ export function GroupHeader({
   };
 
   return (
-    <div className="flex items-center gap-2 bg-neutral-50 px-4 py-3 border border-neutral-200 rounded-lg">
+    <div className="flex items-center gap-2 bg-neutral-50 px-4 py-3 border border-neutral-200">
       {/* Check All Checkbox */}
       {showCheckAll && onToggleAllIngredients && !isCollapsed ? (
         <div onClick={(e) => e.stopPropagation()}>

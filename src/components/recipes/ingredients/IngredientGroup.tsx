@@ -126,7 +126,7 @@ export function IngredientGroup({
   return (
     <div className="overflow-visible bg-white">
       {/* Full-width header - sticky */}
-      <div className="sticky top-0 z-10 bg-neutral-50 border-b border-neutral-200">
+      <div className="sticky top-0 z-10">
         <GroupHeader
           group={group}
           isCollapsed={isCollapsed}
