@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@radix-ui/themes";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
 
@@ -10,7 +11,9 @@ import { RecipeSearchHeader } from "./sidebar/RecipeSearchHeader";
 import { RecipeList } from "./sidebar/RecipeList";
 import { CreateRecipeForm } from "./sidebar/CreateRecipeForm";
 import { SidebarToolbar } from "./sidebar/SidebarToolbar";
+import { LayoutToggle } from "./sidebar/LayoutToggle";
 import { useSidebarLogic } from "./sidebar/useSidebarLogic";
+import type { SidebarLayout } from "./sidebar/RecipeListItemLayouts";
 
 interface RecipeSidebarProps {
   isOpen: boolean;
@@ -18,8 +21,25 @@ interface RecipeSidebarProps {
   onOpen: () => void;
 }
 
+const LAYOUT_STORAGE_KEY = "whisker-sidebar-layout";
+
 export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
   const { state, actions } = useSidebarLogic(onClose, onOpen);
+  const [layout, setLayout] = useState<SidebarLayout>("default");
+
+  // Load layout preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    if (saved && ["default", "compact", "list", "cards", "minimal"].includes(saved)) {
+      setLayout(saved as SidebarLayout);
+    }
+  }, []);
+
+  // Save layout preference
+  const handleLayoutChange = (newLayout: SidebarLayout) => {
+    setLayout(newLayout);
+    localStorage.setItem(LAYOUT_STORAGE_KEY, newLayout);
+  };
 
   return (
     <>
@@ -99,6 +119,12 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           </Button>
         )}
 
+        {/* Layout Toggle */}
+        <div className="px-4 py-2 border-b border-neutral-100 flex items-center justify-between">
+          <span className="text-xs text-neutral-500 font-medium">View</span>
+          <LayoutToggle layout={layout} onLayoutChange={handleLayoutChange} />
+        </div>
+
         <div className="flex-1 overflow-y-auto px-2 py-4">
           <RecipeList
             recipes={state.filteredRecipes}
@@ -120,6 +146,7 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
             justMoved={state.justMoved}
             archivingInProgress={state.archivingInProgress}
             pinningInProgress={state.pinningInProgress}
+            layout={layout}
           />
         </div>
       </aside>
