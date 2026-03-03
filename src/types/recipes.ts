@@ -1,12 +1,10 @@
 export type IngredientRole =
   | "flour"
   | "liquid"
-  | "preferment"
+  | "leavening"
   | "salt"
   | "sweetener"
   | "fat"
-  | "add_in"
-  | "spice"
   | "other";
 
 export interface Ingredient {
@@ -125,12 +123,10 @@ export const LEGACY_RECIPE_CATEGORIES: LegacyRecipeCategory[] = [
 export const INGREDIENT_ROLES: IngredientRole[] = [
   "flour",
   "liquid",
-  "preferment",
+  "leavening",
   "salt",
   "sweetener",
   "fat",
-  "add_in",
-  "spice",
   "other",
 ];
 

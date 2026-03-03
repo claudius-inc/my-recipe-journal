@@ -43,7 +43,7 @@ Return ONLY valid JSON matching this exact schema:
       "name": "ingredient name",
       "quantity": numeric value,
       "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",
-      "role": "flour" | "liquid" | "preferment" | "salt" | "sweetener" | "fat" | "add_in" | "spice" | "other",
+      "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other",
       "notes": "any clarifications (optional)"
     }
   ],

@@ -66,7 +66,7 @@ export type SecondaryCategory =
   | "main_dish" | "appetizer" | "side_dish" | "sauce" | "condiment"
   | "coffee" | "tea" | "cocktail" | "smoothie" | "fermented"
   | "other";
-export type IngredientRole = "flour" | "liquid" | "preferment" | "salt" | "sweetener" | "fat" | "add_in" | "spice" | "other";
+export type IngredientRole = "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other";
 
 export const recipes = sqliteTable("recipes", {
   id: text("id").primaryKey(),

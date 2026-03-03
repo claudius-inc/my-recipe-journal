@@ -436,7 +436,7 @@ export class CottaJpImporter extends RecipeImporter {
       return "fat";
     }
 
-    // Yeast/Preferment
+    // Yeast/Leavening
     if (
       lowerName.includes("yeast") ||
       lowerName.includes("starter") ||
@@ -444,7 +444,7 @@ export class CottaJpImporter extends RecipeImporter {
       lowerName.includes("酵母") ||
       lowerName.includes("種")
     ) {
-      return "preferment";
+      return "leavening";
     }
 
     return "other";

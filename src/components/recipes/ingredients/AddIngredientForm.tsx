@@ -1,9 +1,11 @@
+"use client";
+
 import { useState, useRef, KeyboardEvent } from "react";
 import { Button, TextField } from "@radix-ui/themes";
-import { PlusIcon } from "@radix-ui/react-icons";
+import { PlusIcon, Cross2Icon } from "@radix-ui/react-icons";
 import type { Ingredient } from "@/types/recipes";
 import { suggestIngredientDefaults } from "@/lib/ingredient-helpers";
-import { IngredientRoleLabels, INGREDIENT_ROLES } from "./constants";
+import { IngredientRoleLabels, INGREDIENT_ROLES, IngredientRoleColors } from "./constants";
 import { cn } from "@/lib/utils";
 import { IngredientAutocomplete } from "@/components/ui/IngredientAutocomplete";
 
@@ -24,6 +26,7 @@ export function AddIngredientForm({
   suggestions,
   isLoadingSuggestions,
 }: AddIngredientFormProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [draft, setDraft] = useState({
     name: "",
     quantity: "",
@@ -68,9 +71,9 @@ export function AddIngredientForm({
       notes: draft.notes?.trim() || undefined,
     });
 
+    // Reset form but keep it expanded for rapid entry
     setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
 
-    // Keep focus on name input for rapid entry
     setTimeout(() => {
       ingredientNameInputRef.current?.focus();
     }, 0);
@@ -81,121 +84,135 @@ export function AddIngredientForm({
       e.preventDefault();
       handleSubmit();
     }
+    if (e.key === "Escape") {
+      setIsExpanded(false);
+    }
   };
 
+  const handleExpand = () => {
+    setIsExpanded(true);
+    setTimeout(() => {
+      ingredientNameInputRef.current?.focus();
+    }, 100);
+  };
+
+  const handleCollapse = () => {
+    setIsExpanded(false);
+    setDraft({ name: "", quantity: "", unit: "", role: "other", notes: "" });
+  };
+
+  // Collapsed state - just show the add button
+  if (!isExpanded) {
+    return (
+      <button
+        type="button"
+        onClick={handleExpand}
+        className="mt-3 flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border border-dashed border-neutral-300 text-neutral-500 hover:border-neutral-400 hover:text-neutral-700 hover:bg-neutral-50 transition-colors"
+      >
+        <PlusIcon className="w-4 h-4" />
+        <span className="text-sm">Add ingredient</span>
+      </button>
+    );
+  }
+
+  // Expanded state - full form
   return (
-    <div className="mt-6 border-t border-neutral-200 pt-6">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="mt-3 border border-neutral-200 rounded-lg p-3 bg-neutral-50">
+      <div className="flex items-center justify-between mb-3">
         <h4 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
           Add ingredient
         </h4>
+        <button
+          type="button"
+          onClick={handleCollapse}
+          className="p-1 rounded hover:bg-neutral-200 text-neutral-400 hover:text-neutral-600"
+        >
+          <Cross2Icon className="w-4 h-4" />
+        </button>
       </div>
 
-      <div className="space-y-4" onKeyDown={handleKeyDown}>
-        {/* Desktop: Horizontal Layout / Mobile: Stacked */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-          {/* Name Input */}
-          <IngredientAutocomplete
-            value={draft.name}
-            onChange={handleNameChange}
-            suggestions={suggestions}
-            isLoading={isLoadingSuggestions}
-            placeholder="Ingredient name"
-            inputRef={ingredientNameInputRef}
-          />
+      <div className="space-y-3" onKeyDown={handleKeyDown}>
+        {/* Name Input */}
+        <IngredientAutocomplete
+          value={draft.name}
+          onChange={handleNameChange}
+          suggestions={suggestions}
+          isLoading={isLoadingSuggestions}
+          placeholder="Ingredient name"
+          inputRef={ingredientNameInputRef}
+        />
 
-          {/* Quantity & Unit Row */}
-          <div className="flex gap-2 sm:w-auto">
-            <TextField.Root
-              type="number"
-              inputMode="decimal"
-              value={draft.quantity}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, quantity: event.target.value }))
-              }
-              placeholder="Qty"
-              className="w-20 shrink-0 sm:w-24"
-              size="2"
-            />
-            <TextField.Root
-              value={draft.unit}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, unit: event.target.value }))
-              }
-              placeholder="Unit"
-              className="w-20 shrink-0 sm:w-24"
-              size="2"
-            />
-          </div>
-
-          {/* Add Button (Desktop) */}
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!isFormValid}
-            variant="solid"
+        {/* Quantity & Unit Row */}
+        <div className="flex gap-2">
+          <TextField.Root
+            type="number"
+            inputMode="decimal"
+            value={draft.quantity}
+            onChange={(event) =>
+              setDraft((prev) => ({ ...prev, quantity: event.target.value }))
+            }
+            placeholder="Qty"
+            className="w-24 shrink-0"
             size="2"
-            className="hidden sm:flex"
-          >
-            Add
-          </Button>
+          />
+          <TextField.Root
+            value={draft.unit}
+            onChange={(event) =>
+              setDraft((prev) => ({ ...prev, unit: event.target.value }))
+            }
+            placeholder="Unit"
+            className="w-24 shrink-0"
+            size="2"
+          />
+          
+          {/* Quick Units - show only when name entered but no unit */}
+          {draft.name && !draft.unit && (
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {["g", "ml", "pc", "tbsp", "tsp"].map((unit) => (
+                <button
+                  key={unit}
+                  type="button"
+                  onClick={() => setQuickUnit(unit)}
+                  className="shrink-0 rounded border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-white"
+                >
+                  {unit}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Role Selection - Horizontal Scrollable Chips */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <span className="text-xs text-neutral-500 shrink-0">Role:</span>
-            {INGREDIENT_ROLES.map((role) => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => setDraft((prev) => ({ ...prev, role }))}
-                className={cn(
-                  "flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                  draft.role === role
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200",
-                )}
-              >
-                {IngredientRoleLabels[role]}
-              </button>
-            ))}
-          </div>
+        {/* Role Selection - Compact Chips */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-neutral-400 mr-1">Role:</span>
+          {INGREDIENT_ROLES.map((role) => (
+            <button
+              key={role}
+              type="button"
+              onClick={() => setDraft((prev) => ({ ...prev, role }))}
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-medium transition-all",
+                draft.role === role
+                  ? IngredientRoleColors[role]
+                  : "bg-white text-neutral-500 border border-neutral-200 hover:border-neutral-300",
+              )}
+            >
+              {IngredientRoleLabels[role]}
+            </button>
+          ))}
         </div>
 
-        {/* Quick Units & Mobile Add Button */}
-        <div className="flex items-center justify-between gap-3 sm:justify-start">
-          {/* Quick Units */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-            {!draft.unit && draft.name && (
-              <>
-                <span className="text-xs text-neutral-400 shrink-0">Quick units:</span>
-                {["g", "ml", "cup", "tbsp", "tsp", "pc"].map((unit) => (
-                  <button
-                    key={unit}
-                    type="button"
-                    onClick={() => setQuickUnit(unit)}
-                    className="shrink-0 rounded-md border border-neutral-200 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50"
-                  >
-                    {unit}
-                  </button>
-                ))}
-              </>
-            )}
-          </div>
-
-          {/* Add Button (Mobile) */}
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!isFormValid}
-            variant="solid"
-            size="3"
-            className="w-full sm:hidden"
-          >
-            <PlusIcon /> Add Ingredient
-          </Button>
-        </div>
+        {/* Add Button */}
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!isFormValid}
+          variant="solid"
+          size="2"
+          className="w-full"
+        >
+          <PlusIcon /> Add
+        </Button>
       </div>
     </div>
   );

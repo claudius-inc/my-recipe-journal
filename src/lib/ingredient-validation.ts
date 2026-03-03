@@ -102,11 +102,11 @@ export function validateIngredients(
 
     if (
       ing.role === "other" &&
-      (nameLower.includes("yeast") || nameLower.includes("starter"))
+      (nameLower.includes("yeast") || nameLower.includes("starter") || nameLower.includes("levain") || nameLower.includes("baking"))
     ) {
       warnings.push({
         type: "role_mismatch",
-        message: `"${ing.name}" could be marked as "preferment" if it's a sourdough starter, or keep as "other" for commercial yeast.`,
+        message: `"${ing.name}" might be better marked as "leavening" for baker's percentage calculations.`,
         severity: "info",
       });
     }
