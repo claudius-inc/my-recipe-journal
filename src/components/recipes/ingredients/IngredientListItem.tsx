@@ -70,6 +70,8 @@ export function IngredientListItem({
   // Menu and modal states
   const [showMenu, setShowMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
@@ -521,11 +523,19 @@ export function IngredientListItem({
           )}
 
           {/* Three-dot Menu */}
-          <div className="relative md:col-span-1">
+          <div className="md:col-span-1">
             <button
+              ref={menuButtonRef}
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
+                if (menuButtonRef.current) {
+                  const rect = menuButtonRef.current.getBoundingClientRect();
+                  setMenuPosition({
+                    top: rect.bottom + 4,
+                    right: window.innerWidth - rect.right,
+                  });
+                }
                 setShowMenu(!showMenu);
               }}
               className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
@@ -538,36 +548,40 @@ export function IngredientListItem({
                 />
               </svg>
             </button>
-            
-            {showMenu && (
-              <>
-                <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
-                <div className="absolute right-0 top-full z-30 mt-1 w-32 rounded-lg border border-neutral-200 bg-white shadow-lg py-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowEditModal(true);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowDeleteConfirm(true);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
+        
+        {/* Three-dot Menu Dropdown - Fixed position to escape overflow */}
+        {showMenu && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+            <div 
+              className="fixed z-50 w-32 rounded-lg border border-neutral-200 bg-white shadow-lg py-1"
+              style={{ top: menuPosition.top, right: menuPosition.right }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowEditModal(true);
+                }}
+                className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowDeleteConfirm(true);
+                }}
+                className="w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
+              >
+                Delete
+              </button>
+            </div>
+          </>
+        )}
 
       </div>
 
