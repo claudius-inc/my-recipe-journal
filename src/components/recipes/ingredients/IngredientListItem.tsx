@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, KeyboardEvent, TouchEvent } from "react";
-import { Checkbox } from "@radix-ui/themes";
+import { Checkbox, DropdownMenu } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
@@ -67,11 +67,8 @@ export function IngredientListItem({
   const percentInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   
-  // Menu and modal states
-  const [showMenu, setShowMenu] = useState(false);
+  // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
@@ -523,65 +520,33 @@ export function IngredientListItem({
           )}
 
           {/* Three-dot Menu */}
-          <div className="md:col-span-1">
-            <button
-              ref={menuButtonRef}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (menuButtonRef.current) {
-                  const rect = menuButtonRef.current.getBoundingClientRect();
-                  setMenuPosition({
-                    top: rect.bottom + 4,
-                    right: window.innerWidth - rect.right,
-                  });
-                }
-                setShowMenu(!showMenu);
-              }}
-              className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
-              aria-label="Ingredient options"
-            >
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-                <path
-                  d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5ZM8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5ZM13.625 7.5C13.625 8.12132 13.1213 8.625 12.5 8.625C11.8787 8.625 11.375 8.12132 11.375 7.5C11.375 6.87868 11.8787 6.375 12.5 6.375C13.1213 6.375 13.625 6.87868 13.625 7.5Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </button>
+          <div className="md:col-span-1" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <button
+                  type="button"
+                  className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-600"
+                  aria-label="Ingredient options"
+                >
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                    <path
+                      d="M3.625 7.5C3.625 8.12132 3.12132 8.625 2.5 8.625C1.87868 8.625 1.375 8.12132 1.375 7.5C1.375 6.87868 1.87868 6.375 2.5 6.375C3.12132 6.375 3.625 6.87868 3.625 7.5ZM8.625 7.5C8.625 8.12132 8.12132 8.625 7.5 8.625C6.87868 8.625 6.375 8.12132 6.375 7.5C6.375 6.87868 6.87868 6.375 7.5 6.375C8.12132 6.375 8.625 6.87868 8.625 7.5ZM13.625 7.5C13.625 8.12132 13.1213 8.625 12.5 8.625C11.8787 8.625 11.375 8.12132 11.375 7.5C11.375 6.87868 11.8787 6.375 12.5 6.375C13.1213 6.375 13.625 6.87868 13.625 7.5Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="end">
+                <DropdownMenu.Item onSelect={() => setShowEditModal(true)}>
+                  Edit
+                </DropdownMenu.Item>
+                <DropdownMenu.Item color="red" onSelect={() => setShowDeleteConfirm(true)}>
+                  Delete
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
           </div>
         </div>
-        
-        {/* Three-dot Menu Dropdown - Fixed position to escape overflow */}
-        {showMenu && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-            <div 
-              className="fixed z-50 w-32 rounded-lg border border-neutral-200 bg-white shadow-lg py-1"
-              style={{ top: menuPosition.top, right: menuPosition.right }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowEditModal(true);
-                }}
-                className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowMenu(false);
-                  setShowDeleteConfirm(true);
-                }}
-                className="w-full px-4 py-2 text-left text-sm text-red-600 transition hover:bg-red-50"
-              >
-                Delete
-              </button>
-            </div>
-          </>
-        )}
 
       </div>
 
