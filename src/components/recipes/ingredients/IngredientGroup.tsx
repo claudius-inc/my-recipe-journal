@@ -139,6 +139,7 @@ export function IngredientGroup({
           showCheckAll={!!onToggleAllIngredients && group.ingredients.length > 0}
           allChecked={allChecked}
           onToggleAllIngredients={onToggleAllIngredients}
+          checkedIngredients={checkedIngredients}
         />
       </div>
       

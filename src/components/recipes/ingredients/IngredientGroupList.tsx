@@ -100,6 +100,8 @@ function IngredientGroupListInner({
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupBakersPercent, setNewGroupBakersPercent] = useState(false);
   const [isSavingGroup, setIsSavingGroup] = useState(false);
+  const [showGroupMenu, setShowGroupMenu] = useState(false);
+  const [showRearrangeModal, setShowRearrangeModal] = useState(false);
 
   const handleToggleCollapse = useCallback((groupId: string) => {
     setCollapsedGroups((prev) => {
@@ -161,14 +163,51 @@ function IngredientGroupListInner({
         <h3 className="text-sm font-medium text-neutral-900">
           Ingredients ({totalIngredients})
         </h3>
-        <button
-          type="button"
-          onClick={() => setIsAddingGroup(true)}
-          disabled={isSavingGroup}
-          className="text-xs text-blue-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          + Add Group
-        </button>
+        
+        {/* Group Actions Dropdown */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowGroupMenu(!showGroupMenu)}
+            className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+          >
+            Groups
+            <svg width="12" height="12" viewBox="0 0 15 15" fill="none" className="mt-0.5">
+              <path d="M4 6L7.5 9.5L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          
+          {showGroupMenu && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setShowGroupMenu(false)} />
+              <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-lg border border-neutral-200 bg-white shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingGroup(true);
+                    setShowGroupMenu(false);
+                  }}
+                  disabled={isSavingGroup}
+                  className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+                >
+                  + Add Group
+                </button>
+                {groups.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRearrangeModal(true);
+                      setShowGroupMenu(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
+                  >
+                    Rearrange Groups
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Groups */}
@@ -324,6 +363,47 @@ function IngredientGroupListInner({
                 ) : (
                   "Add Group"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rearrange Groups Modal */}
+      {showRearrangeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-neutral-900">
+              Rearrange Groups
+            </h3>
+            <p className="mt-2 text-sm text-neutral-500">
+              Drag groups to reorder them.
+            </p>
+            
+            <div className="mt-4 space-y-2">
+              {groups.map((group, index) => (
+                <div
+                  key={group.id}
+                  className="flex items-center gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3"
+                >
+                  <span className="text-neutral-400 text-sm font-medium">{index + 1}</span>
+                  <span className="text-sm font-medium text-neutral-900">{group.name}</span>
+                  <span className="text-xs text-neutral-400">({group.ingredients.length})</span>
+                </div>
+              ))}
+            </div>
+            
+            <p className="mt-4 text-xs text-neutral-400 text-center">
+              Drag-and-drop reordering coming soon
+            </p>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => setShowRearrangeModal(false)}
+                className="w-full rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+              >
+                Close
               </button>
             </div>
           </div>

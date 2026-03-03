@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDownIcon, DragHandleDots2Icon } from "@radix-ui/react-icons";
-import { Switch, Text, Flex } from "@radix-ui/themes";
+import { ChevronDownIcon, CheckIcon } from "@radix-ui/react-icons";
+import { Switch, Text, Flex, Checkbox } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { IngredientGroup } from "@/types/recipes";
 
@@ -18,6 +18,7 @@ interface GroupHeaderProps {
   showCheckAll?: boolean;
   allChecked?: boolean;
   onToggleAllIngredients?: () => void;
+  checkedIngredients?: Set<string>;
 }
 
 export function GroupHeader({
@@ -31,6 +32,7 @@ export function GroupHeader({
   showCheckAll = false,
   allChecked = false,
   onToggleAllIngredients,
+  checkedIngredients,
 }: GroupHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(group.name);
@@ -62,15 +64,19 @@ export function GroupHeader({
   };
 
   return (
-    <div className="flex items-center gap-2 bg-neutral-50 px-4 py-3">
-      {/* Drag Handle */}
-      <button
-        type="button"
-        className="cursor-grab text-neutral-400 transition hover:text-neutral-600 active:cursor-grabbing"
-        aria-label="Drag to reorder group"
-      >
-        <DragHandleDots2Icon className="h-4 w-4" />
-      </button>
+    <div className="flex items-center gap-2 bg-neutral-50 px-4 py-3 border border-neutral-200 rounded-lg">
+      {/* Check All Checkbox */}
+      {showCheckAll && onToggleAllIngredients && !isCollapsed ? (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={allChecked ? true : group.ingredients.some((ing) => checkedIngredients?.has(ing.id)) ? "indeterminate" : false}
+            onCheckedChange={() => onToggleAllIngredients()}
+            aria-label={allChecked ? "Uncheck all ingredients" : "Check all ingredients"}
+          />
+        </div>
+      ) : (
+        <div className="w-4" /> // Spacer when no checkbox
+      )}
 
       {/* Collapse/Expand Button */}
       <button
@@ -114,17 +120,6 @@ export function GroupHeader({
           </button>
         )}
       </div>
-
-      {/* Check All Button */}
-      {showCheckAll && onToggleAllIngredients && !isCollapsed && (
-        <button
-          type="button"
-          onClick={onToggleAllIngredients}
-          className="text-xs text-blue-600 hover:underline flex-shrink-0"
-        >
-          {allChecked ? "Uncheck" : "Check all"}
-        </button>
-      )}
 
       {/* Baker's Percentage Toggle (only for baking categories, hidden on mobile) */}
       {isBakingCategory && (
