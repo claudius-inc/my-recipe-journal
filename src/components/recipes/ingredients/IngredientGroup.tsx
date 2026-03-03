@@ -144,9 +144,9 @@ export function IngredientGroup({
       </div>
       
       {!isCollapsed && (
-        <div className="py-1">
+        <div className="py-2 pb-4">
           {/* Ingredient List */}
-          <div>
+          <div className="px-3">
             {group.ingredients.map((ingredient) => (
               <IngredientListItem
                 key={ingredient.id}

@@ -232,7 +232,7 @@ function IngredientGroupListInner({
       </div>
 
       {/* Groups */}
-      <div className="overflow-visible">
+      <div className="overflow-visible space-y-3">
         {groups.map((group) => (
           <IngredientGroup
             key={group.id}
