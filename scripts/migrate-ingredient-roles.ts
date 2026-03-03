@@ -27,9 +27,9 @@ async function migrate() {
     "SELECT COUNT(*) as count FROM ingredients WHERE role = 'spice'",
   ]);
 
-  const prefermentCount = (counts[0].rows[0] as { count: number }).count;
-  const addInCount = (counts[1].rows[0] as { count: number }).count;
-  const spiceCount = (counts[2].rows[0] as { count: number }).count;
+  const prefermentCount = (counts[0].rows[0] as unknown as { count: number }).count;
+  const addInCount = (counts[1].rows[0] as unknown as { count: number }).count;
+  const spiceCount = (counts[2].rows[0] as unknown as { count: number }).count;
 
   console.log(`Found:`);
   console.log(`  - ${prefermentCount} ingredients with role 'preferment' → will become 'leavening'`);

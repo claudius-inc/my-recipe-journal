@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, KeyboardEvent } from "react";
 import { Checkbox, TextField } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { InteractivePercentageEditor } from "./InteractivePercentageEditor";
 import { ChevronDownIcon, InfoCircledIcon } from "@radix-ui/react-icons";
-
-import { IngredientRoleLabels, INGREDIENT_ROLES } from "./constants";
+import { IngredientRoleLabels, IngredientRoleColors, INGREDIENT_ROLES } from "./constants";
 
 interface IngredientListItemProps {
   ingredient: Ingredient;
@@ -56,6 +55,12 @@ export function IngredientListItem({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showNotePopover, setShowNotePopover] = useState(false);
+  
+  // Inline editing states
+  const [isEditingQuantity, setIsEditingQuantity] = useState(false);
+  const [inlineQuantity, setInlineQuantity] = useState(ingredient.quantity.toString());
+  const [inlineUnit, setInlineUnit] = useState(ingredient.unit);
+  const quantityInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setEditState({
@@ -65,7 +70,17 @@ export function IngredientListItem({
       role: ingredient.role,
       notes: ingredient.notes ?? "",
     });
+    setInlineQuantity(ingredient.quantity.toString());
+    setInlineUnit(ingredient.unit);
   }, [ingredient]);
+
+  // Focus input when inline editing starts
+  useEffect(() => {
+    if (isEditingQuantity && quantityInputRef.current) {
+      quantityInputRef.current.focus();
+      quantityInputRef.current.select();
+    }
+  }, [isEditingQuantity]);
 
   const handleSave = async () => {
     const parsed = Number(editState.quantity);
@@ -109,6 +124,47 @@ export function IngredientListItem({
     }
   };
 
+  // Inline quantity editing handlers
+  const handleInlineQuantityClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditingQuantity(true);
+  };
+
+  const handleInlineSave = async () => {
+    const parsed = Number(inlineQuantity);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      // Reset to original
+      setInlineQuantity(ingredient.quantity.toString());
+      setInlineUnit(ingredient.unit);
+      setIsEditingQuantity(false);
+      return;
+    }
+
+    if (parsed !== ingredient.quantity || inlineUnit !== ingredient.unit) {
+      await onSave(ingredient.id, { 
+        quantity: parsed, 
+        unit: inlineUnit.trim() || ingredient.unit 
+      });
+    }
+    setIsEditingQuantity(false);
+  };
+
+  const handleInlineCancel = () => {
+    setInlineQuantity(ingredient.quantity.toString());
+    setInlineUnit(ingredient.unit);
+    setIsEditingQuantity(false);
+  };
+
+  const handleInlineKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleInlineSave();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleInlineCancel();
+    }
+  };
+
   const bakerPercentage =
     enableBakersPercent && flourTotal > 0
       ? ((ingredient.quantity / flourTotal) * 100).toFixed(1)
@@ -125,29 +181,27 @@ export function IngredientListItem({
             : "border-transparent hover:border-neutral-300 hover:bg-neutral-50",
       )}
     >
-      {/* Main Row - Mobile: Single row, Desktop: Grid */}
+      {/* Main Row */}
       <div
         className={cn(
           "flex items-center gap-2 md:grid md:grid-cols-11 md:gap-3",
-          !isExpanded && "cursor-pointer",
+          !isExpanded && !isEditingQuantity && "cursor-pointer",
         )}
-        onClick={() => !isExpanded && onToggleExpand(ingredient.id)}
+        onClick={() => !isExpanded && !isEditingQuantity && onToggleExpand(ingredient.id)}
         role="button"
         tabIndex={0}
         aria-expanded={isExpanded}
         aria-label={`${isExpanded ? "Collapse" : "Expand"} ${ingredient.name}`}
         onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && !isExpanded) {
+          if ((e.key === "Enter" || e.key === " ") && !isExpanded && !isEditingQuantity) {
             e.preventDefault();
             onToggleExpand(ingredient.id);
           }
         }}
       >
-        {/* Checkbox - Isolated touch target */}
+        {/* Checkbox */}
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-          }}
+          onClick={(e) => e.stopPropagation()}
           className="flex h-8 w-5 flex-shrink-0 items-center justify-center rounded transition hover:bg-neutral-100 md:col-span-1"
         >
           <Checkbox
@@ -185,7 +239,6 @@ export function IngredientListItem({
                 </button>
                 {showNotePopover && (
                   <>
-                    {/* Backdrop to close popover */}
                     <div
                       className="fixed inset-0 z-10"
                       onClick={(e) => {
@@ -193,7 +246,6 @@ export function IngredientListItem({
                         setShowNotePopover(false);
                       }}
                     />
-                    {/* Popover */}
                     <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg">
                       <div className="mb-2 flex items-center justify-between">
                         <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
@@ -220,38 +272,85 @@ export function IngredientListItem({
           </div>
         </div>
 
-        {/* Amount + Unit (inline on mobile, separate on desktop) */}
+        {/* Amount + Unit - INLINE EDITABLE */}
+        {isEditingQuantity ? (
+          // Inline edit mode
+          <div 
+            className="flex items-center gap-1 md:col-span-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              ref={quantityInputRef}
+              type="number"
+              inputMode="decimal"
+              value={inlineQuantity}
+              onChange={(e) => setInlineQuantity(e.target.value)}
+              onBlur={handleInlineSave}
+              onKeyDown={handleInlineKeyDown}
+              className="w-16 rounded border border-neutral-300 px-2 py-1 text-sm text-center focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+            />
+            <input
+              type="text"
+              value={inlineUnit}
+              onChange={(e) => setInlineUnit(e.target.value)}
+              onBlur={handleInlineSave}
+              onKeyDown={handleInlineKeyDown}
+              className="w-12 rounded border border-neutral-300 px-2 py-1 text-sm text-center focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+            />
+            {isSaving && <SaveIndicator isSaving={true} />}
+          </div>
+        ) : (
+          // Display mode - tap to edit
+          <>
+            {/* Mobile: Combined display */}
+            <button
+              type="button"
+              onClick={handleInlineQuantityClick}
+              className={cn(
+                "flex-shrink-0 rounded px-2 py-0.5 text-sm text-neutral-600 transition hover:bg-neutral-100 md:hidden",
+                isChecked && "opacity-60",
+              )}
+              title="Tap to edit"
+            >
+              {ingredient.quantity}{ingredient.unit}
+            </button>
+            
+            {/* Desktop: Separate columns */}
+            <button
+              type="button"
+              onClick={handleInlineQuantityClick}
+              className={cn(
+                "hidden rounded px-2 py-0.5 text-sm text-neutral-500 transition hover:bg-neutral-100 md:col-span-2 md:inline md:text-center",
+                isChecked && "opacity-60",
+              )}
+              title="Click to edit"
+            >
+              {ingredient.quantity}
+            </button>
+            <button
+              type="button"
+              onClick={handleInlineQuantityClick}
+              className={cn(
+                "hidden rounded px-1 py-0.5 text-sm text-neutral-500 transition hover:bg-neutral-100 md:col-span-1 md:inline md:text-center",
+                isChecked && "opacity-60",
+              )}
+              title="Click to edit"
+            >
+              {ingredient.unit}
+            </button>
+          </>
+        )}
+
+        {/* Role badge (mobile + desktop) */}
         <span
           className={cn(
-            "flex-shrink-0 text-sm text-neutral-500 md:col-span-2 md:text-center",
+            "hidden text-xs md:col-span-2 md:inline md:text-center",
             isChecked && "opacity-60",
           )}
         >
-          <span className="md:hidden">
-            {ingredient.quantity}
-            {ingredient.unit}
+          <span className={cn("rounded-full px-2 py-0.5", IngredientRoleColors[ingredient.role])}>
+            {IngredientRoleLabels[ingredient.role]}
           </span>
-          <span className="hidden md:inline">{ingredient.quantity}</span>
-        </span>
-
-        {/* Unit (desktop only) */}
-        <span
-          className={cn(
-            "hidden text-sm text-neutral-500 md:col-span-1 md:inline md:text-center",
-            isChecked && "opacity-60",
-          )}
-        >
-          {ingredient.unit}
-        </span>
-
-        {/* Role (desktop only) */}
-        <span
-          className={cn(
-            "hidden text-xs text-neutral-500 md:col-span-2 md:inline md:text-center",
-            isChecked && "opacity-60",
-          )}
-        >
-          {IngredientRoleLabels[ingredient.role]}
         </span>
 
         {/* Baker's Percentage */}
@@ -266,7 +365,6 @@ export function IngredientListItem({
           </span>
         )}
 
-        {/* Spacer for layout when no percentage */}
         {!bakerPercentage && enableBakersPercent && (
           <span className="hidden md:col-span-1 md:inline"></span>
         )}
@@ -330,7 +428,7 @@ export function IngredientListItem({
                     setEditState((prev) => ({ ...prev, quantity: e.target.value }))
                   }
                   placeholder="Amount"
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                  className="w-full"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -341,33 +439,34 @@ export function IngredientListItem({
                     setEditState((prev) => ({ ...prev, unit: e.target.value }))
                   }
                   placeholder="Unit"
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                  className="w-full"
                 />
               </div>
             </div>
 
-            {/* Role Selector */}
+            {/* Role Selector - Chips */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-neutral-500">Role</label>
-              <select
-                value={editState.role}
-                onChange={(e) =>
-                  setEditState((prev) => ({
-                    ...prev,
-                    role: e.target.value as Ingredient["role"],
-                  }))
-                }
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-              >
+              <div className="flex flex-wrap gap-1.5">
                 {INGREDIENT_ROLES.map((role) => (
-                  <option key={role} value={role}>
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => setEditState((prev) => ({ ...prev, role }))}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-xs font-medium transition-all",
+                      editState.role === role
+                        ? IngredientRoleColors[role]
+                        : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
+                    )}
+                  >
                     {IngredientRoleLabels[role]}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
-            {/* Interactive Percentage Editor (for Baker's Percentage) */}
+            {/* Interactive Percentage Editor */}
             {enableBakersPercent && flourTotal > 0 && (
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-neutral-500">
@@ -393,7 +492,7 @@ export function IngredientListItem({
               </div>
             )}
 
-            {/* Notes Textarea */}
+            {/* Notes */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-neutral-500">
                 Notes (optional)
@@ -403,7 +502,7 @@ export function IngredientListItem({
                 onChange={(e) =>
                   setEditState((prev) => ({ ...prev, notes: e.target.value }))
                 }
-                placeholder="Optional notes on ingredient tweaks"
+                placeholder="Optional notes"
                 rows={2}
                 className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
               />
