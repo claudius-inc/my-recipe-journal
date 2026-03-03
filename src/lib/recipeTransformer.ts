@@ -9,7 +9,6 @@ import type {
   PrimaryCategoryKey,
   SecondaryCategoryKey,
 } from "@/types/recipes";
-import type { PrimaryCategory, SecondaryCategory } from "@prisma/client";
 import { validateSteps } from "./recipe-steps-helpers";
 
 export const recipeWithRelations = {
@@ -81,8 +80,8 @@ type PrismaRecipeVersionRecord = {
 type PrismaRecipeRecord = {
   id: string;
   name: string;
-  primaryCategory: PrimaryCategory | null;
-  secondaryCategory: SecondaryCategory | null;
+  primaryCategory: string | null;
+  secondaryCategory: string | null;
   description: string | null;
   tags: unknown;
   activeVersionId: string | null;
