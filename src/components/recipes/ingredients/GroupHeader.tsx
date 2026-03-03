@@ -12,8 +12,12 @@ interface GroupHeaderProps {
   onToggleCollapse: () => void;
   onUpdateGroup: (data: Partial<IngredientGroup>) => Promise<void>;
   onDeleteGroup: () => void;
-  canDelete: boolean; // Can't delete if it's the only group
-  isBakingCategory: boolean; // Only show baker's % toggle for baking
+  canDelete: boolean;
+  isBakingCategory: boolean;
+  // Check all props
+  showCheckAll?: boolean;
+  allChecked?: boolean;
+  onToggleAllIngredients?: () => void;
 }
 
 export function GroupHeader({
@@ -24,12 +28,14 @@ export function GroupHeader({
   onDeleteGroup,
   canDelete,
   isBakingCategory,
+  showCheckAll = false,
+  allChecked = false,
+  onToggleAllIngredients,
 }: GroupHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState(group.name);
   const [showMenu, setShowMenu] = useState(false);
 
-  // Sync editedName when group.name changes from parent (e.g., after API update)
   useEffect(() => {
     if (!isEditingName) {
       setEditedName(group.name);
@@ -38,10 +44,9 @@ export function GroupHeader({
 
   const handleSaveName = () => {
     const trimmedName = editedName.trim();
-    setIsEditingName(false); // Close immediately for snappy UX
+    setIsEditingName(false);
 
     if (trimmedName && trimmedName !== group.name) {
-      // Fire and forget - let API call happen in background
       onUpdateGroup({ name: trimmedName }).catch((error) => {
         console.error("Failed to save group name:", error);
       });
@@ -57,7 +62,7 @@ export function GroupHeader({
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-t-lg bg-neutral-50 px-4 py-3">
+    <div className="flex items-center gap-2 bg-neutral-50 px-4 py-3">
       {/* Drag Handle */}
       <button
         type="button"
@@ -81,7 +86,7 @@ export function GroupHeader({
       </button>
 
       {/* Group Name */}
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         {isEditingName ? (
           <input
             autoFocus
@@ -103,18 +108,29 @@ export function GroupHeader({
           <button
             type="button"
             onClick={() => setIsEditingName(true)}
-            className="text-sm font-medium text-neutral-900 hover:text-neutral-700"
+            className="text-sm font-medium text-neutral-900 hover:text-neutral-700 truncate"
           >
             {group.name} ({group.ingredients.length})
           </button>
         )}
       </div>
 
+      {/* Check All Button */}
+      {showCheckAll && onToggleAllIngredients && !isCollapsed && (
+        <button
+          type="button"
+          onClick={onToggleAllIngredients}
+          className="text-xs text-blue-600 hover:underline flex-shrink-0"
+        >
+          {allChecked ? "Uncheck" : "Check all"}
+        </button>
+      )}
+
       {/* Baker's Percentage Toggle (only for baking categories, hidden on mobile) */}
       {isBakingCategory && (
-        <Flex gap="2" align="center" className="hidden md:flex">
+        <Flex gap="2" align="center" className="hidden md:flex flex-shrink-0">
           <Text size="2" weight="medium" className="text-neutral-700">
-            Baker&apos;s %
+            %
           </Text>
           <Switch
             size="1"
@@ -126,7 +142,7 @@ export function GroupHeader({
       )}
 
       {/* Menu Button */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <button
           type="button"
           onClick={() => setShowMenu(!showMenu)}
@@ -147,13 +163,13 @@ export function GroupHeader({
           </svg>
         </button>
 
-        {/* Dropdown Menu */}
+        {/* Dropdown Menu - z-30 to be above sticky header (z-10) */}
         {showMenu && (
           <>
             {/* Backdrop */}
-            <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+            <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)} />
             {/* Menu */}
-            <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border border-neutral-200 bg-white shadow-lg">
+            <div className="absolute right-0 top-full z-30 mt-1 w-40 rounded-lg border border-neutral-200 bg-white shadow-lg">
               <button
                 type="button"
                 onClick={() => {
@@ -174,7 +190,7 @@ export function GroupHeader({
                     <Switch
                       size="1"
                       checked={group.enableBakersPercent}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={() => {
                         handleToggleBakersPercent();
                         setShowMenu(false);
                       }}
