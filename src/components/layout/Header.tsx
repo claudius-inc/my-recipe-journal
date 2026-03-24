@@ -22,10 +22,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         justifyContent: "space-between",
         paddingLeft: "1rem",
         paddingRight: "1rem",
-        backgroundColor: "#ffffff",
         borderBottom: "1px solid #e5e7eb",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
       }}
     >
       <div className="flex items-center gap-3">
