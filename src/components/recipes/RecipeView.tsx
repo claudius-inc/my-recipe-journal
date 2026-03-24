@@ -874,7 +874,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
 
       {/* Speed Dial FAB */}
       <SpeedDialFAB
-        onOpenAI={() => setIsAIAssistantOpen(true)}
         onDuplicate={() => setIsDuplicateModalOpen(true)}
         onArchive={handleToggleArchive}
         isArchived={!!selectedRecipe?.archivedAt}

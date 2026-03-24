@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "A recipe journaling app for bakers and beverage creatives.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/logo.png",
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
     apple: "/logo.png",
   },
   appleWebApp: {

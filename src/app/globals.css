@@ -10,7 +10,11 @@
   --accent: 34 197 94;
 }
 
-* {
+*,
+*::before,
+*::after {
+  border-width: 0;
+  border-style: solid;
   border-color: rgba(var(--foreground), 0.08);
 }
 

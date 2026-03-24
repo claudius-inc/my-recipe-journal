@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button, Tooltip } from "@radix-ui/themes";
-import { MoonIcon, CopyIcon, ArchiveIcon, Cross2Icon } from "@radix-ui/react-icons";
+import { CopyIcon, ArchiveIcon, Cross2Icon, PlusIcon } from "@radix-ui/react-icons";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 
 interface SpeedDialAction {
@@ -14,33 +14,18 @@ interface SpeedDialAction {
 }
 
 interface SpeedDialFABProps {
-  onOpenAI: () => void;
   onDuplicate: () => void;
   onArchive: () => void;
   isArchived: boolean;
 }
 
-export function SpeedDialFAB({
-  onOpenAI,
-  onDuplicate,
-  onArchive,
-  isArchived,
-}: SpeedDialFABProps) {
+export function SpeedDialFAB({ onDuplicate, onArchive, isArchived }: SpeedDialFABProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { isKeyboardVisible } = useKeyboardHeight();
   const fabRef = useRef<HTMLDivElement>(null);
 
   // Define actions
   const actions: SpeedDialAction[] = [
-    {
-      icon: <MoonIcon className="h-4 w-4" />,
-      label: "Recipe Helper",
-      onClick: () => {
-        onOpenAI();
-        setIsOpen(false);
-      },
-      ariaLabel: "Open Recipe Helper",
-    },
     {
       icon: <CopyIcon className="h-4 w-4" />,
       label: "Duplicate Recipe",
@@ -131,9 +116,12 @@ export function SpeedDialFAB({
                     variant="solid"
                     size="3"
                     radius="full"
-                    className={`group flex h-12 w-12 items-center justify-center border border-neutral-700 bg-neutral-800 text-white shadow-lg transition-all hover:scale-110 hover:bg-neutral-900 hover:shadow-xl active:scale-95 ${
-                      action.color || ""
-                    }`}
+                    className="group flex h-12 w-12 items-center justify-center shadow-lg transition-all hover:scale-110 hover:shadow-xl active:scale-95"
+                    style={{
+                      backgroundColor: "#262626",
+                      color: action.color === "text-orange-600" ? "#ea580c" : "#ffffff",
+                      border: "1px solid #404040",
+                    }}
                     aria-label={action.ariaLabel}
                   >
                     {action.icon}
@@ -152,23 +140,19 @@ export function SpeedDialFAB({
             variant="solid"
             size="4"
             radius="full"
-            className={`group flex h-14 w-14 items-center justify-center border border-neutral-700 bg-neutral-800 text-white shadow-lg transition-all hover:scale-105 hover:bg-neutral-900 hover:shadow-xl active:scale-95 ${
-              isOpen ? "rotate-45" : "rotate-0"
-            }`}
+            className="group flex h-14 w-14 items-center justify-center shadow-lg transition-all hover:scale-105 hover:shadow-xl active:scale-95"
+            style={{
+              backgroundColor: "#262626",
+              color: "#ffffff",
+              border: "1px solid #404040",
+            }}
             aria-label={isOpen ? "Close quick actions menu" : "Open quick actions menu"}
             aria-expanded={isOpen}
           >
             {isOpen ? (
-              <Cross2Icon className="h-5 w-5" />
+              <Cross2Icon width={20} height={20} />
             ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-              </svg>
+              <PlusIcon width={20} height={20} />
             )}
           </Button>
         </Tooltip>

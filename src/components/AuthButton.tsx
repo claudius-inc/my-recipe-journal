@@ -61,14 +61,12 @@ export function AuthButton() {
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Content align="end" className="min-w-[16rem]">
-        <DropdownMenu.Label>
-          <div className="px-1 py-1.5">
-            <p className="text-xs text-neutral-500">Signed in as</p>
-            <p className="mt-1 truncate text-sm font-medium text-neutral-900">
-              {session.user?.email}
-            </p>
-          </div>
-        </DropdownMenu.Label>
+        <div className="px-3 py-2">
+          <p className="text-xs text-neutral-500">Signed in as</p>
+          <p className="mt-1 truncate text-sm font-medium text-neutral-900">
+            {session.user?.email}
+          </p>
+        </div>
 
         <DropdownMenu.Separator />
 
