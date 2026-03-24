@@ -1,6 +1,6 @@
 {
-  "name": "Whisker",
-  "short_name": "Whisker",
+  "name": "Whiskers",
+  "short_name": "Whiskers",
   "description": "A recipe journaling app for bakers and beverage creatives.",
   "start_url": "/",
   "display": "standalone",
@@ -9,14 +9,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
+      "src": "/logo.png",
       "type": "image/png",
       "purpose": "any maskable"
     }

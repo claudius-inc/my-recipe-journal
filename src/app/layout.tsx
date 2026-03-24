@@ -9,17 +9,17 @@ import { AppProviders } from "@/components/providers/AppProviders";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Whisker",
+  title: "Whiskers",
   description: "A recipe journaling app for bakers and beverage creatives.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Whisker",
+    title: "Whiskers",
   },
   formatDetection: {
     telephone: false,
