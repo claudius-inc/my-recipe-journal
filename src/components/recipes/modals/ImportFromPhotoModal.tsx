@@ -291,7 +291,7 @@ export function ImportFromPhotoModal({
 
             <div>
               <label className="text-sm font-medium text-neutral-700">
-                Ingredients ({extractedData.ingredients.length})
+                Ingredients ({extractedData?.ingredients.length || 0})
               </label>
               <div className="mt-1 max-h-60 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
                 {Object.entries(groupedIngredients).map(([component, ingredients]) => (
@@ -314,7 +314,7 @@ export function ImportFromPhotoModal({
               </div>
             </div>
 
-            {extractedData.steps && extractedData.steps.length > 0 && (
+            {extractedData?.steps && extractedData.steps.length > 0 && (
               <div>
                 <label className="text-sm font-medium text-neutral-700">
                   Recipe Steps ({extractedData.steps.length})
@@ -334,7 +334,7 @@ export function ImportFromPhotoModal({
               </div>
             )}
 
-            {extractedData.instructions && (
+            {extractedData?.instructions && (
               <div>
                 <label className="text-sm font-medium text-neutral-700">
                   Instructions
@@ -345,9 +345,9 @@ export function ImportFromPhotoModal({
               </div>
             )}
 
-            {(extractedData.cookTime || extractedData.servings) && (
+            {(extractedData?.cookTime || extractedData?.servings) && (
               <div className="grid grid-cols-2 gap-4 text-sm">
-                {extractedData.cookTime && (
+                {extractedData?.cookTime && (
                   <div>
                     <span className="font-medium text-neutral-700">Cook Time:</span>
                     <span className="ml-2 text-neutral-600">
@@ -355,7 +355,7 @@ export function ImportFromPhotoModal({
                     </span>
                   </div>
                 )}
-                {extractedData.servings && (
+                {extractedData?.servings && (
                   <div>
                     <span className="font-medium text-neutral-700">Servings:</span>
                     <span className="ml-2 text-neutral-600">

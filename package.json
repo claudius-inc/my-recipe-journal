@@ -70,6 +70,9 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write",
-    "src/**/*.{ts,tsx,js,jsx}": "eslint --max-warnings=0 --fix"
+    "src/**/*.{ts,tsx,js,jsx}": [
+      "eslint --max-warnings=0 --fix",
+      "bash -c 'npm run typecheck'"
+    ]
   }
 }
