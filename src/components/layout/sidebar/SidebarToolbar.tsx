@@ -4,7 +4,7 @@ import { ArchiveIcon, CameraIcon, LinkBreak2Icon, PlusIcon } from "@radix-ui/rea
 interface SidebarToolbarProps {
   isScanning: boolean;
   onCreateOpen: () => void;
-  onPhotoScan: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onPhotoScan: () => void;
   onImportOpen: () => void;
   showArchived: boolean;
   onToggleArchived: (show: boolean) => void;
@@ -35,18 +35,9 @@ export function SidebarToolbar({
               <PlusIcon className="w-4 h-4 inline mr-2" />
               New blank recipe
             </DropdownMenu.Item>
-            <DropdownMenu.Item asChild>
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg,image/webp"
-                  onChange={onPhotoScan}
-                  disabled={isScanning}
-                  className="hidden"
-                />
-                <CameraIcon className="w-4 h-4 inline mr-2" />
-                {isScanning ? "Scanning photo..." : "Scan from photo"}
-              </label>
+            <DropdownMenu.Item onClick={onPhotoScan}>
+              <CameraIcon className="w-4 h-4 inline mr-2" />
+              Scan from photo
             </DropdownMenu.Item>
             <DropdownMenu.Item onClick={onImportOpen}>
               <LinkBreak2Icon className="w-4 h-4 inline mr-2" />

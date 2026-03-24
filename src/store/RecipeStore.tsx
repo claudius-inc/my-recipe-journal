@@ -178,10 +178,7 @@ interface RecipeStoreValue {
     versionId: string,
     groupId: string,
   ) => Promise<void>;
-  reorderIngredientGroups: (
-    recipeId: string,
-    groupIds: string[],
-  ) => Promise<void>;
+  reorderIngredientGroups: (recipeId: string, groupIds: string[]) => Promise<void>;
   getIngredientSuggestions: (recipeId?: string) => Promise<string[]>;
 }
 
@@ -259,7 +256,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       fetchRecipesPage(pageParam ?? null),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    staleTime: Infinity, // Data is considered fresh indefinitely
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
     gcTime: 1000 * 60 * 60 * 24, // Keep unused data in cache for 24 hours
   });
 
@@ -454,10 +451,15 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      // Invalidate and refetch queries to ensure fresh data
       await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
       await queryClient.invalidateQueries({
         queryKey: [INGREDIENT_SUGGESTIONS_KEY],
       });
+
+      // Force refetch of recipes to ensure the new recipe appears immediately
+      await queryClient.refetchQueries({ queryKey: RECIPES_QUERY_KEY });
+
       setSelectedRecipeId(recipe.id);
       setSelectedVersionId(versionId);
       // Persist selection to localStorage
@@ -825,15 +827,14 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
-  const reorderIngredientGroups = useCallback<RecipeStoreValue["reorderIngredientGroups"]>(
+  const reorderIngredientGroups = useCallback<
+    RecipeStoreValue["reorderIngredientGroups"]
+  >(
     async (recipeId, groupIds) => {
-      await requestJson<Recipe>(
-        `/api/recipes/${recipeId}/groups/reorder`,
-        {
-          method: "PUT",
-          body: JSON.stringify({ groupIds }),
-        },
-      );
+      await requestJson<Recipe>(`/api/recipes/${recipeId}/groups/reorder`, {
+        method: "PUT",
+        body: JSON.stringify({ groupIds }),
+      });
 
       await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
     },

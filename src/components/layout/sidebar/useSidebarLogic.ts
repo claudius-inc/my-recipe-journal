@@ -47,6 +47,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
   const [duplicateModalRecipe, setDuplicateModalRecipe] = useState<Recipe | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -255,45 +256,46 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
     }
   };
 
-  const handlePhotoScan = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
+  const handlePhotoScan = () => {
+    setShowPhotoModal(true);
+    onOpen();
+  };
 
-    setIsScanning(true);
-    setScanError(null);
-    setCreationError(null);
-
+  const handleImportFromPhoto = async (data: {
+    name: string;
+    category: RecipeCategory;
+    description?: string;
+    ingredients: Array<{
+      name: string;
+      quantity: number;
+      unit: string;
+      role: import("@/types/recipes").IngredientRole;
+      notes?: string;
+    }>;
+    steps?: Array<{ order: number; text: string }>;
+    instructions?: string;
+    servings?: number;
+    cookTime?: string;
+    metadata?: Record<string, string | number>;
+  }) => {
     try {
-      const formData = new FormData();
-      formData.append("photo", file);
-
-      const response = await fetch("/api/recipes/from-photo", {
-        method: "POST",
-        body: formData,
+      console.log("Importing recipe from photo with data:", data);
+      await createRecipeWithData({
+        name: data.name,
+        category: data.category,
+        description: data.description,
+        ingredients: data.ingredients,
+        steps: data.steps,
+        instructions: data.instructions,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to scan recipe");
-      }
-
-      const extractedData = await response.json();
-
-      setDraftName(extractedData.name || "");
-      setDraftCategory(
-        extractedData.category || { primary: "baking", secondary: "bread" },
-      );
-      setIsCreating(true);
-      onOpen();
-
-      (window as any).__extractedRecipeData = extractedData;
-    } catch (err) {
-      setScanError(err instanceof Error ? err.message : "Failed to scan photo");
-    } finally {
-      setIsScanning(false);
-      event.target.value = "";
+      console.log("Recipe imported from photo successfully");
+      addToast("Recipe imported from photo successfully", "success");
+      setShowPhotoModal(false);
+      onClose();
+    } catch (error) {
+      console.error("Failed to import recipe from photo:", error);
+      throw error;
     }
   };
 
@@ -316,6 +318,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       duplicateModalRecipe,
       isDuplicating,
       showImportModal,
+      showPhotoModal,
       loading,
       error,
       hasMore,
@@ -333,10 +336,12 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       setShowArchived,
       setDuplicateModalRecipe,
       setShowImportModal,
+      setShowPhotoModal,
       handleToggleArchive,
       handleTogglePin,
       handleConfirmDuplicate,
       handleImportFromUrl,
+      handleImportFromPhoto,
       persistRecipe,
       handlePhotoScan,
       loadMore,

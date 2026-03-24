@@ -4,7 +4,11 @@ import { Button } from "@radix-ui/themes";
 import { ArrowLeftIcon } from "@radix-ui/react-icons";
 
 import { cn } from "@/lib/utils";
-import { DuplicateRecipeModal, ImportFromUrlModal } from "@/components/recipes/modals";
+import {
+  DuplicateRecipeModal,
+  ImportFromUrlModal,
+  ImportFromPhotoModal,
+} from "@/components/recipes/modals";
 
 import { RecipeSearchHeader } from "./sidebar/RecipeSearchHeader";
 import { RecipeList } from "./sidebar/RecipeList";
@@ -139,6 +143,14 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           isOpen={state.showImportModal}
           onClose={() => actions.setShowImportModal(false)}
           onImport={actions.handleImportFromUrl}
+        />
+      )}
+
+      {state.showPhotoModal && (
+        <ImportFromPhotoModal
+          isOpen={state.showPhotoModal}
+          onClose={() => actions.setShowPhotoModal(false)}
+          onImport={actions.handleImportFromPhoto}
         />
       )}
     </>
