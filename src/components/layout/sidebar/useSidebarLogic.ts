@@ -169,6 +169,16 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       role: import("@/types/recipes").IngredientRole;
       notes?: string;
     }>;
+    ingredientGroups?: Array<{
+      name: string;
+      ingredients: Array<{
+        name: string;
+        quantity: number;
+        unit: string;
+        role: import("@/types/recipes").IngredientRole;
+        notes?: string;
+      }>;
+    }>;
     steps?: Array<{ order: number; text: string }>;
     instructions?: string;
     sourceUrl: string;
@@ -180,6 +190,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
         category: data.category,
         description: data.description,
         ingredients: data.ingredients,
+        ingredientGroups: data.ingredientGroups,
         steps: data.steps,
         instructions: data.instructions,
         imageUrl: data.imageUrl,

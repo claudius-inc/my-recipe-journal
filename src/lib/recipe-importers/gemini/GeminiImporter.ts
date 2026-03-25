@@ -22,13 +22,18 @@ Return ONLY valid JSON matching this exact schema:
     "secondary": "bread" | "sourdough" | "cookies" | "cakes" | "pastries" | "pies" | "main_dish" | "appetizer" | "side_dish" | "sauce" | "condiment" | "coffee" | "tea" | "cocktail" | "smoothie" | "fermented" | "other"
   },
   "description": "Brief description (optional)",
-  "ingredients": [
+  "ingredientGroups": [
     {
-      "name": "ingredient name",
-      "quantity": numeric value,
-      "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",
-      "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other",
-      "notes": "any clarifications (optional)"
+      "name": "group name (e.g. Dough, Filling, Topping, or just Ingredients if only one group)",
+      "ingredients": [
+        {
+          "name": "ingredient name",
+          "quantity": numeric value,
+          "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",
+          "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other",
+          "notes": "any clarifications (optional)"
+        }
+      ]
     }
   ],
   "instructions": "Combined process steps (optional)",
@@ -39,15 +44,16 @@ Return ONLY valid JSON matching this exact schema:
 Rules:
 1. Extract the recipe title from h1, title tag, or meta tags
 2. Identify ALL ingredients with their quantities
-3. Convert measurements to standard units (grams, ml, cups, etc.)
-4. Assign appropriate ingredient roles based on their function
-5. Extract step-by-step instructions if available
-6. Infer the most appropriate category based on the recipe type
-7. Extract the main recipe photo URL from og:image, twitter:image meta tags, or the primary recipe image in the content
-8. Only extract ONE main photo URL - prefer meta tags (og:image, twitter:image) over content images
-9. Only include fields that have data - omit optional fields if not found
-10. Return ONLY the JSON object, no markdown formatting or explanations
-11. If the page doesn't contain a recipe, return an error in this format: {"error": "No recipe found on this page"}`;
+3. Group ingredients logically (e.g. Dough, Filling, Frosting). If the recipe has no clear groups, use a single group named "Ingredients"
+4. Convert measurements to standard units (grams, ml, cups, etc.)
+5. Assign appropriate ingredient roles based on their function
+6. Extract step-by-step instructions if available
+7. Infer the most appropriate category based on the recipe type
+8. Extract the main recipe photo URL from og:image, twitter:image meta tags, or the primary recipe image in the content
+9. Only extract ONE main photo URL - prefer meta tags (og:image, twitter:image) over content images
+10. Only include fields that have data - omit optional fields if not found
+11. Return ONLY the JSON object, no markdown formatting or explanations
+12. If the page doesn't contain a recipe, return an error in this format: {"error": "No recipe found on this page"}`;
 
 /**
  * Fallback importer using Gemini AI for any website
@@ -130,12 +136,22 @@ export class GeminiImporter extends RecipeImporter {
             name: string;
             category: RecipeCategory;
             description?: string;
-            ingredients: Array<{
+            ingredients?: Array<{
               name: string;
               quantity: number;
               unit: string;
               role: IngredientRole;
               notes?: string;
+            }>;
+            ingredientGroups?: Array<{
+              name: string;
+              ingredients: Array<{
+                name: string;
+                quantity: number;
+                unit: string;
+                role: IngredientRole;
+                notes?: string;
+              }>;
             }>;
             instructions?: string;
             servings?: number;
@@ -148,8 +164,17 @@ export class GeminiImporter extends RecipeImporter {
       }
 
       // Validate required fields
-      if (!parsed.name || !parsed.category || !Array.isArray(parsed.ingredients)) {
+      const hasIngredients =
+        Array.isArray(parsed.ingredients) && parsed.ingredients.length > 0;
+      const hasGroups =
+        Array.isArray(parsed.ingredientGroups) && parsed.ingredientGroups.length > 0;
+      if (!parsed.name || !parsed.category || (!hasIngredients && !hasGroups)) {
         throw new Error("Invalid response structure from Gemini");
+      }
+
+      // Populate flat ingredients from groups for backward compatibility
+      if (hasGroups && !hasIngredients) {
+        parsed.ingredients = parsed.ingredientGroups!.flatMap((g) => g.ingredients);
       }
 
       // Validate category structure
@@ -169,6 +194,7 @@ export class GeminiImporter extends RecipeImporter {
       // Add sourceUrl
       const result_data: ExtractedRecipeData = {
         ...parsed,
+        ingredients: parsed.ingredients ?? [],
         steps: steps.length > 0 ? steps : undefined,
         sourceUrl: url,
       };

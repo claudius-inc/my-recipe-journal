@@ -17,6 +17,16 @@ interface ExtractedRecipeData {
     role: IngredientRole;
     notes?: string;
   }>;
+  ingredientGroups?: Array<{
+    name: string;
+    ingredients: Array<{
+      name: string;
+      quantity: number;
+      unit: string;
+      role: IngredientRole;
+      notes?: string;
+    }>;
+  }>;
   steps?: Array<{ order: number; text: string }>;
   instructions?: string;
   servings?: number;
@@ -252,16 +262,39 @@ export function ImportFromUrlModal({
                 Ingredients ({extractedData.ingredients.length})
               </label>
               <div className="mt-1 max-h-40 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
-                <ul className="space-y-1">
-                  {extractedData.ingredients.map((ing, idx) => (
-                    <li key={idx} className="text-neutral-700">
-                      {ing.quantity} {ing.unit} {ing.name}
-                      {ing.notes && (
-                        <span className="ml-2 text-neutral-500">({ing.notes})</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                {extractedData.ingredientGroups &&
+                extractedData.ingredientGroups.length > 1 ? (
+                  <div className="space-y-3">
+                    {extractedData.ingredientGroups.map((group, gIdx) => (
+                      <div key={gIdx}>
+                        <p className="font-medium text-neutral-900 mb-1">{group.name}</p>
+                        <ul className="space-y-1 pl-3">
+                          {group.ingredients.map((ing, idx) => (
+                            <li key={idx} className="text-neutral-700">
+                              {ing.quantity} {ing.unit} {ing.name}
+                              {ing.notes && (
+                                <span className="ml-2 text-neutral-500">
+                                  ({ing.notes})
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <ul className="space-y-1">
+                    {extractedData.ingredients.map((ing, idx) => (
+                      <li key={idx} className="text-neutral-700">
+                        {ing.quantity} {ing.unit} {ing.name}
+                        {ing.notes && (
+                          <span className="ml-2 text-neutral-500">({ing.notes})</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 
