@@ -713,6 +713,24 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             });
           }}
           onUpdateGroup={async (groupId, data) => {
+            const hasGroups =
+              selectedVersion.ingredientGroups &&
+              selectedVersion.ingredientGroups.length > 0;
+
+            if (!hasGroups) {
+              // Recipe hasn't been migrated yet — migrate with the updated data
+              const isBaking =
+                selectedRecipe.category.primary === "baking" &&
+                ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"].includes(
+                  selectedRecipe.category.secondary,
+                );
+              await migrateToGroups(selectedRecipe.id, selectedVersion.id, {
+                name: data.name ?? "Ingredients",
+                enableBakersPercent: data.enableBakersPercent ?? isBaking,
+              });
+              return;
+            }
+
             await updateIngredientGroup(
               selectedRecipe.id,
               selectedVersion.id,

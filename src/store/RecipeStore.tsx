@@ -53,6 +53,16 @@ interface RecipeStoreValue {
       role: IngredientRole;
       notes?: string;
     }>;
+    ingredientGroups?: Array<{
+      name: string;
+      ingredients: Array<{
+        name: string;
+        quantity: number;
+        unit: string;
+        role: IngredientRole;
+        notes?: string;
+      }>;
+    }>;
     steps?: Array<{ order: number; text: string }>;
     instructions?: string;
     imageUrl?: string;
@@ -392,6 +402,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       category,
       description,
       ingredients,
+      ingredientGroups,
       steps,
       instructions,
       imageUrl,
@@ -417,8 +428,47 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
         throw new Error("Failed to create initial version");
       }
 
-      // Add ingredients if provided
-      if (ingredients && ingredients.length > 0) {
+      // Add ingredients — grouped if available, flat otherwise
+      if (ingredientGroups && ingredientGroups.length > 0) {
+        const enableBakersPercent =
+          category.primary === "baking" &&
+          ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"].includes(
+            category.secondary,
+          );
+
+        for (const group of ingredientGroups) {
+          // Create the group
+          const updatedRecipe = await requestJson<Recipe>(
+            `/api/recipes/${recipe.id}/versions/${versionId}/groups`,
+            {
+              method: "POST",
+              body: JSON.stringify({
+                name: group.name,
+                enableBakersPercent,
+              }),
+            },
+          );
+
+          // Find the newly created group's ID
+          const version = updatedRecipe.versions.find((v) => v.id === versionId);
+          const createdGroup = version?.ingredientGroups
+            ?.slice()
+            .sort((a, b) => a.order - b.order)
+            .findLast((g) => g.name === group.name);
+          const groupId = createdGroup?.id;
+
+          // Add each ingredient to this group
+          for (const ingredient of group.ingredients) {
+            await requestJson(
+              `/api/recipes/${recipe.id}/versions/${versionId}/ingredients`,
+              {
+                method: "POST",
+                body: JSON.stringify({ ...ingredient, groupId }),
+              },
+            );
+          }
+        }
+      } else if (ingredients && ingredients.length > 0) {
         for (const ingredient of ingredients) {
           await requestJson(
             `/api/recipes/${recipe.id}/versions/${versionId}/ingredients`,

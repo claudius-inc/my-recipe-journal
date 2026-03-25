@@ -18,11 +18,17 @@ export interface ExtractedIngredient {
   notes?: string;
 }
 
+export interface ExtractedIngredientGroup {
+  name: string;
+  ingredients: ExtractedIngredient[];
+}
+
 export interface ExtractedRecipeData {
   name: string;
   category: RecipeCategory;
   description?: string;
   ingredients: ExtractedIngredient[];
+  ingredientGroups?: ExtractedIngredientGroup[];
   steps?: Array<{ order: number; text: string }>;
   instructions?: string;
   cookTime?: string;
@@ -38,13 +44,17 @@ Return ONLY valid JSON matching this exact schema:
   "name": "Recipe title",
   "category": "bread" | "dessert" | "drink" | "main" | "sauce" | "other",
   "description": "Brief description (optional)",
-  "ingredients": [
+  "ingredientGroups": [
     {
-      "name": "ingredient name",
-      "quantity": numeric value,
-      "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",
-      "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other",
-      "notes": "any clarifications (optional)"
+      "name": "group name (e.g. Dough, Filling, Topping, or Ingredients if no distinct sections)",
+      "ingredients": [
+        {
+          "name": "ingredient name",
+          "quantity": numeric value,
+          "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",
+          "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other"
+        }
+      ]
     }
   ],
   "instructions": "Combined process steps (optional)",
@@ -69,7 +79,8 @@ Rules:
 4. Extract ALL visible ingredients
 5. If handwritten or unclear, make best guess
 6. For metadata, only include fields relevant to the category
-7. Return ONLY the JSON object, no markdown formatting or explanations`;
+7. Return ONLY the JSON object, no markdown formatting or explanations
+8. If the recipe has distinct ingredient sections (e.g. Dough, Filling, Topping, Frosting, Crust), group ingredients under their section name. If there are no sections, use a single group named "Ingredients"`;
 
 export async function extractRecipeFromPhoto(
   imageData: string,
@@ -105,8 +116,18 @@ export async function extractRecipeFromPhoto(
 
     const parsed = JSON.parse(cleaned) as ExtractedRecipeData;
 
+    // Populate flat ingredients from groups for backward compatibility
+    if (parsed.ingredientGroups && parsed.ingredientGroups.length > 0) {
+      parsed.ingredients = parsed.ingredientGroups.flatMap((g) => g.ingredients);
+    }
+
     // Validate required fields
-    if (!parsed.name || !parsed.category || !Array.isArray(parsed.ingredients)) {
+    if (
+      !parsed.name ||
+      !parsed.category ||
+      !Array.isArray(parsed.ingredients) ||
+      parsed.ingredients.length === 0
+    ) {
       throw new Error("Invalid response structure from Gemini");
     }
 

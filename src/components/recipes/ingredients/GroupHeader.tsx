@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDownIcon, CheckIcon } from "@radix-ui/react-icons";
 import { Switch, Text, Flex, Checkbox } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
@@ -35,23 +35,30 @@ export function GroupHeader({
   checkedIngredients,
 }: GroupHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState(group.name);
   const [showMenu, setShowMenu] = useState(false);
-
-  useEffect(() => {
-    if (!isEditingName) {
-      setEditedName(group.name);
-    }
-  }, [group.name, isEditingName]);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveName = () => {
-    const trimmedName = editedName.trim();
+    const rawValue = nameInputRef.current?.value;
+    const trimmedName = rawValue?.trim() ?? "";
+    console.log("[GroupHeader] handleSaveName called", {
+      rawValue,
+      trimmedName,
+      groupName: group.name,
+      isEqual: trimmedName === group.name,
+      inputExists: !!nameInputRef.current,
+    });
     setIsEditingName(false);
 
     if (trimmedName && trimmedName !== group.name) {
-      onUpdateGroup({ name: trimmedName }).catch((error) => {
-        console.error("Failed to save group name:", error);
-      });
+      console.log("[GroupHeader] Calling onUpdateGroup with:", { name: trimmedName });
+      onUpdateGroup({ name: trimmedName })
+        .then(() => console.log("[GroupHeader] onUpdateGroup succeeded"))
+        .catch((error) => {
+          console.error("[GroupHeader] onUpdateGroup failed:", error);
+        });
+    } else {
+      console.log("[GroupHeader] Skipped save — name unchanged or empty");
     }
   };
 
@@ -69,7 +76,13 @@ export function GroupHeader({
       {showCheckAll && onToggleAllIngredients && !isCollapsed ? (
         <div onClick={(e) => e.stopPropagation()}>
           <Checkbox
-            checked={allChecked ? true : group.ingredients.some((ing) => checkedIngredients?.has(ing.id)) ? "indeterminate" : false}
+            checked={
+              allChecked
+                ? true
+                : group.ingredients.some((ing) => checkedIngredients?.has(ing.id))
+                  ? "indeterminate"
+                  : false
+            }
             onCheckedChange={() => onToggleAllIngredients()}
             aria-label={allChecked ? "Uncheck all ingredients" : "Check all ingredients"}
           />
@@ -95,16 +108,16 @@ export function GroupHeader({
       <div className="flex-1 min-w-0">
         {isEditingName ? (
           <input
+            ref={nameInputRef}
             autoFocus
             type="text"
-            value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
+            defaultValue={group.name}
             onBlur={handleSaveName}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
+                e.preventDefault();
                 handleSaveName();
               } else if (e.key === "Escape") {
-                setEditedName(group.name);
                 setIsEditingName(false);
               }
             }}

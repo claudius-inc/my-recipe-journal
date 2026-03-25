@@ -17,6 +17,16 @@ interface ExtractedRecipeData {
     role: IngredientRole;
     notes?: string;
   }>;
+  ingredientGroups?: Array<{
+    name: string;
+    ingredients: Array<{
+      name: string;
+      quantity: number;
+      unit: string;
+      role: IngredientRole;
+      notes?: string;
+    }>;
+  }>;
   steps?: Array<{ order: number; text: string }>;
   instructions?: string;
   servings?: number;
@@ -107,6 +117,7 @@ export function ImportFromPhotoModal({
         name: editableName,
         category: editableCategory,
         description: editableDescription || undefined,
+        ingredientGroups: extractedData.ingredientGroups,
       };
 
       await onImport(finalData);
@@ -134,32 +145,13 @@ export function ImportFromPhotoModal({
     onClose();
   };
 
-  // Group ingredients by their usage/component (extracted from notes)
-  const groupedIngredients =
-    extractedData?.ingredients.reduce(
-      (groups, ingredient) => {
-        // Extract component from notes (e.g., "for dough" -> "dough")
-        let component = "other";
-        if (ingredient.notes) {
-          const match = ingredient.notes.match(/for\s+(.+?)(?:\)|$)/i);
-          if (match) {
-            component = match[1].trim();
-          }
-        }
-
-        if (!groups[component]) {
-          groups[component] = [];
-        }
-        groups[component].push(ingredient);
-        return groups;
-      },
-      {} as Record<string, typeof extractedData.ingredients>,
-    ) || {};
-
-  // Capitalize component names for display
-  const formatComponentName = (component: string) => {
-    return component.charAt(0).toUpperCase() + component.slice(1);
-  };
+  // Use ingredient groups from extraction, or wrap flat ingredients in a single group
+  const displayGroups =
+    extractedData?.ingredientGroups && extractedData.ingredientGroups.length > 0
+      ? extractedData.ingredientGroups
+      : extractedData?.ingredients
+        ? [{ name: "Ingredients", ingredients: extractedData.ingredients }]
+        : [];
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
@@ -294,16 +286,14 @@ export function ImportFromPhotoModal({
                 Ingredients ({extractedData?.ingredients.length || 0})
               </label>
               <div className="mt-1 max-h-60 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
-                {Object.entries(groupedIngredients).map(([component, ingredients]) => (
-                  <div key={component} className="mb-3 last:mb-0">
-                    <h4 className="font-semibold text-neutral-800 mb-1">
-                      {formatComponentName(component)}
-                    </h4>
+                {displayGroups.map((group) => (
+                  <div key={group.name} className="mb-3 last:mb-0">
+                    <h4 className="font-semibold text-neutral-800 mb-1">{group.name}</h4>
                     <ul className="space-y-1 ml-2">
-                      {ingredients.map((ing, idx) => (
+                      {group.ingredients.map((ing, idx) => (
                         <li key={idx} className="text-neutral-700">
                           {ing.quantity} {ing.unit} {ing.name}
-                          {ing.notes && !ing.notes.match(/for\s+.+/i) && (
+                          {ing.notes && (
                             <span className="ml-2 text-neutral-500">({ing.notes})</span>
                           )}
                         </li>
