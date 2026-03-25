@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef, KeyboardEvent, TouchEvent } from "react";
+import { createPortal } from "react-dom";
 import { Checkbox, DropdownMenu } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { InfoCircledIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
-import { IngredientRoleLabels, IngredientRoleColors, INGREDIENT_ROLES } from "./constants";
+import {
+  IngredientRoleLabels,
+  IngredientRoleColors,
+  INGREDIENT_ROLES,
+} from "./constants";
 
 interface IngredientListItemProps {
   ingredient: Ingredient;
@@ -54,7 +59,12 @@ export function IngredientListItem({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showNotePopover, setShowNotePopover] = useState(false);
-  
+  const [popoverPos, setPopoverPos] = useState<{ top: number; left: number }>({
+    top: 0,
+    left: 0,
+  });
+  const infoButtonRef = useRef<HTMLButtonElement>(null);
+
   // Inline editing states
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPercent, setIsEditingPercent] = useState(false);
@@ -66,7 +76,7 @@ export function IngredientListItem({
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const percentInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -99,9 +109,8 @@ export function IngredientListItem({
 
   useEffect(() => {
     if (isEditingPercent && percentInputRef.current) {
-      const currentPercent = flourTotal > 0 
-        ? ((ingredient.quantity / flourTotal) * 100).toFixed(1)
-        : "0";
+      const currentPercent =
+        flourTotal > 0 ? ((ingredient.quantity / flourTotal) * 100).toFixed(1) : "0";
       setInlinePercent(currentPercent);
       percentInputRef.current.focus();
       percentInputRef.current.select();
@@ -173,9 +182,9 @@ export function IngredientListItem({
     }
 
     if (parsed !== ingredient.quantity || inlineUnit !== ingredient.unit) {
-      await onSave(ingredient.id, { 
-        quantity: parsed, 
-        unit: inlineUnit.trim() || ingredient.unit 
+      await onSave(ingredient.id, {
+        quantity: parsed,
+        unit: inlineUnit.trim() || ingredient.unit,
       });
     }
     setIsEditingQuantity(false);
@@ -337,13 +346,23 @@ export function IngredientListItem({
             "flex items-center gap-2 py-2 md:grid md:grid-cols-12 md:gap-3",
             !isExpanded && !isEditingQuantity && !isEditingPercent && "cursor-pointer",
           )}
-          onClick={() => !isExpanded && !isEditingQuantity && !isEditingPercent && onToggleExpand(ingredient.id)}
+          onClick={() =>
+            !isExpanded &&
+            !isEditingQuantity &&
+            !isEditingPercent &&
+            onToggleExpand(ingredient.id)
+          }
           role="button"
           tabIndex={0}
           aria-expanded={isExpanded}
           aria-label={`${isExpanded ? "Collapse" : "Expand"} ${ingredient.name}`}
           onKeyDown={(e) => {
-            if ((e.key === "Enter" || e.key === " ") && !isExpanded && !isEditingQuantity && !isEditingPercent) {
+            if (
+              (e.key === "Enter" || e.key === " ") &&
+              !isExpanded &&
+              !isEditingQuantity &&
+              !isEditingPercent
+            ) {
               e.preventDefault();
               onToggleExpand(ingredient.id);
             }
@@ -394,9 +413,14 @@ export function IngredientListItem({
                 </button>
                 {ingredient.notes && (
                   <button
+                    ref={infoButtonRef}
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!showNotePopover && infoButtonRef.current) {
+                        const rect = infoButtonRef.current.getBoundingClientRect();
+                        setPopoverPos({ top: rect.bottom + 8, left: rect.left });
+                      }
                       setShowNotePopover(!showNotePopover);
                     }}
                     className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-blue-600 transition hover:bg-blue-50"
@@ -407,42 +431,48 @@ export function IngredientListItem({
                 )}
               </div>
             )}
-            {/* Notes popover */}
-            {showNotePopover && ingredient.notes && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowNotePopover(false);
-                  }}
-                />
-                <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-                      Notes
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowNotePopover(false);
-                        onToggleExpand(ingredient.id);
-                      }}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      Edit
-                    </button>
+            {/* Notes popover - rendered via portal to escape overflow-hidden */}
+            {showNotePopover &&
+              ingredient.notes &&
+              createPortal(
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowNotePopover(false);
+                    }}
+                  />
+                  <div
+                    className="fixed z-50 w-64 rounded-lg border border-neutral-200 bg-white p-3 shadow-lg"
+                    style={{ top: popoverPos.top, left: popoverPos.left }}
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                        Notes
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowNotePopover(false);
+                          onToggleExpand(ingredient.id);
+                        }}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                    <p className="text-xs text-neutral-700">{ingredient.notes}</p>
                   </div>
-                  <p className="text-xs text-neutral-700">{ingredient.notes}</p>
-                </div>
-              </>
-            )}
+                </>,
+                document.body,
+              )}
           </div>
 
           {/* Amount + Unit - INLINE EDITABLE */}
           {isEditingQuantity ? (
-            <div 
+            <div
               className="flex items-center gap-1 md:col-span-3"
               onClick={(e) => e.stopPropagation()}
             >
@@ -476,14 +506,15 @@ export function IngredientListItem({
               )}
               title="Tap to edit"
             >
-              {ingredient.quantity}{ingredient.unit}
+              {ingredient.quantity}
+              {ingredient.unit}
             </button>
           )}
 
           {/* Baker's Percentage - INLINE EDITABLE */}
-          {bakerPercentage && (
-            isEditingPercent ? (
-              <div 
+          {bakerPercentage &&
+            (isEditingPercent ? (
+              <div
                 className="flex items-center gap-0.5 md:col-span-2"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -512,8 +543,7 @@ export function IngredientListItem({
               >
                 {bakerPercentage}%
               </button>
-            )
-          )}
+            ))}
 
           {!bakerPercentage && enableBakersPercent && (
             <span className="hidden md:col-span-2 md:inline"></span>
@@ -540,14 +570,16 @@ export function IngredientListItem({
                 <DropdownMenu.Item onSelect={() => setShowEditModal(true)}>
                   Edit
                 </DropdownMenu.Item>
-                <DropdownMenu.Item color="red" onSelect={() => setShowDeleteConfirm(true)}>
+                <DropdownMenu.Item
+                  color="red"
+                  onSelect={() => setShowDeleteConfirm(true)}
+                >
                   Delete
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
           </div>
         </div>
-
       </div>
 
       {/* Edit Modal */}
@@ -555,7 +587,7 @@ export function IngredientListItem({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold text-neutral-900">Edit Ingredient</h3>
-            
+
             <div className="mt-4 space-y-4">
               {/* Name Input */}
               <div className="flex flex-col gap-1">
