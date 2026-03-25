@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "@/lib/auth-client";
+import { authClient } from "@/lib/auth-client";
 import { Button, Box, Text, Spinner, DropdownMenu } from "@radix-ui/themes";
 import { LockOpen1Icon } from "@radix-ui/react-icons";
 import { useRouter } from "next/navigation";
@@ -10,8 +11,18 @@ export function AuthButton() {
   const { data: session, isPending, error } = useSession();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+  const [passkeyIds, setPasskeyIds] = useState<string[]>([]);
   // Add a safety timeout to prevent infinite loading state
   const [isLongLoading, setIsLongLoading] = useState(false);
+
+  useEffect(() => {
+    if (session) {
+      authClient.passkey.listUserPasskeys().then(({ data }) => {
+        setPasskeyIds(data?.map((p) => p.id) ?? []);
+      });
+    }
+  }, [session]);
 
   // If isPending is true, we generally show loading.
   // However, if it hangs (e.g. network issue), we should eventually default to "Sign In"
@@ -69,6 +80,50 @@ export function AuthButton() {
         </div>
 
         <DropdownMenu.Separator />
+
+        <DropdownMenu.Item
+          onSelect={async (e) => {
+            e.preventDefault();
+            setIsRegisteringPasskey(true);
+            try {
+              // Delete existing passkeys first
+              for (const id of passkeyIds) {
+                await authClient.passkey.deletePasskey({ id });
+              }
+              const { error } = await authClient.passkey.addPasskey({
+                name: "My Device",
+              });
+              if (error) {
+                alert(error.message || "Failed to register passkey");
+              } else {
+                // Refresh the list
+                const { data } = await authClient.passkey.listUserPasskeys();
+                setPasskeyIds(data?.map((p) => p.id) ?? []);
+                alert(
+                  passkeyIds.length > 0
+                    ? "Passkey replaced successfully!"
+                    : "Passkey registered successfully!",
+                );
+              }
+            } catch {
+              alert("Failed to register passkey");
+            } finally {
+              setIsRegisteringPasskey(false);
+            }
+          }}
+          disabled={isRegisteringPasskey}
+        >
+          {isRegisteringPasskey ? (
+            <span className="flex items-center gap-2">
+              <Spinner size="1" />
+              {passkeyIds.length > 0 ? "Replacing..." : "Registering..."}
+            </span>
+          ) : passkeyIds.length > 0 ? (
+            "Replace Passkey"
+          ) : (
+            "Register Passkey"
+          )}
+        </DropdownMenu.Item>
 
         <DropdownMenu.Item
           onSelect={async (e) => {

@@ -1,11 +1,14 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
+import { passkey } from "@better-auth/passkey";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+const appUrl = new URL(process.env.BETTER_AUTH_URL || "http://localhost:3000");
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -15,10 +18,11 @@ export const auth = betterAuth({
       session: schema.sessions,
       account: schema.accounts,
       verification: schema.verifications,
+      passkey: schema.passkeys,
     },
   }),
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL: appUrl.origin,
   trustedOrigins: process.env.VERCEL_URL
     ? [`https://${process.env.VERCEL_URL}`]
     : undefined,
@@ -34,6 +38,11 @@ export const auth = betterAuth({
     enabled: false,
   },
   plugins: [
+    passkey({
+      rpID: appUrl.hostname,
+      rpName: "My Recipe Journal",
+      origin: appUrl.origin,
+    }),
     magicLink({
       async sendMagicLink(data) {
         const { email, url } = data;
