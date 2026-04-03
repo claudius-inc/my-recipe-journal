@@ -28,8 +28,8 @@ Return ONLY valid JSON matching this exact schema:
       "ingredients": [
         {
           "name": "ingredient name",
-          "quantity": numeric value,
-          "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",
+          "quantity": numeric value or null (null for "to taste" items),
+          "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",  // when unit is "to taste", quantity can be null
           "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other",
           "notes": "any clarifications (optional)"
         }
@@ -138,7 +138,7 @@ export class GeminiImporter extends RecipeImporter {
             description?: string;
             ingredients?: Array<{
               name: string;
-              quantity: number;
+              quantity: number | null;
               unit: string;
               role: IngredientRole;
               notes?: string;
@@ -147,7 +147,7 @@ export class GeminiImporter extends RecipeImporter {
               name: string;
               ingredients: Array<{
                 name: string;
-                quantity: number;
+                quantity: number | null;
                 unit: string;
                 role: IngredientRole;
                 notes?: string;

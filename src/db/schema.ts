@@ -281,7 +281,7 @@ export const ingredients = sqliteTable(
       onDelete: "cascade",
     }),
     name: text("name").notNull(),
-    quantity: real("quantity").notNull(),
+    quantity: real("quantity"),
     unit: text("unit").notNull(),
     role: text("role").$type<IngredientRole>().notNull(),
     notes: text("notes"),

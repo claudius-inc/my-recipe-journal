@@ -90,8 +90,8 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     Array<{
       id: string;
       name: string;
-      originalQuantity: number;
-      newQuantity: number;
+      originalQuantity: number | null;
+      newQuantity: number | null;
       unit: string;
     }>
   >([]);
@@ -223,7 +223,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }
     return selectedVersion.ingredients
       .filter((ingredient) => ingredient.role === "flour")
-      .reduce((sum, ingredient) => sum + ingredient.quantity, 0);
+      .reduce((sum, ingredient) => sum + (ingredient.quantity ?? 0), 0);
   }, [selectedVersion]);
 
   const totalWeight = useMemo(() => {
@@ -231,7 +231,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       return 0;
     }
     return selectedVersion.ingredients.reduce(
-      (sum, ingredient) => sum + ingredient.quantity,
+      (sum, ingredient) => sum + (ingredient.quantity ?? 0),
       0,
     );
   }, [selectedVersion]);
@@ -242,7 +242,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     }
     const liquidTotal = selectedVersion.ingredients
       .filter((ingredient) => ingredient.role === "liquid")
-      .reduce((sum, ingredient) => sum + ingredient.quantity, 0);
+      .reduce((sum, ingredient) => sum + (ingredient.quantity ?? 0), 0);
     return (liquidTotal / flourTotal) * 100;
   }, [selectedVersion, flourTotal]);
 
@@ -434,13 +434,17 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         return;
       }
 
+      if (baseIngredient.quantity == null || baseIngredient.quantity === 0) {
+        setIsPreviewingScaling(false);
+        return;
+      }
       const scalingFactor = parsed / baseIngredient.quantity;
 
       const scaled = selectedVersion.ingredients.map((ing) => ({
         id: ing.id,
         name: ing.name,
         originalQuantity: ing.quantity,
-        newQuantity: ing.quantity * scalingFactor,
+        newQuantity: ing.quantity != null ? ing.quantity * scalingFactor : null,
         unit: ing.unit,
       }));
 

@@ -26,7 +26,7 @@ export function InteractivePercentageEditor({
   const [newQuantity, setNewQuantity] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const currentPercentage = flourTotal > 0 ? (ingredient.quantity / flourTotal) * 100 : 0;
+  const currentPercentage = flourTotal > 0 && ingredient.quantity != null ? (ingredient.quantity / flourTotal) * 100 : 0;
   const formattedPercentage = `${(Math.round(currentPercentage * 10) / 10).toFixed(1)}%`;
 
   useEffect(() => {

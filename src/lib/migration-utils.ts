@@ -88,14 +88,14 @@ export function getIngredientGroups(
 export function getGroupFlourTotal(group: IngredientGroup): number {
   return group.ingredients
     .filter((ingredient) => ingredient.role === "flour")
-    .reduce((sum, ingredient) => sum + ingredient.quantity, 0);
+    .reduce((sum, ingredient) => sum + (ingredient.quantity ?? 0), 0);
 }
 
 /**
  * Calculate total weight for a specific group
  */
 export function getGroupTotalWeight(group: IngredientGroup): number {
-  return group.ingredients.reduce((sum, ingredient) => sum + ingredient.quantity, 0);
+  return group.ingredients.reduce((sum, ingredient) => sum + (ingredient.quantity ?? 0), 0);
 }
 
 /**
@@ -107,7 +107,7 @@ export function getGroupHydration(group: IngredientGroup): number {
 
   const liquidTotal = group.ingredients
     .filter((ingredient) => ingredient.role === "liquid")
-    .reduce((sum, ingredient) => sum + ingredient.quantity, 0);
+    .reduce((sum, ingredient) => sum + (ingredient.quantity ?? 0), 0);
 
   return (liquidTotal / flourTotal) * 100;
 }

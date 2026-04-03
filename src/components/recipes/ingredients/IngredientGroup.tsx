@@ -25,7 +25,7 @@ interface IngredientGroupProps {
   // Ingredient operations
   onAddIngredient: (data: {
     name: string;
-    quantity: number;
+    quantity: number | null;
     unit: string;
     role: Ingredient["role"];
     notes?: string;
@@ -34,7 +34,7 @@ interface IngredientGroupProps {
     ingredientId: string,
     data: Partial<{
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: Ingredient["role"];
       notes: string | null;
@@ -101,7 +101,7 @@ export function IngredientGroup({
 
   const handleAddIngredient = async (payload: {
     name: string;
-    quantity: number;
+    quantity: number | null;
     unit: string;
     role: Ingredient["role"];
     notes?: string;

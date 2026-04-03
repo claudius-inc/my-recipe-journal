@@ -10,13 +10,13 @@ export function BakersPercentageSummary({
   ingredients,
 }: BakersPercentageSummaryProps) {
   const totalWeight = ingredients.reduce(
-    (sum, ingredient) => sum + ingredient.quantity,
+    (sum, ingredient) => sum + (ingredient.quantity ?? 0),
     0,
   );
 
   const liquidTotal = ingredients
     .filter((ingredient) => ingredient.role === "liquid")
-    .reduce((sum, ingredient) => sum + ingredient.quantity, 0);
+    .reduce((sum, ingredient) => sum + (ingredient.quantity ?? 0), 0);
 
   const hydration = flourTotal > 0 ? (liquidTotal / flourTotal) * 100 : 0;
 

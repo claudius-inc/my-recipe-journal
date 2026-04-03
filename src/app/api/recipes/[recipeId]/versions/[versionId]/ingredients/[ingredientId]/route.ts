@@ -33,7 +33,7 @@ export async function PATCH(
 
   const payload = (await request.json().catch(() => ({}))) as {
     name?: string;
-    quantity?: number;
+    quantity?: number | null;
     unit?: string;
     role?: IngredientRole;
     notes?: string | null;
@@ -53,7 +53,8 @@ export async function PATCH(
   }
 
   if (payload.quantity !== undefined) {
-    if (typeof payload.quantity !== "number" || Number.isNaN(payload.quantity)) {
+    // Allow null quantity for "to taste" ingredients
+    if (payload.quantity !== null && (typeof payload.quantity !== "number" || Number.isNaN(payload.quantity))) {
       return NextResponse.json({ error: "Quantity must be a number" }, { status: 400 });
     }
     updateData.quantity = payload.quantity;

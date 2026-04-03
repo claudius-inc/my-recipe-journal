@@ -48,7 +48,7 @@ interface RecipeStoreValue {
     description?: string;
     ingredients?: Array<{
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: IngredientRole;
       notes?: string;
@@ -57,7 +57,7 @@ interface RecipeStoreValue {
       name: string;
       ingredients: Array<{
         name: string;
-        quantity: number;
+        quantity: number | null;
         unit: string;
         role: IngredientRole;
         notes?: string;
@@ -116,7 +116,7 @@ interface RecipeStoreValue {
     versionId: string,
     payload: {
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: IngredientRole;
       notes?: string;
@@ -130,7 +130,7 @@ interface RecipeStoreValue {
     ingredientId: string,
     payload: Partial<{
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: IngredientRole;
       notes: string | null;
@@ -143,7 +143,7 @@ interface RecipeStoreValue {
     versionId: string,
     updates: Array<{
       id: string;
-      quantity?: number;
+      quantity?: number | null;
       name?: string;
       unit?: string;
       role?: IngredientRole;

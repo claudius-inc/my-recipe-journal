@@ -27,7 +27,7 @@ interface IngredientGroupListProps {
     groupId: string,
     data: {
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: Ingredient["role"];
       notes?: string;
@@ -38,7 +38,7 @@ interface IngredientGroupListProps {
     ingredientId: string,
     data: Partial<{
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: Ingredient["role"];
       notes: string | null;
@@ -296,7 +296,7 @@ function IngredientGroupListInner({
                     type="number"
                     value={targetQuantity}
                     onChange={(e) => onTargetQuantityChange(e.target.value)}
-                    placeholder={`Current: ${version.ingredients.find(i => i.id === selectedScalingIngredient)?.quantity.toFixed(1) ?? ""}`}
+                    placeholder={`Current: ${version.ingredients.find(i => i.id === selectedScalingIngredient)?.quantity?.toFixed(1) ?? ""}`}
                     className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                   />
                 </div>

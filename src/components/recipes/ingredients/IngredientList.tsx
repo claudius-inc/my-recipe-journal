@@ -21,7 +21,7 @@ interface IngredientListProps {
     id: string,
     data: Partial<{
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: Ingredient["role"];
       notes: string | null;
@@ -30,7 +30,7 @@ interface IngredientListProps {
   onDeleteIngredient: (id: string) => Promise<void>;
   onAddIngredient: (data: {
     name: string;
-    quantity: number;
+    quantity: number | null;
     unit: string;
     role: Ingredient["role"];
     notes?: string;

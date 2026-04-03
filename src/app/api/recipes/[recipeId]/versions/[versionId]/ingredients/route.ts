@@ -27,7 +27,7 @@ export async function POST(
 
   const payload = (await request.json().catch(() => ({}))) as {
     name?: string;
-    quantity?: number;
+    quantity?: number | null;
     unit?: string;
     role?: IngredientRole;
     notes?: string | null;
@@ -39,11 +39,14 @@ export async function POST(
     return NextResponse.json({ error: "Ingredient name is required" }, { status: 400 });
   }
 
-  if (typeof payload.quantity !== "number" || Number.isNaN(payload.quantity)) {
-    return NextResponse.json(
-      { error: "Ingredient quantity must be a number" },
-      { status: 400 },
-    );
+  // Allow null quantity for "to taste" ingredients, but validate if provided
+  if (payload.quantity !== null && payload.quantity !== undefined) {
+    if (typeof payload.quantity !== "number" || Number.isNaN(payload.quantity)) {
+      return NextResponse.json(
+        { error: "Ingredient quantity must be a number" },
+        { status: 400 },
+      );
+    }
   }
 
   if (!payload.unit?.trim()) {
@@ -60,7 +63,7 @@ export async function POST(
     groupId: payload.groupId,
     ingredient: {
       name: payload.name.trim(),
-      quantity: payload.quantity,
+      quantity: payload.quantity ?? null,
       unit: payload.unit.trim(),
       role: payload.role,
       notes: payload.notes?.trim() || null,

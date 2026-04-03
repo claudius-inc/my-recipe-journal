@@ -194,7 +194,7 @@ export function BakerPercentageTools({
                       type="number"
                       value={targetQuantity}
                       onChange={(event) => setTargetQuantity(event.target.value)}
-                      placeholder={`Current: ${selectedIngredient.quantity.toFixed(1)}`}
+                      placeholder={`Current: ${selectedIngredient.quantity?.toFixed(1) ?? ""}`}
                       className="flex-1 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                     />
                     <Button

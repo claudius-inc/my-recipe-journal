@@ -286,7 +286,7 @@ export interface CreateVersionInput {
   nextSteps: string;
   ingredients?: Array<{
     name: string;
-    quantity: number;
+    quantity: number | null;
     unit: string;
     role: IngredientRole;
     notes?: string | null;
@@ -371,7 +371,7 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
 
   const newIngredients = (baseVersion?.ingredients ?? []).map((ing, index) => ({
     name: ing.name,
-    quantity: ing.quantity * factor,
+    quantity: ing.quantity != null ? ing.quantity * factor : null,
     unit: ing.unit,
     role: ing.role as IngredientRole,
     notes: ing.notes ?? null,
@@ -460,7 +460,7 @@ export interface UpsertIngredientInput {
   groupId?: string;
   ingredient: {
     name: string;
-    quantity: number;
+    quantity: number | null;
     unit: string;
     role: IngredientRole;
     notes?: string | null;
@@ -500,7 +500,7 @@ export async function updateIngredientDetails(
   ingredientId: string,
   data: Partial<{
     name: string;
-    quantity: number;
+    quantity: number | null;
     unit: string;
     role: IngredientRole;
     notes: string | null;

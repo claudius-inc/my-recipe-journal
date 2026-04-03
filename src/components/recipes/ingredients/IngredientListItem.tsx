@@ -23,7 +23,7 @@ interface IngredientListItemProps {
     id: string,
     data: Partial<{
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: Ingredient["role"];
       notes: string | null;
@@ -51,7 +51,7 @@ export function IngredientListItem({
 }: IngredientListItemProps) {
   const [editState, setEditState] = useState({
     name: ingredient.name,
-    quantity: ingredient.quantity.toString(),
+    quantity: ingredient.quantity?.toString() ?? "",
     unit: ingredient.unit,
     role: ingredient.role,
     notes: ingredient.notes ?? "",
@@ -69,7 +69,7 @@ export function IngredientListItem({
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPercent, setIsEditingPercent] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [inlineQuantity, setInlineQuantity] = useState(ingredient.quantity.toString());
+  const [inlineQuantity, setInlineQuantity] = useState(ingredient.quantity?.toString() ?? "");
   const [inlineUnit, setInlineUnit] = useState(ingredient.unit);
   const [inlinePercent, setInlinePercent] = useState("");
   const [inlineName, setInlineName] = useState(ingredient.name);
@@ -89,12 +89,12 @@ export function IngredientListItem({
   useEffect(() => {
     setEditState({
       name: ingredient.name,
-      quantity: ingredient.quantity.toString(),
+      quantity: ingredient.quantity?.toString() ?? "",
       unit: ingredient.unit,
       role: ingredient.role,
       notes: ingredient.notes ?? "",
     });
-    setInlineQuantity(ingredient.quantity.toString());
+    setInlineQuantity(ingredient.quantity?.toString() ?? "");
     setInlineUnit(ingredient.unit);
     setInlineName(ingredient.name);
   }, [ingredient]);
@@ -110,7 +110,7 @@ export function IngredientListItem({
   useEffect(() => {
     if (isEditingPercent && percentInputRef.current) {
       const currentPercent =
-        flourTotal > 0 ? ((ingredient.quantity / flourTotal) * 100).toFixed(1) : "0";
+        flourTotal > 0 && ingredient.quantity != null ? ((ingredient.quantity / flourTotal) * 100).toFixed(1) : "0";
       setInlinePercent(currentPercent);
       percentInputRef.current.focus();
       percentInputRef.current.select();
@@ -125,8 +125,9 @@ export function IngredientListItem({
   }, [isEditingName]);
 
   const handleSave = async () => {
-    const parsed = Number(editState.quantity);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
+    // Allow empty quantity for "to taste" ingredients
+    const parsed = editState.quantity.trim() === "" ? null : Number(editState.quantity);
+    if (parsed !== null && (!Number.isFinite(parsed) || parsed <= 0)) {
       return;
     }
     if (!editState.name.trim() || !editState.unit.trim()) {
@@ -148,7 +149,7 @@ export function IngredientListItem({
   const handleCancel = () => {
     setEditState({
       name: ingredient.name,
-      quantity: ingredient.quantity.toString(),
+      quantity: ingredient.quantity?.toString() ?? "",
       unit: ingredient.unit,
       role: ingredient.role,
       notes: ingredient.notes ?? "",
@@ -173,9 +174,10 @@ export function IngredientListItem({
   };
 
   const handleInlineSave = async () => {
-    const parsed = Number(inlineQuantity);
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      setInlineQuantity(ingredient.quantity.toString());
+    // Allow empty quantity for "to taste" ingredients
+    const parsed = inlineQuantity.trim() === "" ? null : Number(inlineQuantity);
+    if (parsed !== null && (!Number.isFinite(parsed) || parsed <= 0)) {
+      setInlineQuantity(ingredient.quantity?.toString() ?? "");
       setInlineUnit(ingredient.unit);
       setIsEditingQuantity(false);
       return;
@@ -191,7 +193,7 @@ export function IngredientListItem({
   };
 
   const handleInlineCancel = () => {
-    setInlineQuantity(ingredient.quantity.toString());
+    setInlineQuantity(ingredient.quantity?.toString() ?? "");
     setInlineUnit(ingredient.unit);
     setIsEditingQuantity(false);
   };
@@ -304,7 +306,7 @@ export function IngredientListItem({
   };
 
   const bakerPercentage =
-    enableBakersPercent && flourTotal > 0
+    enableBakersPercent && flourTotal > 0 && ingredient.quantity != null
       ? ((ingredient.quantity / flourTotal) * 100).toFixed(1)
       : null;
 

@@ -61,7 +61,7 @@ export function VersionComparisonModal({
 
       if (quantityChanged || unitChanged) {
         const changePercent =
-          baseIng.quantity > 0
+          baseIng.quantity != null && baseIng.quantity > 0 && ing.quantity != null
             ? ((ing.quantity - baseIng.quantity) / baseIng.quantity) * 100
             : 0;
         diffs.push({
@@ -107,7 +107,7 @@ export function VersionComparisonModal({
   };
 
   const getBakersPercentage = (ingredient: Ingredient): string => {
-    if (flourTotal <= 0) return "—";
+    if (flourTotal <= 0 || ingredient.quantity == null) return "—";
     const percent = (ingredient.quantity / flourTotal) * 100;
     return `${(Math.round(percent * 10) / 10).toFixed(1)}%`;
   };
@@ -213,7 +213,7 @@ export function VersionComparisonModal({
                             {comparisonVersion.title}
                           </p>
                           <p className="font-mono text-gray-700">
-                            {diff.ingredient.quantity.toFixed(1)} {diff.ingredient.unit}
+                            {diff.ingredient.quantity?.toFixed(1) ?? "—"} {diff.ingredient.unit}
                           </p>
                           {flourTotal > 0 && (
                             <p className="text-xs text-gray-500">
@@ -270,7 +270,7 @@ export function VersionComparisonModal({
 
                       <div className="text-center">
                         <p className="font-mono text-gray-700">
-                          {diff.ingredient.quantity.toFixed(1)} {diff.ingredient.unit}
+                          {diff.ingredient.quantity?.toFixed(1) ?? "—"} {diff.ingredient.unit}
                         </p>
                         {flourTotal > 0 && (
                           <p className="text-xs text-gray-500">

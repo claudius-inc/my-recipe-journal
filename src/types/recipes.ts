@@ -10,7 +10,7 @@ export type IngredientRole =
 export interface Ingredient {
   id: string;
   name: string;
-  quantity: number;
+  quantity: number | null;
   unit: string;
   role: IngredientRole;
   notes?: string;
@@ -19,7 +19,7 @@ export interface Ingredient {
 export interface PendingIngredient {
   tempId: string;
   name: string;
-  quantity: number;
+  quantity: number | null;
   unit: string;
   role: IngredientRole;
   notes?: string;

@@ -10,8 +10,8 @@ interface RecipeScalingManagerProps {
   scaledIngredients: Array<{
     id: string;
     name: string;
-    originalQuantity: number;
-    newQuantity: number;
+    originalQuantity: number | null;
+    newQuantity: number | null;
     unit: string;
   }>;
   recipeId: string;

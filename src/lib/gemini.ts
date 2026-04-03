@@ -12,7 +12,7 @@ const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface ExtractedIngredient {
   name: string;
-  quantity: number;
+  quantity: number | null;
   unit: string;
   role: IngredientRole;
   notes?: string;
@@ -50,8 +50,8 @@ Return ONLY valid JSON matching this exact schema:
       "ingredients": [
         {
           "name": "ingredient name",
-          "quantity": numeric value,
-          "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",
+          "quantity": numeric value or null (null for "to taste" items),
+          "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",  // when unit is "to taste", quantity should be null
           "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other"
         }
       ]

@@ -19,14 +19,14 @@ export function validateIngredients(
     return warnings;
   }
 
-  // Calculate totals by role
+  // Calculate totals by role (skip ingredients without quantities)
   const flourTotal = ingredients
-    .filter((ing) => ing.role === "flour")
-    .reduce((sum, ing) => sum + ing.quantity, 0);
+    .filter((ing) => ing.role === "flour" && ing.quantity != null)
+    .reduce((sum, ing) => sum + (ing.quantity ?? 0), 0);
 
   const liquidTotal = ingredients
-    .filter((ing) => ing.role === "liquid")
-    .reduce((sum, ing) => sum + ing.quantity, 0);
+    .filter((ing) => ing.role === "liquid" && ing.quantity != null)
+    .reduce((sum, ing) => sum + (ing.quantity ?? 0), 0);
 
   // Check for bread-specific validations
   if (enableBakersPercent) {
@@ -43,8 +43,8 @@ export function validateIngredients(
     // Flour percentage check
     if (flourTotal > 0) {
       const flourPercentages = ingredients
-        .filter((ing) => ing.role === "flour")
-        .map((ing) => (ing.quantity / flourTotal) * 100);
+        .filter((ing) => ing.role === "flour" && ing.quantity != null)
+        .map((ing) => ((ing.quantity ?? 0) / flourTotal) * 100);
 
       const totalFlourPercent = flourPercentages.reduce((sum, pct) => sum + pct, 0);
 

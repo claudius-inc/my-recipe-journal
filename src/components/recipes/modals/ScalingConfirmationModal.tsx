@@ -10,8 +10,8 @@ interface ScalingConfirmationModalProps {
   scaledIngredients: Array<{
     id: string;
     name: string;
-    originalQuantity: number;
-    newQuantity: number;
+    originalQuantity: number | null;
+    newQuantity: number | null;
     unit: string;
   }>;
   scalingMethod: string;
@@ -49,11 +49,11 @@ export function ScalingConfirmationModal({
                 </div>
                 <div className="flex items-center justify-between gap-2 text-neutral-600 sm:col-span-2 flex-nowrap">
                   <span className="font-mono whitespace-nowrap line-through">
-                    {ingredient.originalQuantity.toFixed(1)} {ingredient.unit}
+                    {ingredient.originalQuantity?.toFixed(1) ?? "—"} {ingredient.unit}
                   </span>
                   <ArrowRightIcon className="w-4 h-4 text-neutral-400" />
                   <span className="font-mono font-semibold text-blue-600 whitespace-nowrap">
-                    {ingredient.newQuantity.toFixed(1)} {ingredient.unit}
+                    {ingredient.newQuantity?.toFixed(1) ?? "—"} {ingredient.unit}
                   </span>
                 </div>
               </div>
