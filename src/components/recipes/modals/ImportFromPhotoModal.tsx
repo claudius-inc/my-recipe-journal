@@ -12,7 +12,7 @@ interface ExtractedRecipeData {
   description?: string;
   ingredients: Array<{
     name: string;
-    quantity: number;
+    quantity: number | null;
     unit: string;
     role: IngredientRole;
     notes?: string;
@@ -21,7 +21,7 @@ interface ExtractedRecipeData {
     name: string;
     ingredients: Array<{
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: IngredientRole;
       notes?: string;
