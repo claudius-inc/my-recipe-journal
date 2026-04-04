@@ -278,7 +278,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
     description?: string;
     ingredients: Array<{
       name: string;
-      quantity: number;
+      quantity: number | null;
       unit: string;
       role: import("@/types/recipes").IngredientRole;
       notes?: string;
@@ -287,7 +287,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       name: string;
       ingredients: Array<{
         name: string;
-        quantity: number;
+        quantity: number | null;
         unit: string;
         role: import("@/types/recipes").IngredientRole;
         notes?: string;

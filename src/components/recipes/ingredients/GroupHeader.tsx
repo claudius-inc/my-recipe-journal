@@ -5,6 +5,7 @@ import { ChevronDownIcon, CheckIcon } from "@radix-ui/react-icons";
 import { Switch, Text, Flex, Checkbox } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { IngredientGroup } from "@/types/recipes";
+import { SaveIndicator } from "@/components/ui/SaveIndicator";
 
 interface GroupHeaderProps {
   group: IngredientGroup;
@@ -35,30 +36,23 @@ export function GroupHeader({
   checkedIngredients,
 }: GroupHeaderProps) {
   const [isEditingName, setIsEditingName] = useState(false);
+  const [isSavingName, setIsSavingName] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSaveName = () => {
-    const rawValue = nameInputRef.current?.value;
-    const trimmedName = rawValue?.trim() ?? "";
-    console.log("[GroupHeader] handleSaveName called", {
-      rawValue,
-      trimmedName,
-      groupName: group.name,
-      isEqual: trimmedName === group.name,
-      inputExists: !!nameInputRef.current,
-    });
+  const handleSaveName = async () => {
+    const trimmedName = nameInputRef.current?.value?.trim() ?? "";
     setIsEditingName(false);
 
     if (trimmedName && trimmedName !== group.name) {
-      console.log("[GroupHeader] Calling onUpdateGroup with:", { name: trimmedName });
-      onUpdateGroup({ name: trimmedName })
-        .then(() => console.log("[GroupHeader] onUpdateGroup succeeded"))
-        .catch((error) => {
-          console.error("[GroupHeader] onUpdateGroup failed:", error);
-        });
-    } else {
-      console.log("[GroupHeader] Skipped save — name unchanged or empty");
+      setIsSavingName(true);
+      try {
+        await onUpdateGroup({ name: trimmedName });
+      } catch (error) {
+        console.error("[GroupHeader] onUpdateGroup failed:", error);
+      } finally {
+        setIsSavingName(false);
+      }
     }
   };
 
@@ -124,13 +118,17 @@ export function GroupHeader({
             className="w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm font-medium text-neutral-900 outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
           />
         ) : (
-          <button
-            type="button"
-            onClick={() => setIsEditingName(true)}
-            className="text-sm font-medium text-neutral-900 hover:text-neutral-700 truncate"
-          >
-            {group.name} ({group.ingredients.length})
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={isSavingName}
+              onClick={() => setIsEditingName(true)}
+              className="text-sm font-medium text-neutral-900 hover:text-neutral-700 truncate disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {group.name} ({group.ingredients.length})
+            </button>
+            <SaveIndicator isSaving={isSavingName} />
+          </div>
         )}
       </div>
 
