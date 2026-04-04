@@ -78,6 +78,7 @@ interface RecipeStoreValue {
   ) => Promise<void>;
   archiveRecipe: (recipeId: string) => Promise<void>;
   unarchiveRecipe: (recipeId: string) => Promise<void>;
+  deleteRecipe: (recipeId: string) => Promise<void>;
   pinRecipe: (recipeId: string) => Promise<void>;
   unpinRecipe: (recipeId: string) => Promise<void>;
   duplicateRecipe: (recipeId: string, data: DuplicateRecipeData) => Promise<void>;
@@ -606,6 +607,46 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
+  const deleteRecipe = useCallback<RecipeStoreValue["deleteRecipe"]>(
+    async (recipeId) => {
+      const previousData =
+        queryClient.getQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY);
+
+      // Optimistic removal
+      if (previousData) {
+        queryClient.setQueryData<InfiniteData<RecipesPage>>(RECIPES_QUERY_KEY, {
+          ...previousData,
+          pages: previousData.pages.map((page) => ({
+            ...page,
+            data: page.data.filter((recipe) => recipe.id !== recipeId),
+          })),
+        });
+      }
+
+      // Clear selection if deleting the selected recipe
+      if (selectedRecipeId === recipeId) {
+        setSelectedRecipeId(null);
+        setSelectedVersionId(null);
+      }
+
+      try {
+        await requestJson<{ id: string }>(`/api/recipes/${recipeId}`, {
+          method: "DELETE",
+        });
+
+        await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
+        await queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
+      } catch (error) {
+        // Rollback on error
+        if (previousData) {
+          queryClient.setQueryData(RECIPES_QUERY_KEY, previousData);
+        }
+        throw error;
+      }
+    },
+    [queryClient, selectedRecipeId],
+  );
+
   const pinRecipe = useCallback<RecipeStoreValue["pinRecipe"]>(
     async (recipeId) => {
       // Optimistic update
@@ -945,6 +986,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       updateRecipe,
       archiveRecipe,
       unarchiveRecipe,
+      deleteRecipe,
       pinRecipe,
       unpinRecipe,
       duplicateRecipe,
@@ -981,6 +1023,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       updateRecipe,
       archiveRecipe,
       unarchiveRecipe,
+      deleteRecipe,
       pinRecipe,
       unpinRecipe,
       duplicateRecipe,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { isValidCategory, type RecipeCategory } from "@/types/recipes";
 import {
+  deleteRecipe,
   getRecipe,
   setActiveVersion,
   updateRecipeDetails,
@@ -97,4 +98,19 @@ export async function PATCH(
   }
 
   return NextResponse.json({ data: updatedRecipe });
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: { recipeId: string } },
+) {
+  const recipe = await getRecipe(params.recipeId);
+
+  if (!recipe) {
+    return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
+  }
+
+  await deleteRecipe(params.recipeId);
+
+  return NextResponse.json({ data: { id: params.recipeId } });
 }

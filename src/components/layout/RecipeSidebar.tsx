@@ -119,11 +119,13 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
             }}
             onTogglePin={actions.handleTogglePin}
             onToggleArchive={actions.handleToggleArchive}
+            onDelete={actions.handleDeleteRecipe}
             onDuplicate={(recipe) => actions.setDuplicateModalRecipe(recipe)}
             animatingOut={state.animatingOut}
             justMoved={state.justMoved}
             archivingInProgress={state.archivingInProgress}
             pinningInProgress={state.pinningInProgress}
+            deletingInProgress={state.deletingInProgress}
           />
         </div>
       </aside>

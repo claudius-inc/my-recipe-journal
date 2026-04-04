@@ -17,6 +17,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
     createRecipeWithData,
     archiveRecipe,
     unarchiveRecipe,
+    deleteRecipe,
     pinRecipe,
     unpinRecipe,
     duplicateRecipe,
@@ -44,6 +45,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
   const [justMoved, setJustMoved] = useState<string | null>(null);
   const [archivingInProgress, setArchivingInProgress] = useState<Set<string>>(new Set());
   const [pinningInProgress, setPinningInProgress] = useState<Set<string>>(new Set());
+  const [deletingInProgress, setDeletingInProgress] = useState<Set<string>>(new Set());
   const [duplicateModalRecipe, setDuplicateModalRecipe] = useState<Recipe | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -132,6 +134,33 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       addToast("Failed to pin/unpin recipe", "error");
     } finally {
       setPinningInProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(recipeId);
+        return next;
+      });
+    }
+  };
+
+  const handleDeleteRecipe = async (recipeId: string) => {
+    if (deletingInProgress.has(recipeId)) {
+      return;
+    }
+
+    setDeletingInProgress((prev) => new Set(prev).add(recipeId));
+    setAnimatingOut(recipeId);
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    try {
+      await deleteRecipe(recipeId);
+      addToast("Recipe deleted permanently", "success");
+      setAnimatingOut(null);
+    } catch (error) {
+      console.error("Failed to delete recipe:", error);
+      addToast("Failed to delete recipe", "error");
+      setAnimatingOut(null);
+    } finally {
+      setDeletingInProgress((prev) => {
         const next = new Set(prev);
         next.delete(recipeId);
         return next;
@@ -337,6 +366,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       justMoved,
       archivingInProgress,
       pinningInProgress,
+      deletingInProgress,
       duplicateModalRecipe,
       isDuplicating,
       showImportModal,
@@ -361,6 +391,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       setShowPhotoModal,
       handleToggleArchive,
       handleTogglePin,
+      handleDeleteRecipe,
       handleConfirmDuplicate,
       handleImportFromUrl,
       handleImportFromPhoto,

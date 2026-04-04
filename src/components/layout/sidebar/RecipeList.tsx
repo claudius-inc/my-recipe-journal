@@ -15,11 +15,13 @@ interface RecipeListProps {
   onSelect: (id: string) => void;
   onTogglePin: (id: string, isPinned: boolean) => void;
   onToggleArchive: (id: string, isArchived: boolean) => void;
+  onDelete: (id: string) => void;
   onDuplicate: (recipe: Recipe) => void;
   animatingOut: string | null;
   justMoved: string | null;
   archivingInProgress: Set<string>;
   pinningInProgress: Set<string>;
+  deletingInProgress: Set<string>;
 }
 
 export function RecipeList({
@@ -34,11 +36,13 @@ export function RecipeList({
   onSelect,
   onTogglePin,
   onToggleArchive,
+  onDelete,
   onDuplicate,
   animatingOut,
   justMoved,
   archivingInProgress,
   pinningInProgress,
+  deletingInProgress,
 }: RecipeListProps) {
   if (loading && recipes.length === 0) {
     return (
@@ -73,11 +77,13 @@ export function RecipeList({
             onSelect={onSelect}
             onTogglePin={onTogglePin}
             onToggleArchive={onToggleArchive}
+            onDelete={onDelete}
             onDuplicate={onDuplicate}
             isAnimatingOut={animatingOut === recipe.id}
             isJustMoved={justMoved === recipe.id}
             isArchiveInProgress={archivingInProgress.has(recipe.id)}
             isPinInProgress={pinningInProgress.has(recipe.id)}
+            isDeleteInProgress={deletingInProgress.has(recipe.id)}
           />
         ))}
       </ul>

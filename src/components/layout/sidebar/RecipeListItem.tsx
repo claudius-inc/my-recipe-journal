@@ -4,6 +4,7 @@ import {
   DotsVerticalIcon,
   DrawingPinFilledIcon,
   DrawingPinIcon,
+  TrashIcon,
 } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
 import type { Recipe } from "@/types/recipes";
@@ -15,11 +16,13 @@ interface RecipeListItemProps {
   onSelect: (id: string) => void;
   onTogglePin: (id: string, isPinned: boolean) => void;
   onToggleArchive: (id: string, isArchived: boolean) => void;
+  onDelete: (id: string) => void;
   onDuplicate: (recipe: Recipe) => void;
   isAnimatingOut?: boolean;
   isJustMoved?: boolean;
   isArchiveInProgress?: boolean;
   isPinInProgress?: boolean;
+  isDeleteInProgress?: boolean;
 }
 
 function getDisplayImage(recipe: Recipe) {
@@ -38,9 +41,26 @@ function CookiePlaceholder() {
           const wobble = Math.sin(i * 3) * 1.5;
           const x = 16 + Math.cos(angle) * (10 + wobble);
           const y = 16 + Math.sin(angle) * (10 + wobble);
-          return <circle key={`edge-${i}`} cx={x} cy={y} r={1.8} fill="#d97706" opacity={0.6} />;
+          return (
+            <circle
+              key={`edge-${i}`}
+              cx={x}
+              cy={y}
+              r={1.8}
+              fill="#d97706"
+              opacity={0.6}
+            />
+          );
         })}
-        {[[12, 12], [18, 10], [14, 18], [20, 16], [16, 14], [10, 16], [18, 20]].map(([x, y], i) => (
+        {[
+          [12, 12],
+          [18, 10],
+          [14, 18],
+          [20, 16],
+          [16, 14],
+          [10, 16],
+          [18, 20],
+        ].map(([x, y], i) => (
           <circle key={`chip-${i}`} cx={x} cy={y} r={1.5} fill="#451a03" opacity={0.9} />
         ))}
       </svg>
@@ -54,11 +74,13 @@ export function RecipeListItem({
   onSelect,
   onTogglePin,
   onToggleArchive,
+  onDelete,
   onDuplicate,
   isAnimatingOut,
   isJustMoved,
   isArchiveInProgress,
   isPinInProgress,
+  isDeleteInProgress,
 }: RecipeListItemProps) {
   const displayImage = getDisplayImage(recipe);
 
@@ -151,6 +173,19 @@ export function RecipeListItem({
               <ArchiveIcon className="mr-2" />
               {recipe.archivedAt ? "Unarchive" : "Archive"}
             </DropdownMenu.Item>
+            {recipe.archivedAt && (
+              <DropdownMenu.Item
+                color="red"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(recipe.id);
+                }}
+                disabled={isAnimatingOut || isDeleteInProgress}
+              >
+                <TrashIcon className="mr-2" />
+                Delete permanently
+              </DropdownMenu.Item>
+            )}
           </DropdownMenu.Content>
         </DropdownMenu.Root>
       </div>

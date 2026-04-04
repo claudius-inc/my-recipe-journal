@@ -1,10 +1,17 @@
 import { eq, desc, and, gt, sql, asc } from "drizzle-orm";
-import { db, recipes, recipeVersions, ingredients, ingredientGroups, versionPhotos } from "@/db";
-import type { 
-  RecipeCategory as RecipeCategoryType, 
-  PrimaryCategory as PrimaryCategoryType, 
+import {
+  db,
+  recipes,
+  recipeVersions,
+  ingredients,
+  ingredientGroups,
+  versionPhotos,
+} from "@/db";
+import type {
+  RecipeCategory as RecipeCategoryType,
+  PrimaryCategory as PrimaryCategoryType,
   SecondaryCategory as SecondaryCategoryType,
-  IngredientRole 
+  IngredientRole,
 } from "@/db/schema";
 import type { Recipe, RecipeVersion, RecipeCategory } from "@/types/recipes";
 
@@ -23,11 +30,13 @@ type DbIngredientGroup = typeof ingredientGroups.$inferSelect;
 type DbVersionPhoto = typeof versionPhotos.$inferSelect;
 
 interface RecipeWithRelations extends DbRecipe {
-  versions: Array<DbVersion & {
-    ingredients: DbIngredient[];
-    ingredientGroups: Array<DbIngredientGroup & { ingredients: DbIngredient[] }>;
-    photos: DbVersionPhoto[];
-  }>;
+  versions: Array<
+    DbVersion & {
+      ingredients: DbIngredient[];
+      ingredientGroups: Array<DbIngredientGroup & { ingredients: DbIngredient[] }>;
+      photos: DbVersionPhoto[];
+    }
+  >;
 }
 
 function toISOString(date: Date | null): string | null {
@@ -54,7 +63,7 @@ function toRecipe(record: RecipeWithRelations): Recipe {
     versions: record.versions.map((v) => ({
       id: v.id,
       title: v.title,
-      steps: Array.isArray(v.steps) ? v.steps as { order: number; text: string }[] : [],
+      steps: Array.isArray(v.steps) ? (v.steps as { order: number; text: string }[]) : [],
       notes: v.notes,
       nextSteps: v.nextSteps,
       photoUrl: v.photoUrl ?? undefined,
@@ -73,14 +82,16 @@ function toRecipe(record: RecipeWithRelations): Recipe {
       visualNotes: v.visualNotes ?? undefined,
       textureNotes: v.textureNotes ?? undefined,
       createdAt: v.createdAt.toISOString(),
-      ingredients: v.ingredients.filter((i) => !i.groupId).map((i) => ({
-        id: i.id,
-        name: i.name,
-        quantity: i.quantity,
-        unit: i.unit,
-        role: i.role,
-        notes: i.notes ?? undefined,
-      })),
+      ingredients: v.ingredients
+        .filter((i) => !i.groupId)
+        .map((i) => ({
+          id: i.id,
+          name: i.name,
+          quantity: i.quantity,
+          unit: i.unit,
+          role: i.role,
+          notes: i.notes ?? undefined,
+        })),
       ingredientGroups: v.ingredientGroups.map((g) => ({
         id: g.id,
         name: g.name,
@@ -101,7 +112,9 @@ function toRecipe(record: RecipeWithRelations): Recipe {
 
 // ============ RECIPE QUERIES ============
 
-async function fetchRecipeWithRelations(recipeId: string): Promise<RecipeWithRelations | null> {
+async function fetchRecipeWithRelations(
+  recipeId: string,
+): Promise<RecipeWithRelations | null> {
   const recipe = await db.query.recipes.findFirst({
     where: eq(recipes.id, recipeId),
     with: {
@@ -142,7 +155,7 @@ export async function listRecipes({
 
   // Build conditions
   const conditions = [eq(recipes.userId, userId)];
-  
+
   if (cursor) {
     // Get cursor recipe's updatedAt for pagination
     const cursorRecipe = await db.query.recipes.findFirst({
@@ -150,7 +163,9 @@ export async function listRecipes({
       columns: { updatedAt: true },
     });
     if (cursorRecipe) {
-      conditions.push(sql`(${recipes.updatedAt} < ${cursorRecipe.updatedAt} OR (${recipes.updatedAt} = ${cursorRecipe.updatedAt} AND ${recipes.id} < ${cursor}))`);
+      conditions.push(
+        sql`(${recipes.updatedAt} < ${cursorRecipe.updatedAt} OR (${recipes.updatedAt} = ${cursorRecipe.updatedAt} AND ${recipes.id} < ${cursor}))`,
+      );
     }
   }
 
@@ -189,7 +204,7 @@ export async function getRecipe(
   userId?: string,
 ): Promise<Recipe | null> {
   const record = await fetchRecipeWithRelations(recipeId);
-  
+
   if (userId && record && record.userId !== userId) {
     return null;
   }
@@ -270,7 +285,8 @@ export async function setActiveVersion(
   recipeId: string,
   versionId: string | null,
 ): Promise<Recipe | null> {
-  await db.update(recipes)
+  await db
+    .update(recipes)
     .set({ activeVersionId: versionId, updatedAt: new Date() })
     .where(eq(recipes.id, recipeId));
   return getRecipe(recipeId);
@@ -320,13 +336,14 @@ export async function createVersion(input: CreateVersionInput): Promise<Recipe> 
         role: ing.role,
         notes: ing.notes ?? null,
         sortOrder: ing.sortOrder ?? index,
-      }))
+      })),
     );
   }
 
   // Set as active if requested
   if (input.setActive ?? true) {
-    await db.update(recipes)
+    await db
+      .update(recipes)
       .set({ activeVersionId: versionId, updatedAt: new Date() })
       .where(eq(recipes.id, input.recipeId));
   }
@@ -353,11 +370,11 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
     const version = await db.query.recipeVersions.findFirst({
       where: and(
         eq(recipeVersions.id, input.baseVersionId),
-        eq(recipeVersions.recipeId, input.recipeId)
+        eq(recipeVersions.recipeId, input.recipeId),
       ),
       with: { ingredients: true },
     });
-    
+
     if (!version) throw new Error("Base version not found");
     baseVersion = version;
   }
@@ -442,7 +459,8 @@ export async function deleteVersion(
     columns: { id: true },
   });
 
-  await db.update(recipes)
+  await db
+    .update(recipes)
     .set({ activeVersionId: nextVersion?.id ?? null, updatedAt: new Date() })
     .where(eq(recipes.id, recipeId));
 
@@ -468,7 +486,9 @@ export interface UpsertIngredientInput {
   };
 }
 
-export async function addIngredientToVersion(input: UpsertIngredientInput): Promise<Recipe> {
+export async function addIngredientToVersion(
+  input: UpsertIngredientInput,
+): Promise<Recipe> {
   // Get highest sort order
   const highest = await db.query.ingredients.findFirst({
     where: eq(ingredients.versionId, input.versionId),
@@ -476,7 +496,7 @@ export async function addIngredientToVersion(input: UpsertIngredientInput): Prom
     columns: { sortOrder: true },
   });
 
-  const sortOrder = input.ingredient.sortOrder ?? ((highest?.sortOrder ?? 0) + 1);
+  const sortOrder = input.ingredient.sortOrder ?? (highest?.sortOrder ?? 0) + 1;
 
   await db.insert(ingredients).values({
     id: createId(),
@@ -551,9 +571,9 @@ export async function batchUpdateIngredients(
       if (update.notes !== undefined) data.notes = update.notes;
       if (update.sortOrder !== undefined) data.sortOrder = update.sortOrder;
       if (update.groupId !== undefined) data.groupId = update.groupId;
-      
+
       return db.update(ingredients).set(data).where(eq(ingredients.id, update.id));
-    })
+    }),
   );
 
   const recipe = await getRecipe(recipeId);
@@ -561,7 +581,10 @@ export async function batchUpdateIngredients(
   return recipe;
 }
 
-export async function deleteIngredient(recipeId: string, ingredientId: string): Promise<Recipe> {
+export async function deleteIngredient(
+  recipeId: string,
+  ingredientId: string,
+): Promise<Recipe> {
   await db.delete(ingredients).where(eq(ingredients.id, ingredientId));
 
   const recipe = await getRecipe(recipeId);
@@ -578,7 +601,9 @@ export interface CreateIngredientGroupInput {
   enableBakersPercent?: boolean;
 }
 
-export async function createIngredientGroup(input: CreateIngredientGroupInput): Promise<Recipe> {
+export async function createIngredientGroup(
+  input: CreateIngredientGroupInput,
+): Promise<Recipe> {
   const highest = await db.query.ingredientGroups.findFirst({
     where: eq(ingredientGroups.versionId, input.versionId),
     orderBy: [desc(ingredientGroups.orderIndex)],
@@ -605,9 +630,12 @@ export async function updateIngredientGroup(
   groupId: string,
   data: Partial<{ name: string; enableBakersPercent: boolean; orderIndex: number }>,
 ): Promise<Recipe> {
-  const updates: Partial<typeof ingredientGroups.$inferInsert> = { updatedAt: new Date() };
+  const updates: Partial<typeof ingredientGroups.$inferInsert> = {
+    updatedAt: new Date(),
+  };
   if (data.name !== undefined) updates.name = data.name;
-  if (data.enableBakersPercent !== undefined) updates.enableBakersPercent = data.enableBakersPercent;
+  if (data.enableBakersPercent !== undefined)
+    updates.enableBakersPercent = data.enableBakersPercent;
   if (data.orderIndex !== undefined) updates.orderIndex = data.orderIndex;
 
   await db.update(ingredientGroups).set(updates).where(eq(ingredientGroups.id, groupId));
@@ -617,7 +645,10 @@ export async function updateIngredientGroup(
   return recipe;
 }
 
-export async function deleteIngredientGroup(recipeId: string, groupId: string): Promise<Recipe> {
+export async function deleteIngredientGroup(
+  recipeId: string,
+  groupId: string,
+): Promise<Recipe> {
   await db.delete(ingredientGroups).where(eq(ingredientGroups.id, groupId));
 
   const recipe = await getRecipe(recipeId);
@@ -632,10 +663,11 @@ export async function reorderIngredientGroups(
   // Update orderIndex for each group based on position in array
   await Promise.all(
     groupIds.map((groupId, index) =>
-      db.update(ingredientGroups)
+      db
+        .update(ingredientGroups)
         .set({ orderIndex: index, updatedAt: new Date() })
-        .where(eq(ingredientGroups.id, groupId))
-    )
+        .where(eq(ingredientGroups.id, groupId)),
+    ),
   );
 
   const recipe = await getRecipe(recipeId);
@@ -661,7 +693,8 @@ export async function migrateIngredientsToGroup(
   });
 
   // Update all ingredients for this version
-  await db.update(ingredients)
+  await db
+    .update(ingredients)
     .set({ groupId })
     .where(eq(ingredients.versionId, versionId));
 
@@ -679,9 +712,12 @@ export async function getIngredientSuggestions(recipeId?: string): Promise<strin
       columns: { id: true },
     });
     const versionIds = versions.map((v) => v.id);
-    
+
     query = await db.query.ingredients.findMany({
-      where: sql`${ingredients.versionId} IN (${sql.join(versionIds.map(id => sql`${id}`), sql`, `)})`,
+      where: sql`${ingredients.versionId} IN (${sql.join(
+        versionIds.map((id) => sql`${id}`),
+        sql`, `,
+      )})`,
       columns: { name: true },
     });
   } else {
@@ -698,7 +734,8 @@ export async function getIngredientSuggestions(recipeId?: string): Promise<strin
 // ============ ARCHIVE/PIN ============
 
 export async function archiveRecipe(recipeId: string): Promise<Recipe> {
-  await db.update(recipes)
+  await db
+    .update(recipes)
     .set({ archivedAt: new Date(), updatedAt: new Date() })
     .where(eq(recipes.id, recipeId));
 
@@ -708,7 +745,8 @@ export async function archiveRecipe(recipeId: string): Promise<Recipe> {
 }
 
 export async function unarchiveRecipe(recipeId: string): Promise<Recipe> {
-  await db.update(recipes)
+  await db
+    .update(recipes)
     .set({ archivedAt: null, updatedAt: new Date() })
     .where(eq(recipes.id, recipeId));
 
@@ -718,7 +756,8 @@ export async function unarchiveRecipe(recipeId: string): Promise<Recipe> {
 }
 
 export async function pinRecipe(recipeId: string): Promise<Recipe> {
-  await db.update(recipes)
+  await db
+    .update(recipes)
     .set({ pinnedAt: new Date(), updatedAt: new Date() })
     .where(eq(recipes.id, recipeId));
 
@@ -728,13 +767,18 @@ export async function pinRecipe(recipeId: string): Promise<Recipe> {
 }
 
 export async function unpinRecipe(recipeId: string): Promise<Recipe> {
-  await db.update(recipes)
+  await db
+    .update(recipes)
     .set({ pinnedAt: null, updatedAt: new Date() })
     .where(eq(recipes.id, recipeId));
 
   const recipe = await getRecipe(recipeId);
   if (!recipe) throw new Error("Recipe not found");
   return recipe;
+}
+
+export async function deleteRecipe(recipeId: string): Promise<void> {
+  await db.delete(recipes).where(eq(recipes.id, recipeId));
 }
 
 // ============ DUPLICATE ============
@@ -755,7 +799,9 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
   if (!sourceRecipe) throw new Error("Source recipe not found");
   if (sourceRecipe.userId !== input.userId) throw new Error("Unauthorized");
 
-  const activeVersion = sourceRecipe.versions.find((v) => v.id === sourceRecipe.activeVersionId);
+  const activeVersion = sourceRecipe.versions.find(
+    (v) => v.id === sourceRecipe.activeVersionId,
+  );
   if (!activeVersion) throw new Error("Source recipe has no active version");
 
   const newRecipeId = createId();
@@ -801,7 +847,7 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
         role: ing.role,
         notes: ing.notes,
         sortOrder: ing.sortOrder,
-      }))
+      })),
     );
   }
 
@@ -822,7 +868,8 @@ export interface AddVersionPhotoInput {
 }
 
 export async function addVersionPhoto(input: AddVersionPhotoInput): Promise<Recipe> {
-  const photoCount = await db.select({ count: sql<number>`count(*)` })
+  const photoCount = await db
+    .select({ count: sql<number>`count(*)` })
     .from(versionPhotos)
     .where(eq(versionPhotos.versionId, input.versionId));
 
@@ -874,10 +921,8 @@ export async function reorderVersionPhotos(
 ): Promise<Recipe> {
   await Promise.all(
     photoIds.map((id, index) =>
-      db.update(versionPhotos)
-        .set({ order: index })
-        .where(eq(versionPhotos.id, id))
-    )
+      db.update(versionPhotos).set({ order: index }).where(eq(versionPhotos.id, id)),
+    ),
   );
 
   const recipe = await getRecipe(recipeId);
