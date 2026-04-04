@@ -131,6 +131,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     addPhoto,
     removePhoto,
     reorderPhotos,
+    updateCaption,
     isUploading,
     photoUploadProgress,
     photoUploadError,
@@ -680,6 +681,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onUpload={addPhoto}
           onRemove={removePhoto}
           onReorder={reorderPhotos}
+          onUpdateCaption={updateCaption}
           isUploading={isUploading}
           uploadProgress={photoUploadProgress}
           uploadError={photoUploadError}

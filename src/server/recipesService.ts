@@ -72,6 +72,7 @@ function toRecipe(record: RecipeWithRelations): Recipe {
         id: p.id,
         photoUrl: p.photoUrl,
         r2Key: p.r2Key ?? undefined,
+        caption: p.caption ?? undefined,
         order: p.order,
         createdAt: p.createdAt.toISOString(),
       })),
@@ -927,5 +928,17 @@ export async function reorderVersionPhotos(
 
   const recipe = await getRecipe(recipeId);
   if (!recipe) throw new Error("Recipe not found after reordering photos");
+  return recipe;
+}
+
+export async function updatePhotoCaption(
+  recipeId: string,
+  photoId: string,
+  caption: string | null,
+): Promise<Recipe> {
+  await db.update(versionPhotos).set({ caption }).where(eq(versionPhotos.id, photoId));
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found after updating caption");
   return recipe;
 }

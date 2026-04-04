@@ -231,6 +231,7 @@ export const versionPhotos = sqliteTable(
       .references(() => recipeVersions.id, { onDelete: "cascade" }),
     photoUrl: text("photo_url").notNull(),
     r2Key: text("r2_key"),
+    caption: text("caption"),
     order: integer("order").default(0).notNull(),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()

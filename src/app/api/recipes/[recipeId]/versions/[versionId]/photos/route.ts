@@ -5,6 +5,7 @@ import {
   addVersionPhoto,
   removeVersionPhoto,
   reorderVersionPhotos,
+  updatePhotoCaption,
 } from "@/server/recipesService";
 
 // POST: Add a photo to the version
@@ -131,5 +132,46 @@ export async function PATCH(
   } catch (error) {
     console.error("Error reordering photos:", error);
     return NextResponse.json({ error: "Failed to reorder photos" }, { status: 500 });
+  }
+}
+
+// PUT: Update a photo's caption
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { recipeId: string; versionId: string } },
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { recipeId } = params;
+
+    const recipe = await getRecipe(recipeId, session.user.id);
+    if (!recipe) {
+      return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
+    }
+
+    const body = await request.json();
+    const { photoId, caption } = body;
+
+    if (!photoId) {
+      return NextResponse.json({ error: "photoId is required" }, { status: 400 });
+    }
+
+    const updatedRecipe = await updatePhotoCaption(
+      recipeId,
+      photoId,
+      typeof caption === "string" && caption.trim() ? caption.trim() : null,
+    );
+
+    return NextResponse.json({ data: updatedRecipe });
+  } catch (error) {
+    console.error("Error updating photo caption:", error);
+    return NextResponse.json({ error: "Failed to update caption" }, { status: 500 });
   }
 }

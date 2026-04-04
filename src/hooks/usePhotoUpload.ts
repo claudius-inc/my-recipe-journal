@@ -9,7 +9,7 @@ interface UsePhotoUploadOptions {
 }
 
 export function usePhotoUpload({ recipeId, versionId }: UsePhotoUploadOptions) {
-  const { refresh } = useRecipeStore();
+  const { refresh, updatePhotoCaption: storeUpdateCaption } = useRecipeStore();
   const { addToast } = useToast();
 
   const [isUploading, setIsUploading] = useState(false);
@@ -186,10 +186,22 @@ export function usePhotoUpload({ recipeId, versionId }: UsePhotoUploadOptions) {
     [recipeId, versionId, addToast, refresh],
   );
 
+  const updateCaption = useCallback(
+    async (photoId: string, caption: string | null) => {
+      try {
+        await storeUpdateCaption(recipeId, versionId, photoId, caption);
+      } catch (error) {
+        addToast("Failed to update caption", "error");
+      }
+    },
+    [recipeId, versionId, storeUpdateCaption, addToast],
+  );
+
   return {
     addPhoto,
     removePhoto,
     reorderPhotos,
+    updateCaption,
     isUploading,
     photoUploadProgress,
     photoUploadError,

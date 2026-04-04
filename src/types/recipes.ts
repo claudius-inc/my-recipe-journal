@@ -151,6 +151,7 @@ export interface VersionPhoto {
   id: string;
   photoUrl: string;
   r2Key?: string;
+  caption?: string;
   order: number;
   createdAt: string;
 }
