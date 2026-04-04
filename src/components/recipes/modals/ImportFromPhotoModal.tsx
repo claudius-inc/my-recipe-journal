@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button, Dialog, TextField } from "@radix-ui/themes";
 import { CameraIcon } from "@radix-ui/react-icons";
 import type { RecipeCategory, IngredientRole } from "@/types/recipes";
@@ -40,6 +40,15 @@ interface ImportFromPhotoModalProps {
   onImport: (data: ExtractedRecipeData) => Promise<void>;
 }
 
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function ImportFromPhotoModal({
   isOpen,
   onClose,
@@ -50,6 +59,7 @@ export function ImportFromPhotoModal({
   const [extractedData, setExtractedData] = useState<ExtractedRecipeData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Editable fields for preview
   const [editableName, setEditableName] = useState("");
@@ -59,16 +69,64 @@ export function ImportFromPhotoModal({
   });
   const [editableDescription, setEditableDescription] = useState("");
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Stable blob URL that gets revoked on cleanup
+  const previewUrl = useMemo(
+    () => (selectedFile ? URL.createObjectURL(selectedFile) : null),
+    [selectedFile],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  const validateFile = (file: File): string | null => {
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      return "Invalid file type. Please upload a JPEG, PNG, or WebP image.";
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return `File too large (${formatFileSize(file.size)}). Maximum size is 5MB.`;
+    }
+    return null;
+  };
+
+  const handleFileSelected = async (file: File) => {
+    const error = validateFile(file);
+    if (error) {
+      setExtractError(error);
+      return;
+    }
 
     setSelectedFile(file);
     setExtractError(null);
     setExtractedData(null);
 
-    // Start extraction immediately after file selection
     await handleExtract(file);
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await handleFileSelected(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    await handleFileSelected(file);
   };
 
   const handleExtract = async (file: File) => {
@@ -104,6 +162,11 @@ export function ImportFromPhotoModal({
     } finally {
       setIsExtracting(false);
     }
+  };
+
+  const handleRetry = async () => {
+    if (!selectedFile) return;
+    await handleExtract(selectedFile);
   };
 
   const handleSave = async () => {
@@ -153,6 +216,11 @@ export function ImportFromPhotoModal({
         ? [{ name: "Ingredients", ingredients: extractedData.ingredients }]
         : [];
 
+  const totalIngredientCount = displayGroups.reduce(
+    (sum, group) => sum + group.ingredients.length,
+    0,
+  );
+
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
       <Dialog.Content maxWidth="600px">
@@ -168,11 +236,21 @@ export function ImportFromPhotoModal({
             <div>
               <label className="text-sm font-medium text-neutral-700">Recipe Photo</label>
               <div className="mt-1">
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-neutral-300 border-dashed rounded-lg cursor-pointer bg-neutral-50 hover:bg-neutral-100">
+                <label
+                  className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                    isDragOver
+                      ? "border-blue-400 bg-blue-50"
+                      : "border-neutral-300 bg-neutral-50 hover:bg-neutral-100"
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <CameraIcon className="w-8 h-8 mb-3 text-neutral-400" />
                     <p className="mb-2 text-sm text-neutral-500">
-                      <span className="font-semibold">Click to upload</span>
+                      <span className="font-semibold">Click to upload</span> or drag and
+                      drop
                     </p>
                     <p className="text-xs text-neutral-500">
                       JPEG, PNG, or WebP (Max 5MB)
@@ -191,6 +269,14 @@ export function ImportFromPhotoModal({
             {extractError && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {extractError}
+                {selectedFile && (
+                  <button
+                    onClick={handleRetry}
+                    className="ml-2 underline hover:no-underline"
+                  >
+                    Try again
+                  </button>
+                )}
               </div>
             )}
 
@@ -209,17 +295,20 @@ export function ImportFromPhotoModal({
               <p className="text-xs text-neutral-500 mt-2">This may take 10-30 seconds</p>
             </div>
 
-            {selectedFile && (
+            {selectedFile && previewUrl && (
               <div>
                 <label className="text-sm font-medium text-neutral-700">
                   Uploaded Photo
                 </label>
                 <div className="mt-1">
                   <img
-                    src={URL.createObjectURL(selectedFile)}
+                    src={previewUrl}
                     alt="Uploaded recipe"
                     className="w-full h-48 object-cover rounded-lg border border-neutral-200"
                   />
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                  </p>
                 </div>
               </div>
             )}
@@ -237,24 +326,33 @@ export function ImportFromPhotoModal({
               Recipe extracted successfully! Review and edit before saving.
             </div>
 
-            {selectedFile && (
+            {selectedFile && previewUrl && (
               <div>
                 <label className="text-sm font-medium text-neutral-700">
                   Source Photo
                 </label>
                 <div className="mt-1">
                   <img
-                    src={URL.createObjectURL(selectedFile)}
+                    src={previewUrl}
                     alt="Recipe source"
                     className="w-full h-48 object-cover rounded-lg border border-neutral-200"
                   />
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                  </p>
                 </div>
               </div>
             )}
 
             <div>
-              <label className="text-sm font-medium text-neutral-700">Recipe Name</label>
+              <label
+                htmlFor="photo-recipe-name"
+                className="text-sm font-medium text-neutral-700"
+              >
+                Recipe Name
+              </label>
               <TextField.Root
+                id="photo-recipe-name"
                 value={editableName}
                 onChange={(e) => setEditableName(e.target.value)}
                 className="mt-1"
@@ -272,8 +370,14 @@ export function ImportFromPhotoModal({
             </div>
 
             <div>
-              <label className="text-sm font-medium text-neutral-700">Description</label>
+              <label
+                htmlFor="photo-recipe-description"
+                className="text-sm font-medium text-neutral-700"
+              >
+                Description
+              </label>
               <TextField.Root
+                id="photo-recipe-description"
                 value={editableDescription}
                 onChange={(e) => setEditableDescription(e.target.value)}
                 className="mt-1"
@@ -283,8 +387,11 @@ export function ImportFromPhotoModal({
 
             <div>
               <label className="text-sm font-medium text-neutral-700">
-                Ingredients ({extractedData?.ingredients.length || 0})
+                Ingredients ({totalIngredientCount})
               </label>
+              <p className="text-xs text-neutral-500 mb-1">
+                You can edit ingredients after saving.
+              </p>
               <div className="mt-1 max-h-60 overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm">
                 {displayGroups.map((group) => (
                   <div key={group.name} className="mb-3 last:mb-0">
