@@ -3,7 +3,7 @@
 import { useSession } from "@/lib/auth-client";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Box, Spinner, Text } from "@radix-ui/themes";
+import { Box, Spinner } from "@radix-ui/themes";
 
 const publicRoutes = ["/login", "/auth"];
 
@@ -12,6 +12,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [showSpinner, setShowSpinner] = useState(false);
+
+  useEffect(() => {
+    if (isPending && !isAuthorized) {
+      const timer = setTimeout(() => setShowSpinner(true), 300);
+      return () => clearTimeout(timer);
+    }
+    setShowSpinner(false);
+  }, [isPending, isAuthorized]);
 
   useEffect(() => {
     // If we're on a public route, we don't need to check auth
@@ -45,19 +54,19 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Strategy:
   // Show loading spinner only if we are pending and not authorized yet.
   if (isPending && !isAuthorized) {
+    if (!showSpinner) {
+      return null;
+    }
     return (
       <Box
         style={{
           height: "100vh",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          gap: "1rem",
         }}
       >
         <Spinner size="3" />
-        <Text color="gray">Verifying session...</Text>
       </Box>
     );
   }

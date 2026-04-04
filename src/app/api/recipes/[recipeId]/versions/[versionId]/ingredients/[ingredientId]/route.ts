@@ -25,7 +25,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Version not found" }, { status: 404 });
   }
 
-  const ingredientExists = version.ingredients.some((item) => item.id === ingredientId);
+  const groupedIngredients =
+    version.ingredientGroups?.flatMap((g) => g.ingredients) ?? [];
+  const allIngredients = [...version.ingredients, ...groupedIngredients];
+  const ingredientExists = allIngredients.some((item) => item.id === ingredientId);
 
   if (!ingredientExists) {
     return NextResponse.json({ error: "Ingredient not found" }, { status: 404 });
@@ -54,7 +57,10 @@ export async function PATCH(
 
   if (payload.quantity !== undefined) {
     // Allow null quantity for "to taste" ingredients
-    if (payload.quantity !== null && (typeof payload.quantity !== "number" || Number.isNaN(payload.quantity))) {
+    if (
+      payload.quantity !== null &&
+      (typeof payload.quantity !== "number" || Number.isNaN(payload.quantity))
+    ) {
       return NextResponse.json({ error: "Quantity must be a number" }, { status: 400 });
     }
     updateData.quantity = payload.quantity;
@@ -105,7 +111,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Version not found" }, { status: 404 });
   }
 
-  const ingredientExists = version.ingredients.some((item) => item.id === ingredientId);
+  const groupedIngredients =
+    version.ingredientGroups?.flatMap((g) => g.ingredients) ?? [];
+  const allIngredients = [...version.ingredients, ...groupedIngredients];
+  const ingredientExists = allIngredients.some((item) => item.id === ingredientId);
 
   if (!ingredientExists) {
     return NextResponse.json({ error: "Ingredient not found" }, { status: 404 });

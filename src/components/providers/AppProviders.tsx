@@ -60,7 +60,7 @@ export function AppProviders({ children }: AppProvidersProps) {
           </Theme>
         </ToastProvider>
       </AuthGuard>
-      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+      {/* <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" /> */}
     </PersistQueryClientProvider>
   );
 }

@@ -56,11 +56,16 @@ export function GroupHeader({
     }
   };
 
+  const [isTogglingBakers, setIsTogglingBakers] = useState(false);
+
   const handleToggleBakersPercent = async () => {
+    setIsTogglingBakers(true);
     try {
       await onUpdateGroup({ enableBakersPercent: !group.enableBakersPercent });
     } catch (error) {
       console.error("Failed to toggle baker's percentage:", error);
+    } finally {
+      setIsTogglingBakers(false);
     }
   };
 
@@ -141,8 +146,10 @@ export function GroupHeader({
           <Switch
             size="1"
             checked={group.enableBakersPercent}
+            disabled={isTogglingBakers}
             onCheckedChange={handleToggleBakersPercent}
             aria-label="Toggle baker's percentage"
+            className={isTogglingBakers ? "opacity-50" : ""}
           />
         </Flex>
       )}
@@ -196,11 +203,13 @@ export function GroupHeader({
                     <Switch
                       size="1"
                       checked={group.enableBakersPercent}
+                      disabled={isTogglingBakers}
                       onCheckedChange={() => {
                         handleToggleBakersPercent();
                         setShowMenu(false);
                       }}
                       aria-label="Toggle baker's percentage"
+                      className={isTogglingBakers ? "opacity-50" : ""}
                     />
                   </Flex>
                 </div>

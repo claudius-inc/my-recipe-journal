@@ -150,9 +150,9 @@ export function SpeedDialFAB({ onDuplicate, onArchive, isArchived }: SpeedDialFA
             aria-expanded={isOpen}
           >
             {isOpen ? (
-              <Cross2Icon width={20} height={20} />
+              <Cross2Icon width={20} height={20} className="min-w-[13px]" />
             ) : (
-              <PlusIcon width={20} height={20} />
+              <PlusIcon width={20} height={20} className="min-w-[13px]" />
             )}
           </Button>
         </Tooltip>
