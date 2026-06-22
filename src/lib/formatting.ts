@@ -11,6 +11,16 @@ export function formatPercent(value: number): string {
 }
 
 /**
+ * Format a weight in grams for display: rounded to the nearest gram with a
+ * thousands separator.
+ * @example formatGrams(1840.3) // "1,840 g"
+ * @example formatGrams(80)     // "80 g"
+ */
+export function formatGrams(grams: number): string {
+  return `${Math.round(grams).toLocaleString("en-US")} g`;
+}
+
+/**
  * Format a date as "DD Mon YYYY"
  * @example formatDate(new Date("2024-01-15")) // "15 Jan 2024"
  */

@@ -4,3 +4,4 @@ export { ImportFromPhotoModal } from "./ImportFromPhotoModal";
 export { IterationIntentModal } from "./IterationIntentModal";
 export { VersionComparisonModal } from "./VersionComparisonModal";
 export { ScalingConfirmationModal } from "./ScalingConfirmationModal";
+export { ScaleRecipeModal } from "./ScaleRecipeModal";

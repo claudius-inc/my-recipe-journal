@@ -10,6 +10,7 @@ import type {
 } from "@/types/recipes";
 import { IngredientGroup } from "./IngredientGroup";
 import { Modal } from "@/components/ui/Modal";
+import { ScaleRecipeModal } from "../modals";
 import { getIngredientGroups } from "@/lib/migration-utils";
 import { suggestGroupNames } from "@/lib/migration-utils";
 
@@ -53,15 +54,6 @@ interface IngredientGroupListProps {
   checkedIngredients?: Set<string>;
   onToggleIngredientCheck?: (id: string) => void;
   onToggleAllIngredients?: () => void;
-  // Scaling props (for future integration)
-  isScalingOpen?: boolean;
-  onToggleScaling?: () => void;
-  selectedScalingIngredient?: string;
-  onSelectScalingIngredient?: (id: string) => void;
-  targetQuantity?: string;
-  onTargetQuantityChange?: (value: string) => void;
-  onPreviewScaling?: () => void;
-  isPreviewingScaling?: boolean;
 }
 
 // Inner component that uses the design context
@@ -83,15 +75,6 @@ function IngredientGroupListInner({
   checkedIngredients = new Set(),
   onToggleIngredientCheck,
   onToggleAllIngredients,
-  // Scaling props
-  isScalingOpen = false,
-  onToggleScaling,
-  selectedScalingIngredient = "",
-  onSelectScalingIngredient,
-  targetQuantity = "",
-  onTargetQuantityChange,
-  onPreviewScaling,
-  isPreviewingScaling = false,
 }: IngredientGroupListProps) {
   // Get ingredient groups (auto-migrates if needed)
   const groups = getIngredientGroups(version, recipeCategory);
@@ -229,7 +212,7 @@ function IngredientGroupListInner({
                     Rearrange Groups
                   </button>
                 )}
-                {onSelectScalingIngredient && (
+                {allIngredients.length > 0 && (
                   <button
                     type="button"
                     onClick={() => {
@@ -238,7 +221,7 @@ function IngredientGroupListInner({
                     }}
                     className="w-full px-4 py-2 text-left text-sm text-neutral-700 transition hover:bg-neutral-50"
                   >
-                    Scale Ingredients
+                    Scale Recipe
                   </button>
                 )}
               </div>
@@ -280,90 +263,13 @@ function IngredientGroupListInner({
       </div>
 
       {/* Scaling Modal */}
-      {showScalingModal &&
-        onSelectScalingIngredient &&
-        onTargetQuantityChange &&
-        onPreviewScaling && (
-          <Modal
-            open
-            onClose={() => setShowScalingModal(false)}
-            closeOnBackdrop={!isPreviewingScaling}
-            labelledBy="scaling-modal-title"
-            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg"
-          >
-            <h3
-              id="scaling-modal-title"
-              className="text-lg font-semibold text-neutral-900"
-            >
-              Scale Ingredients
-            </h3>
-            <p className="mt-1 text-sm text-neutral-500">
-              Scale all ingredients based on a target amount.
-            </p>
-
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="mb-1 block text-sm text-neutral-600">
-                  Scale by ingredient
-                </label>
-                <select
-                  value={selectedScalingIngredient}
-                  onChange={(e) => onSelectScalingIngredient(e.target.value)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                >
-                  <option value="">Select ingredient...</option>
-                  {allIngredients.map((ing) => (
-                    <option key={ing.id} value={ing.id}>
-                      {ing.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedScalingIngredient && (
-                <div>
-                  <label className="mb-1 block text-sm text-neutral-600">
-                    Target amount (
-                    {allIngredients.find((i) => i.id === selectedScalingIngredient)?.unit}
-                    )
-                  </label>
-                  <input
-                    type="number"
-                    value={targetQuantity}
-                    onChange={(e) => onTargetQuantityChange(e.target.value)}
-                    placeholder={`Current: ${allIngredients.find((i) => i.id === selectedScalingIngredient)?.quantity?.toFixed(1) ?? ""}`}
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowScalingModal(false);
-                }}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onPreviewScaling();
-                  setShowScalingModal(false);
-                }}
-                disabled={
-                  !selectedScalingIngredient || !targetQuantity || isPreviewingScaling
-                }
-                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
-              >
-                {isPreviewingScaling ? "Scaling..." : "Scale"}
-              </button>
-            </div>
-          </Modal>
-        )}
+      <ScaleRecipeModal
+        open={showScalingModal}
+        onClose={() => setShowScalingModal(false)}
+        recipeId={recipeId}
+        versionId={version.id}
+        ingredients={allIngredients}
+      />
 
       {/* Add Group Modal */}
       {isAddingGroup && (

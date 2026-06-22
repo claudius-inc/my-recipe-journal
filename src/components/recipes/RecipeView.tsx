@@ -27,7 +27,6 @@ import { RecipeSteps } from "./steps";
 import { PhotoUploadSection } from "./shared";
 import { RecipeVersionTabs, RecipeVersionNotes } from "./version";
 import { RecipeHeader } from "./RecipeHeader";
-import { RecipeScalingManager } from "./RecipeScalingManager";
 import { LoadingAnimation } from "@/components/ui/LoadingAnimation";
 import { SpeedDialFAB } from "./SpeedDialFAB";
 
@@ -52,7 +51,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     deleteVersion,
     addIngredient,
     updateIngredient,
-    batchUpdateIngredients,
     deleteIngredient,
     createIngredientGroup,
     updateIngredientGroup,
@@ -84,20 +82,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
   const [stepsSaveError, setStepsSaveError] = useState<Error | null>(null);
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [isScalingOpen, setIsScalingOpen] = useState(false);
-  const [selectedScalingIngredient, setSelectedScalingIngredient] = useState<string>("");
-  const [targetQuantity, setTargetQuantity] = useState<string>("");
-  const [scaledIngredients, setScaledIngredients] = useState<
-    Array<{
-      id: string;
-      name: string;
-      originalQuantity: number | null;
-      newQuantity: number | null;
-      unit: string;
-    }>
-  >([]);
-  const [isScalingModalOpen, setIsScalingModalOpen] = useState(false);
-  const [isPreviewingScaling, setIsPreviewingScaling] = useState(false);
   const [isIntentModalOpen, setIsIntentModalOpen] = useState(false);
   const [isCreatingVersion, setIsCreatingVersion] = useState(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState(false);
@@ -413,50 +397,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     },
     [selectedRecipe, selectedVersion, updateVersion, addToast],
   );
-
-  const handlePreviewScaling = useCallback(() => {
-    if (!selectedVersion || !selectedScalingIngredient || !targetQuantity) {
-      return;
-    }
-
-    setIsPreviewingScaling(true);
-
-    // Simulate brief calculation time for feedback
-    setTimeout(() => {
-      const baseIngredient = allIngredients.find(
-        (ing) => ing.id === selectedScalingIngredient,
-      );
-
-      if (!baseIngredient) {
-        setIsPreviewingScaling(false);
-        return;
-      }
-
-      const parsed = Number(targetQuantity);
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        setIsPreviewingScaling(false);
-        return;
-      }
-
-      if (baseIngredient.quantity == null || baseIngredient.quantity === 0) {
-        setIsPreviewingScaling(false);
-        return;
-      }
-      const scalingFactor = parsed / baseIngredient.quantity;
-
-      const scaled = allIngredients.map((ing) => ({
-        id: ing.id,
-        name: ing.name,
-        originalQuantity: ing.quantity,
-        newQuantity: ing.quantity != null ? ing.quantity * scalingFactor : null,
-        unit: ing.unit,
-      }));
-
-      setScaledIngredients(scaled);
-      setIsScalingModalOpen(true);
-      setIsPreviewingScaling(false);
-    }, 300);
-  }, [selectedVersion, allIngredients, selectedScalingIngredient, targetQuantity]);
 
   const handleCompareVersion = useCallback(
     (versionId: string) => {
@@ -801,14 +741,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           checkedIngredients={checkedIngredients}
           onToggleIngredientCheck={handleToggleIngredientCheck}
           onToggleAllIngredients={handleToggleAllIngredients}
-          isScalingOpen={isScalingOpen}
-          onToggleScaling={() => setIsScalingOpen(!isScalingOpen)}
-          selectedScalingIngredient={selectedScalingIngredient}
-          onSelectScalingIngredient={setSelectedScalingIngredient}
-          targetQuantity={targetQuantity}
-          onTargetQuantityChange={setTargetQuantity}
-          onPreviewScaling={handlePreviewScaling}
-          isPreviewingScaling={isPreviewingScaling}
         />
 
         <RecipeSteps
@@ -887,30 +819,6 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
             flourTotal={flourTotal}
           />
         )}
-
-        <RecipeScalingManager
-          isOpen={isScalingModalOpen}
-          onClose={() => setIsScalingModalOpen(false)}
-          scaledIngredients={scaledIngredients}
-          recipeId={selectedRecipe.id}
-          versionId={selectedVersion.id}
-          onSuccess={() => {
-            setIsScalingModalOpen(false);
-            setIsScalingOpen(false);
-            setSelectedScalingIngredient("");
-            setTargetQuantity("");
-            setScaledIngredients([]);
-          }}
-          scalingMethod={
-            selectedScalingIngredient && selectedVersion
-              ? `Scaling based on ${
-                  allIngredients.find((i) => i.id === selectedScalingIngredient)?.name
-                } to ${targetQuantity} ${
-                  allIngredients.find((i) => i.id === selectedScalingIngredient)?.unit
-                }`
-              : ""
-          }
-        />
       </div>
 
       {/* Speed Dial FAB */}
