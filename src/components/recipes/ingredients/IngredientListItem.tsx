@@ -8,7 +8,12 @@ import type { Ingredient } from "@/types/recipes";
 import { Modal } from "@/components/ui/Modal";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { useToast } from "@/context/ToastContext";
-import { InfoCircledIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
+import {
+  InfoCircledIcon,
+  Pencil1Icon,
+  TrashIcon,
+  Cross2Icon,
+} from "@radix-ui/react-icons";
 import {
   IngredientRoleLabels,
   IngredientRoleColors,
@@ -499,17 +504,30 @@ export function IngredientListItem({
                       <span className="text-xs font-medium uppercase tracking-wide text-neutral-500">
                         Notes
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowNotePopover(false);
-                          onToggleExpand(ingredient.id);
-                        }}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        Edit
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowNotePopover(false);
+                            onToggleExpand(ingredient.id);
+                          }}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowNotePopover(false);
+                          }}
+                          aria-label="Close notes"
+                          className="text-neutral-400 transition hover:text-neutral-600"
+                        >
+                          <Cross2Icon className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-xs text-neutral-700">{ingredient.notes}</p>
                   </div>

@@ -124,7 +124,22 @@ export function PhotoCropModal({ imageUrl, onConfirm, onCancel }: PhotoCropModal
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
             className="flex-1 accent-white h-1"
+            aria-label="Zoom"
           />
+          <span className="w-10 text-right text-xs tabular-nums text-white/50">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setCrop({ x: 0, y: 0 });
+              setZoom(1);
+              setAspect(undefined);
+            }}
+            className="text-xs text-white/60 underline-offset-2 transition hover:text-white hover:underline"
+          >
+            Reset
+          </button>
         </div>
 
         {/* Action buttons */}

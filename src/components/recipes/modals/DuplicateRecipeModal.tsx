@@ -52,25 +52,23 @@ export function DuplicateRecipeModal({
     : 0;
 
   const tagCount = sourceRecipe.tags?.length || 0;
-  const ingredientCount = activeVersion?.ingredients.length || 0;
+  // Count both ungrouped and grouped ingredients (the flat `ingredients`
+  // array excludes anything assigned to a group).
+  const ingredientCount =
+    (activeVersion?.ingredients.length ?? 0) +
+    (activeVersion?.ingredientGroups?.reduce(
+      (sum, group) => sum + group.ingredients.length,
+      0,
+    ) ?? 0);
 
   const allSelected = copyTags && copyIngredients && copyNotes && copyRatings;
-  const noneSelected = !copyTags && !copyIngredients && !copyNotes && !copyRatings;
 
   const handleToggleAll = () => {
-    if (allSelected || (!allSelected && !noneSelected)) {
-      // If all selected or some selected, deselect all
-      setCopyTags(false);
-      setCopyIngredients(false);
-      setCopyNotes(false);
-      setCopyRatings(false);
-    } else {
-      // If none or some selected, select all
-      setCopyTags(true);
-      setCopyIngredients(true);
-      setCopyNotes(true);
-      setCopyRatings(true);
-    }
+    const next = !allSelected;
+    setCopyTags(next);
+    setCopyIngredients(next);
+    setCopyNotes(next);
+    setCopyRatings(next);
   };
 
   const handleSubmit = async () => {
