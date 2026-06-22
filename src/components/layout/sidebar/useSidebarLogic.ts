@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useDeferredValue } from "react";
 import { useRecipeStore } from "@/store/RecipeStore";
 import { useToast } from "@/context/ToastContext";
 import {
@@ -29,6 +29,8 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
   } = useRecipeStore();
 
   const [query, setQuery] = useState("");
+  // Defer filtering off the keystroke so typing stays responsive on large lists.
+  const deferredQuery = useDeferredValue(query);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [draftName, setDraftName] = useState("");
@@ -246,7 +248,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
   };
 
   const filtered = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = deferredQuery.trim().toLowerCase();
 
     const byArchiveStatus = recipes.filter((recipe) => {
       const isArchived = !!recipe.archivedAt;
@@ -271,7 +273,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
 
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [recipes, query, showArchived]);
+  }, [recipes, deferredQuery, showArchived]);
 
   const persistRecipe = async () => {
     if (!draftName.trim() || isSaving) {

@@ -7,7 +7,7 @@ import {
   TrashIcon,
 } from "@radix-ui/react-icons";
 import { cn } from "@/lib/utils";
-import type { Recipe } from "@/types/recipes";
+import { SECONDARY_LABELS, type Recipe } from "@/types/recipes";
 import Image from "next/image";
 
 interface RecipeListItemProps {
@@ -32,37 +32,25 @@ function getDisplayImage(recipe: Recipe) {
   return activeVersion?.photos?.[0]?.photoUrl || activeVersion?.photoUrl;
 }
 
-function CookiePlaceholder() {
+// Neutral "no photo" placeholder — deliberately unlike a real food photo so
+// it's obvious at a glance which recipes have a picture and which don't.
+function PhotoPlaceholder() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 via-primary-50 to-primary-100 opacity-70">
-      <svg width={20} height={20} viewBox="0 0 32 32" fill="none">
-        {Array.from({ length: 16 }).map((_, i) => {
-          const angle = (i / 16) * Math.PI * 2;
-          const wobble = Math.sin(i * 3) * 1.5;
-          const x = 16 + Math.cos(angle) * (10 + wobble);
-          const y = 16 + Math.sin(angle) * (10 + wobble);
-          return (
-            <circle
-              key={`edge-${i}`}
-              cx={x}
-              cy={y}
-              r={1.8}
-              fill="#d97706"
-              opacity={0.6}
-            />
-          );
-        })}
-        {[
-          [12, 12],
-          [18, 10],
-          [14, 18],
-          [20, 16],
-          [16, 14],
-          [10, 16],
-          [18, 20],
-        ].map(([x, y], i) => (
-          <circle key={`chip-${i}`} cx={x} cy={y} r={1.5} fill="#451a03" opacity={0.9} />
-        ))}
+    <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-300">
+      <svg
+        width={18}
+        height={18}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <path d="M21 15l-5-5L5 21" />
       </svg>
     </div>
   );
@@ -97,20 +85,39 @@ export function RecipeListItem({
       {/* Thumbnail */}
       <div className="relative flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-black/5">
         {displayImage ? (
-          <Image src={displayImage} alt="" fill className="object-cover" sizes="40px" />
+          <Image
+            src={displayImage}
+            alt={`${recipe.name} photo`}
+            fill
+            className="object-cover"
+            sizes="40px"
+          />
         ) : (
-          <CookiePlaceholder />
+          <PhotoPlaceholder />
         )}
       </div>
 
-      {/* Name + Archive indicator */}
-      <div className="flex-1 min-w-0 flex items-center gap-2">
-        <span className={cn("text-sm truncate", isSelected && "font-medium")}>
-          {recipe.name}
-        </span>
-        {recipe.archivedAt && (
-          <ArchiveIcon className="h-3 w-3 text-orange-500 flex-shrink-0" />
-        )}
+      {/* Name + meta */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className={cn("truncate text-sm", isSelected && "font-medium")}>
+            {recipe.name}
+          </span>
+          {recipe.archivedAt && (
+            <ArchiveIcon className="h-3 w-3 flex-shrink-0 text-orange-500" />
+          )}
+        </div>
+        <div className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-neutral-400">
+          <span className="flex-shrink-0">
+            {SECONDARY_LABELS[recipe.category.secondary] ?? ""}
+          </span>
+          {recipe.tags && recipe.tags.length > 0 && (
+            <span className="truncate">
+              · {recipe.tags.slice(0, 2).join(", ")}
+              {recipe.tags.length > 2 ? ` +${recipe.tags.length - 2}` : ""}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Actions - always visible on mobile, hover on desktop */}
@@ -118,7 +125,7 @@ export function RecipeListItem({
         {/* Pin button - always visible on mobile for easy access */}
         <IconButton
           variant="ghost"
-          size="1"
+          size="2"
           color={recipe.pinnedAt ? "blue" : undefined}
           className={cn(
             "transition-opacity",
@@ -140,7 +147,7 @@ export function RecipeListItem({
           <DropdownMenu.Trigger>
             <IconButton
               variant="ghost"
-              size="1"
+              size="2"
               className={cn(
                 "transition-opacity",
                 "opacity-100 md:opacity-0 md:group-hover:opacity-100",

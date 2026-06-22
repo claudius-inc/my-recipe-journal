@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { Button } from "@radix-ui/themes";
 import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
 import { RecipeListItem } from "./RecipeListItem";
@@ -44,6 +47,22 @@ export function RecipeList({
   pinningInProgress,
   deletingInProgress,
 }: RecipeListProps) {
+  // Auto-load the next page when a sentinel near the end scrolls into view.
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!hasMore || loadingMore) return;
+    const node = sentinelRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onLoadMore();
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore]);
+
   if (loading && recipes.length === 0) {
     return (
       <div className="space-y-2">
@@ -88,7 +107,7 @@ export function RecipeList({
         ))}
       </ul>
       {hasMore && (
-        <div className="mt-4 px-3">
+        <div ref={sentinelRef} className="mt-4 px-3">
           <Button
             variant="outline"
             size="2"
