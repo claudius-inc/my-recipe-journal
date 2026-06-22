@@ -9,7 +9,6 @@ import type {
   RecipeVersion,
 } from "@/types/recipes";
 import { IngredientGroup } from "./IngredientGroup";
-import { ScalingControls } from "./ScalingControls";
 import { Modal } from "@/components/ui/Modal";
 import { getIngredientGroups } from "@/lib/migration-utils";
 import { suggestGroupNames } from "@/lib/migration-utils";
@@ -96,6 +95,10 @@ function IngredientGroupListInner({
 }: IngredientGroupListProps) {
   // Get ingredient groups (auto-migrates if needed)
   const groups = getIngredientGroups(version, recipeCategory);
+
+  // Every ingredient across all groups — the scaling tools must operate on the
+  // full set, not the flat `version.ingredients` array (which omits grouped ones).
+  const allIngredients = groups.flatMap((group) => group.ingredients);
 
   // Track collapsed state for each group
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -309,7 +312,7 @@ function IngredientGroupListInner({
                   className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                 >
                   <option value="">Select ingredient...</option>
-                  {version.ingredients.map((ing) => (
+                  {allIngredients.map((ing) => (
                     <option key={ing.id} value={ing.id}>
                       {ing.name}
                     </option>
@@ -321,17 +324,14 @@ function IngredientGroupListInner({
                 <div>
                   <label className="mb-1 block text-sm text-neutral-600">
                     Target amount (
-                    {
-                      version.ingredients.find((i) => i.id === selectedScalingIngredient)
-                        ?.unit
-                    }
+                    {allIngredients.find((i) => i.id === selectedScalingIngredient)?.unit}
                     )
                   </label>
                   <input
                     type="number"
                     value={targetQuantity}
                     onChange={(e) => onTargetQuantityChange(e.target.value)}
-                    placeholder={`Current: ${version.ingredients.find((i) => i.id === selectedScalingIngredient)?.quantity?.toFixed(1) ?? ""}`}
+                    placeholder={`Current: ${allIngredients.find((i) => i.id === selectedScalingIngredient)?.quantity?.toFixed(1) ?? ""}`}
                     className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
                   />
                 </div>

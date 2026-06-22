@@ -12,6 +12,7 @@ import {
 import { useRecipeStore } from "@/store/RecipeStore";
 import { useToast } from "@/context/ToastContext";
 import { usePhotoUpload } from "@/hooks/usePhotoUpload";
+import { getIngredients } from "@/lib/migration-utils";
 import type { AIAssistantResponse } from "@/lib/gemini-assistant";
 
 // Component imports - organized by feature
@@ -218,34 +219,36 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
     setCheckedIngredients(new Set());
   }, [selectedVersion?.id]);
 
+  // All ingredients across every group (plus any legacy ungrouped ones).
+  // The flat `selectedVersion.ingredients` array excludes anything assigned to
+  // a group, so totals and scaling must read from the flattened set instead.
+  const allIngredients = useMemo(
+    () => (selectedVersion ? getIngredients(selectedVersion) : []),
+    [selectedVersion],
+  );
+
   const flourTotal = useMemo(() => {
-    if (!selectedVersion) {
-      return 0;
-    }
-    return selectedVersion.ingredients
+    return allIngredients
       .filter((ingredient) => ingredient.role === "flour")
       .reduce((sum, ingredient) => sum + (ingredient.quantity ?? 0), 0);
-  }, [selectedVersion]);
+  }, [allIngredients]);
 
   const totalWeight = useMemo(() => {
-    if (!selectedVersion) {
-      return 0;
-    }
-    return selectedVersion.ingredients.reduce(
+    return allIngredients.reduce(
       (sum, ingredient) => sum + (ingredient.quantity ?? 0),
       0,
     );
-  }, [selectedVersion]);
+  }, [allIngredients]);
 
   const hydrationPercent = useMemo(() => {
-    if (!selectedVersion || flourTotal === 0) {
+    if (flourTotal === 0) {
       return 0;
     }
-    const liquidTotal = selectedVersion.ingredients
+    const liquidTotal = allIngredients
       .filter((ingredient) => ingredient.role === "liquid")
       .reduce((sum, ingredient) => sum + (ingredient.quantity ?? 0), 0);
     return (liquidTotal / flourTotal) * 100;
-  }, [selectedVersion, flourTotal]);
+  }, [allIngredients, flourTotal]);
 
   const handleRecipeBlur = useCallback(
     async (field: "name" | "description" | "category") => {
@@ -420,7 +423,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
 
     // Simulate brief calculation time for feedback
     setTimeout(() => {
-      const baseIngredient = selectedVersion.ingredients.find(
+      const baseIngredient = allIngredients.find(
         (ing) => ing.id === selectedScalingIngredient,
       );
 
@@ -441,7 +444,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       }
       const scalingFactor = parsed / baseIngredient.quantity;
 
-      const scaled = selectedVersion.ingredients.map((ing) => ({
+      const scaled = allIngredients.map((ing) => ({
         id: ing.id,
         name: ing.name,
         originalQuantity: ing.quantity,
@@ -453,7 +456,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       setIsScalingModalOpen(true);
       setIsPreviewingScaling(false);
     }, 300);
-  }, [selectedVersion, selectedScalingIngredient, targetQuantity]);
+  }, [selectedVersion, allIngredients, selectedScalingIngredient, targetQuantity]);
 
   const handleCompareVersion = useCallback(
     (versionId: string) => {
@@ -536,9 +539,7 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
       // Apply ingredient changes
       if (changes.ingredients) {
         for (const change of changes.ingredients) {
-          const ingredientToUpdate = selectedVersion.ingredients.find(
-            (ing) => ing.id === change.id,
-          );
+          const ingredientToUpdate = allIngredients.find((ing) => ing.id === change.id);
           if (ingredientToUpdate) {
             const payload: Partial<{
               name: string;
@@ -586,7 +587,14 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
         await updateVersion(selectedRecipe.id, selectedVersion.id, changes.version);
       }
     },
-    [selectedRecipe, selectedVersion, updateIngredient, updateRecipe, updateVersion],
+    [
+      selectedRecipe,
+      selectedVersion,
+      allIngredients,
+      updateIngredient,
+      updateRecipe,
+      updateVersion,
+    ],
   );
 
   const handleConfirmDuplicate = useCallback(
@@ -896,13 +904,9 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           scalingMethod={
             selectedScalingIngredient && selectedVersion
               ? `Scaling based on ${
-                  selectedVersion.ingredients.find(
-                    (i) => i.id === selectedScalingIngredient,
-                  )?.name
+                  allIngredients.find((i) => i.id === selectedScalingIngredient)?.name
                 } to ${targetQuantity} ${
-                  selectedVersion.ingredients.find(
-                    (i) => i.id === selectedScalingIngredient,
-                  )?.unit
+                  allIngredients.find((i) => i.id === selectedScalingIngredient)?.unit
                 }`
               : ""
           }
