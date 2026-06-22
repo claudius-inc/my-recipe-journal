@@ -33,7 +33,8 @@ export function SaveIndicator({ isSaving, onSaveComplete }: SaveIndicatorProps) 
   if (!isVisible) return null;
 
   return (
-    <div className="inline-flex items-center">
+    <div className="inline-flex items-center" role="status" aria-live="polite">
+      <span className="sr-only">{showCheckmark ? "Saved" : "Saving"}</span>
       {!showCheckmark ? (
         // Spinner
         <Spinner size="1" />

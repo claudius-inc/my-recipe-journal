@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Flex, Text } from "@radix-ui/themes";
 import { CheckIcon, ClockIcon, ReloadIcon } from "@radix-ui/react-icons";
 
@@ -27,8 +28,10 @@ export function SaveStatus({
   error,
   onRetry,
 }: SaveStatusProps) {
+  let content: ReactNode = null;
+
   if (error) {
-    return (
+    content = (
       <Flex align="center" gap="1" className="text-xs text-red-600">
         <ReloadIcon className="w-3 h-3" />
         <Text size="1">Save failed</Text>
@@ -39,28 +42,22 @@ export function SaveStatus({
         )}
       </Flex>
     );
-  }
-
-  if (isSaving) {
-    return (
+  } else if (isSaving) {
+    content = (
       <Flex align="center" gap="1" className="text-xs text-gray-500">
         <ReloadIcon className="w-3 h-3 animate-spin" />
         <Text size="1">Saving...</Text>
       </Flex>
     );
-  }
-
-  if (hasUnsavedChanges) {
-    return (
+  } else if (hasUnsavedChanges) {
+    content = (
       <Flex align="center" gap="1" className="text-xs text-amber-600">
         <ClockIcon className="w-3 h-3" />
         <Text size="1">Unsaved</Text>
       </Flex>
     );
-  }
-
-  if (lastSaved) {
-    return (
+  } else if (lastSaved) {
+    content = (
       <Flex align="center" gap="1" className="text-xs text-green-600">
         <CheckIcon className="w-3 h-3" />
         <Text size="1">Saved {formatRelativeTime(lastSaved)}</Text>
@@ -68,5 +65,11 @@ export function SaveStatus({
     );
   }
 
-  return null;
+  if (!content) return null;
+
+  return (
+    <div role="status" aria-live="polite" aria-atomic="true">
+      {content}
+    </div>
+  );
 }

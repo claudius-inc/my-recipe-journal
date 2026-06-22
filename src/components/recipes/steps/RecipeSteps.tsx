@@ -204,16 +204,15 @@ export function RecipeSteps({
             </Flex>
 
             <Flex align="center" gap="4" className="ml-auto">
-              {/* Save status indicator */}
-              {isEditing && (
-                <SaveStatus
-                  isSaving={isSaving}
-                  hasUnsavedChanges={false}
-                  lastSaved={lastSaved}
-                  error={saveError}
-                  onRetry={onRetry}
-                />
-              )}
+              {/* Save status — visible whenever there's something to report,
+                  not only while editing, so "Saved"/errors persist. */}
+              <SaveStatus
+                isSaving={isSaving}
+                hasUnsavedChanges={false}
+                lastSaved={lastSaved}
+                error={saveError}
+                onRetry={onRetry}
+              />
 
               {/* Paste button (editing only) */}
               {isEditing && (
