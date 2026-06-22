@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Checkbox, DropdownMenu } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
+import { Modal } from "@/components/ui/Modal";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { InfoCircledIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
 import {
@@ -618,197 +619,221 @@ export function IngredientListItem({
       </div>
 
       {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-neutral-900">Edit Ingredient</h3>
+      <Modal
+        open={showEditModal}
+        onClose={() => {
+          handleCancel();
+          setShowEditModal(false);
+        }}
+        closeOnBackdrop={!isSaving}
+        labelledBy={`edit-ingredient-title-${ingredient.id}`}
+        className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-lg"
+      >
+        <h3
+          id={`edit-ingredient-title-${ingredient.id}`}
+          className="text-lg font-semibold text-neutral-900"
+        >
+          Edit Ingredient
+        </h3>
 
-            <div className="mt-4 space-y-4">
-              {/* Name Input */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-neutral-600">Name</label>
-                <input
-                  autoFocus
-                  list={`ingredient-suggestions-${ingredient.id}`}
-                  value={editState.name}
-                  onChange={(e) =>
-                    setEditState((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="Ingredient name"
-                  className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                />
-                {suggestions.length > 0 && (
-                  <datalist id={`ingredient-suggestions-${ingredient.id}`}>
-                    {suggestions.map((name) => (
-                      <option key={name} value={name} />
-                    ))}
-                  </datalist>
-                )}
-              </div>
+        <div className="mt-4 space-y-4">
+          {/* Name Input */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-neutral-600">Name</label>
+            <input
+              autoFocus
+              list={`ingredient-suggestions-${ingredient.id}`}
+              value={editState.name}
+              onChange={(e) =>
+                setEditState((prev) => ({ ...prev, name: e.target.value }))
+              }
+              placeholder="Ingredient name"
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+            />
+            {suggestions.length > 0 && (
+              <datalist id={`ingredient-suggestions-${ingredient.id}`}>
+                {suggestions.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            )}
+          </div>
 
-              {/* Quantity + Unit Row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-neutral-600">Quantity</label>
-                  <input
-                    type="number"
-                    value={editState.quantity}
-                    onChange={(e) =>
-                      setEditState((prev) => ({ ...prev, quantity: e.target.value }))
-                    }
-                    placeholder="Amount"
-                    className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-neutral-600">Unit</label>
-                  <input
-                    value={editState.unit}
-                    onChange={(e) =>
-                      setEditState((prev) => ({ ...prev, unit: e.target.value }))
-                    }
-                    placeholder="Unit"
-                    className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                  />
-                </div>
-              </div>
-
-              {/* Role Selector - Chips */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-neutral-600">Category</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {INGREDIENT_ROLES.map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setEditState((prev) => ({ ...prev, role }))}
-                      className={cn(
-                        "rounded-full px-2.5 py-1 text-xs font-medium transition-all",
-                        editState.role === role
-                          ? "bg-neutral-900 text-white"
-                          : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
-                      )}
-                    >
-                      {IngredientRoleLabels[role]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-neutral-600">Notes</label>
-                <textarea
-                  value={editState.notes}
-                  onChange={(e) =>
-                    setEditState((prev) => ({ ...prev, notes: e.target.value }))
-                  }
-                  placeholder="Optional notes"
-                  rows={2}
-                  className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                />
-              </div>
+          {/* Quantity + Unit Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-neutral-600">Quantity</label>
+              <input
+                type="number"
+                value={editState.quantity}
+                onChange={(e) =>
+                  setEditState((prev) => ({ ...prev, quantity: e.target.value }))
+                }
+                placeholder="Amount"
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+              />
             </div>
-
-            {/* Action Buttons */}
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  handleCancel();
-                  setShowEditModal(false);
-                }}
-                disabled={isSaving}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  await handleSave();
-                  setShowEditModal(false);
-                }}
-                disabled={isSaving}
-                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
-              >
-                {isSaving ? "Saving..." : "Save"}
-              </button>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-neutral-600">Unit</label>
+              <input
+                value={editState.unit}
+                onChange={(e) =>
+                  setEditState((prev) => ({ ...prev, unit: e.target.value }))
+                }
+                placeholder="Unit"
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+              />
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Move to Group Modal */}
-      {showMoveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-neutral-900">Move ingredient</h3>
-            <p className="mt-1 text-sm text-neutral-600">
-              Move <strong>{ingredient.name}</strong> to another group.
-            </p>
-
-            <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">
-              {moveTargets.map((g) => (
+          {/* Role Selector - Chips */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-neutral-600">Category</label>
+            <div className="flex flex-wrap gap-1.5">
+              {INGREDIENT_ROLES.map((role) => (
                 <button
-                  key={g.id}
+                  key={role}
                   type="button"
-                  disabled={isMoving}
-                  onClick={() => handleMove(g.id)}
-                  className="flex w-full items-center justify-between gap-2 rounded-lg border border-neutral-200 px-4 py-3 text-left text-sm font-medium text-neutral-800 transition hover:border-neutral-300 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => setEditState((prev) => ({ ...prev, role }))}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 text-xs font-medium transition-all",
+                    editState.role === role
+                      ? "bg-neutral-900 text-white"
+                      : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
+                  )}
                 >
-                  <span className="truncate">{g.name}</span>
-                  <span className="flex-shrink-0 text-xs font-normal text-neutral-400">
-                    {g.count} {g.count === 1 ? "item" : "items"}
-                  </span>
+                  {IngredientRoleLabels[role]}
                 </button>
               ))}
             </div>
+          </div>
 
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={() => setShowMoveModal(false)}
-                disabled={isMoving}
-                className="w-full rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isMoving ? "Moving…" : "Cancel"}
-              </button>
-            </div>
+          {/* Notes */}
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-neutral-600">Notes</label>
+            <textarea
+              value={editState.notes}
+              onChange={(e) =>
+                setEditState((prev) => ({ ...prev, notes: e.target.value }))
+              }
+              placeholder="Optional notes"
+              rows={2}
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+            />
           </div>
         </div>
-      )}
+
+        {/* Action Buttons */}
+        <div className="mt-6 flex gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              handleCancel();
+              setShowEditModal(false);
+            }}
+            disabled={isSaving}
+            className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              await handleSave();
+              setShowEditModal(false);
+            }}
+            disabled={isSaving}
+            className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Move to Group Modal */}
+      <Modal
+        open={showMoveModal}
+        onClose={() => setShowMoveModal(false)}
+        closeOnBackdrop={!isMoving}
+        labelledBy={`move-ingredient-title-${ingredient.id}`}
+        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg"
+      >
+        <h3
+          id={`move-ingredient-title-${ingredient.id}`}
+          className="text-lg font-semibold text-neutral-900"
+        >
+          Move ingredient
+        </h3>
+        <p className="mt-1 text-sm text-neutral-600">
+          Move <strong>{ingredient.name}</strong> to another group.
+        </p>
+
+        <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">
+          {moveTargets.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              disabled={isMoving}
+              onClick={() => handleMove(g.id)}
+              className="flex w-full items-center justify-between gap-2 rounded-lg border border-neutral-200 px-4 py-3 text-left text-sm font-medium text-neutral-800 transition hover:border-neutral-300 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="truncate">{g.name}</span>
+              <span className="flex-shrink-0 text-xs font-normal text-neutral-400">
+                {g.count} {g.count === 1 ? "item" : "items"}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={() => setShowMoveModal(false)}
+            disabled={isMoving}
+            className="w-full rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isMoving ? "Moving…" : "Cancel"}
+          </button>
+        </div>
+      </Modal>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-neutral-900">Delete ingredient?</h3>
-            <p className="mt-2 text-sm text-neutral-600">
-              Are you sure you want to delete <strong>{ingredient.name}</strong>? This
-              action cannot be undone.
-            </p>
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isDeleting ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        closeOnBackdrop={!isDeleting}
+        labelledBy={`delete-ingredient-title-${ingredient.id}`}
+        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg"
+      >
+        <h3
+          id={`delete-ingredient-title-${ingredient.id}`}
+          className="text-lg font-semibold text-neutral-900"
+        >
+          Delete ingredient?
+        </h3>
+        <p className="mt-2 text-sm text-neutral-600">
+          Are you sure you want to delete <strong>{ingredient.name}</strong>? This action
+          cannot be undone.
+        </p>
+        <div className="mt-6 flex gap-3">
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(false)}
+            disabled={isDeleting}
+            className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex-1 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </button>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import type {
 } from "@/types/recipes";
 import { IngredientGroup } from "./IngredientGroup";
 import { ScalingControls } from "./ScalingControls";
+import { Modal } from "@/components/ui/Modal";
 import { getIngredientGroups } from "@/lib/migration-utils";
 import { suggestGroupNames } from "@/lib/migration-utils";
 
@@ -280,288 +281,313 @@ function IngredientGroupListInner({
         onSelectScalingIngredient &&
         onTargetQuantityChange &&
         onPreviewScaling && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-neutral-900">
-                Scale Ingredients
-              </h3>
-              <p className="mt-1 text-sm text-neutral-500">
-                Scale all ingredients based on a target amount.
-              </p>
+          <Modal
+            open
+            onClose={() => setShowScalingModal(false)}
+            closeOnBackdrop={!isPreviewingScaling}
+            labelledBy="scaling-modal-title"
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg"
+          >
+            <h3
+              id="scaling-modal-title"
+              className="text-lg font-semibold text-neutral-900"
+            >
+              Scale Ingredients
+            </h3>
+            <p className="mt-1 text-sm text-neutral-500">
+              Scale all ingredients based on a target amount.
+            </p>
 
-              <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1 block text-sm text-neutral-600">
+                  Scale by ingredient
+                </label>
+                <select
+                  value={selectedScalingIngredient}
+                  onChange={(e) => onSelectScalingIngredient(e.target.value)}
+                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                >
+                  <option value="">Select ingredient...</option>
+                  {version.ingredients.map((ing) => (
+                    <option key={ing.id} value={ing.id}>
+                      {ing.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedScalingIngredient && (
                 <div>
                   <label className="mb-1 block text-sm text-neutral-600">
-                    Scale by ingredient
+                    Target amount (
+                    {
+                      version.ingredients.find((i) => i.id === selectedScalingIngredient)
+                        ?.unit
+                    }
+                    )
                   </label>
-                  <select
-                    value={selectedScalingIngredient}
-                    onChange={(e) => onSelectScalingIngredient(e.target.value)}
+                  <input
+                    type="number"
+                    value={targetQuantity}
+                    onChange={(e) => onTargetQuantityChange(e.target.value)}
+                    placeholder={`Current: ${version.ingredients.find((i) => i.id === selectedScalingIngredient)?.quantity?.toFixed(1) ?? ""}`}
                     className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                  >
-                    <option value="">Select ingredient...</option>
-                    {version.ingredients.map((ing) => (
-                      <option key={ing.id} value={ing.id}>
-                        {ing.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
-
-                {selectedScalingIngredient && (
-                  <div>
-                    <label className="mb-1 block text-sm text-neutral-600">
-                      Target amount (
-                      {
-                        version.ingredients.find(
-                          (i) => i.id === selectedScalingIngredient,
-                        )?.unit
-                      }
-                      )
-                    </label>
-                    <input
-                      type="number"
-                      value={targetQuantity}
-                      onChange={(e) => onTargetQuantityChange(e.target.value)}
-                      placeholder={`Current: ${version.ingredients.find((i) => i.id === selectedScalingIngredient)?.quantity?.toFixed(1) ?? ""}`}
-                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowScalingModal(false);
-                  }}
-                  className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onPreviewScaling();
-                    setShowScalingModal(false);
-                  }}
-                  disabled={
-                    !selectedScalingIngredient || !targetQuantity || isPreviewingScaling
-                  }
-                  className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
-                >
-                  {isPreviewingScaling ? "Scaling..." : "Scale"}
-                </button>
-              </div>
+              )}
             </div>
-          </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowScalingModal(false);
+                }}
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onPreviewScaling();
+                  setShowScalingModal(false);
+                }}
+                disabled={
+                  !selectedScalingIngredient || !targetQuantity || isPreviewingScaling
+                }
+                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
+              >
+                {isPreviewingScaling ? "Scaling..." : "Scale"}
+              </button>
+            </div>
+          </Modal>
         )}
 
       {/* Add Group Modal */}
       {isAddingGroup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-neutral-900">
-              Add Ingredient Group
-            </h3>
+        <Modal
+          open
+          onClose={() => {
+            if (isSavingGroup) return;
+            setIsAddingGroup(false);
+            setNewGroupName("");
+            setNewGroupBakersPercent(false);
+          }}
+          closeOnBackdrop={!isSavingGroup}
+          labelledBy="add-group-title"
+          className="w-full max-w-md rounded-xl bg-white p-6 shadow-lg"
+        >
+          <h3 id="add-group-title" className="text-lg font-semibold text-neutral-900">
+            Add Ingredient Group
+          </h3>
 
-            {/* Group Name */}
-            <div className="mt-4 flex flex-col gap-1">
-              <label className="text-xs font-medium text-neutral-500">Group Name</label>
-              <input
-                autoFocus
-                type="text"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleAddGroup();
-                  } else if (e.key === "Escape" && !isSavingGroup) {
-                    setIsAddingGroup(false);
-                  }
-                }}
-                disabled={isSavingGroup}
-                placeholder="e.g., Pre-ferment, Main Dough, Topping"
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
-              />
-            </div>
-
-            {/* Suggestions */}
-            <div className="mt-2 flex flex-wrap gap-2">
-              {suggestGroupNames(recipeCategory).map((suggestion) => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  onClick={() => setNewGroupName(suggestion)}
-                  disabled={isSavingGroup}
-                  className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-700 transition hover:bg-neutral-200 disabled:opacity-50"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-
-            {/* Baker's Percentage Toggle */}
-            {isBakingCategory && (
-              <div className="mt-4 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="newGroupBakersPercent"
-                  checked={newGroupBakersPercent}
-                  onChange={(e) => setNewGroupBakersPercent(e.target.checked)}
-                  className="h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                <label
-                  htmlFor="newGroupBakersPercent"
-                  className="text-sm text-neutral-700"
-                >
-                  Enable Baker&apos;s Percentages
-                </label>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
+          {/* Group Name */}
+          <div className="mt-4 flex flex-col gap-1">
+            <label className="text-xs font-medium text-neutral-500">Group Name</label>
+            <input
+              autoFocus
+              type="text"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleAddGroup();
+                } else if (e.key === "Escape" && !isSavingGroup) {
                   setIsAddingGroup(false);
-                  setNewGroupName("");
-                  setNewGroupBakersPercent(false);
-                }}
-                disabled={isSavingGroup}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAddGroup}
-                disabled={isSavingGroup || !newGroupName.trim()}
-                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSavingGroup ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                    Adding...
-                  </span>
-                ) : (
-                  "Add Group"
-                )}
-              </button>
-            </div>
+                }
+              }}
+              disabled={isSavingGroup}
+              placeholder="e.g., Pre-ferment, Main Dough, Topping"
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
+            />
           </div>
-        </div>
+
+          {/* Suggestions */}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {suggestGroupNames(recipeCategory).map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                onClick={() => setNewGroupName(suggestion)}
+                disabled={isSavingGroup}
+                className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-700 transition hover:bg-neutral-200 disabled:opacity-50"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+
+          {/* Baker's Percentage Toggle */}
+          {isBakingCategory && (
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="newGroupBakersPercent"
+                checked={newGroupBakersPercent}
+                onChange={(e) => setNewGroupBakersPercent(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
+              />
+              <label htmlFor="newGroupBakersPercent" className="text-sm text-neutral-700">
+                Enable Baker&apos;s Percentages
+              </label>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddingGroup(false);
+                setNewGroupName("");
+                setNewGroupBakersPercent(false);
+              }}
+              disabled={isSavingGroup}
+              className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleAddGroup}
+              disabled={isSavingGroup || !newGroupName.trim()}
+              className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingGroup ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Adding...
+                </span>
+              ) : (
+                "Add Group"
+              )}
+            </button>
+          </div>
+        </Modal>
       )}
 
       {/* Rearrange Groups Modal */}
       {showRearrangeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-neutral-900">Rearrange Groups</h3>
-            <p className="mt-2 text-sm text-neutral-500">Drag groups to reorder them.</p>
+        <Modal
+          open
+          onClose={() => {
+            setShowRearrangeModal(false);
+            setReorderList([]);
+            setDraggedIndex(null);
+          }}
+          closeOnBackdrop={!isSavingOrder}
+          labelledBy="rearrange-groups-title"
+          className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg"
+        >
+          <h3
+            id="rearrange-groups-title"
+            className="text-lg font-semibold text-neutral-900"
+          >
+            Rearrange Groups
+          </h3>
+          <p className="mt-2 text-sm text-neutral-500">Drag groups to reorder them.</p>
 
-            <div className="mt-4 space-y-2">
-              {(reorderList.length > 0 ? reorderList : groups).map((group, index) => (
-                <div
-                  key={group.id}
-                  draggable
-                  onDragStart={() => {
-                    setDraggedIndex(index);
-                    if (reorderList.length === 0) setReorderList([...groups]);
-                  }}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (draggedIndex === null || draggedIndex === index) return;
+          <div className="mt-4 space-y-2">
+            {(reorderList.length > 0 ? reorderList : groups).map((group, index) => (
+              <div
+                key={group.id}
+                draggable
+                onDragStart={() => {
+                  setDraggedIndex(index);
+                  if (reorderList.length === 0) setReorderList([...groups]);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (draggedIndex === null || draggedIndex === index) return;
 
-                    const list = reorderList.length > 0 ? [...reorderList] : [...groups];
-                    const draggedItem = list[draggedIndex];
-                    list.splice(draggedIndex, 1);
-                    list.splice(index, 0, draggedItem);
-                    setReorderList(list);
-                    setDraggedIndex(index);
-                  }}
-                  onDragEnd={() => setDraggedIndex(null)}
-                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-grab active:cursor-grabbing transition-colors ${
-                    draggedIndex === index
-                      ? "border-blue-400 bg-blue-50"
-                      : "border-neutral-200 bg-neutral-50 hover:bg-neutral-100"
-                  }`}
+                  const list = reorderList.length > 0 ? [...reorderList] : [...groups];
+                  const draggedItem = list[draggedIndex];
+                  list.splice(draggedIndex, 1);
+                  list.splice(index, 0, draggedItem);
+                  setReorderList(list);
+                  setDraggedIndex(index);
+                }}
+                onDragEnd={() => setDraggedIndex(null)}
+                className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-grab active:cursor-grabbing transition-colors ${
+                  draggedIndex === index
+                    ? "border-blue-400 bg-blue-50"
+                    : "border-neutral-200 bg-neutral-50 hover:bg-neutral-100"
+                }`}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 15 15"
+                  fill="none"
+                  className="text-neutral-400 flex-shrink-0"
                 >
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 15 15"
-                    fill="none"
-                    className="text-neutral-400 flex-shrink-0"
-                  >
-                    <path
-                      d="M5.5 4.625C6.12132 4.625 6.625 4.12132 6.625 3.5C6.625 2.87868 6.12132 2.375 5.5 2.375C4.87868 2.375 4.375 2.87868 4.375 3.5C4.375 4.12132 4.87868 4.625 5.5 4.625ZM9.5 4.625C10.1213 4.625 10.625 4.12132 10.625 3.5C10.625 2.87868 10.1213 2.375 9.5 2.375C8.87868 2.375 8.375 2.87868 8.375 3.5C8.375 4.12132 8.87868 4.625 9.5 4.625ZM6.625 7.5C6.625 8.12132 6.12132 8.625 5.5 8.625C4.87868 8.625 4.375 8.12132 4.375 7.5C4.375 6.87868 4.87868 6.375 5.5 6.375C6.12132 6.375 6.625 6.87868 6.625 7.5ZM9.5 8.625C10.1213 8.625 10.625 8.12132 10.625 7.5C10.625 6.87868 10.1213 6.375 9.5 6.375C8.87868 6.375 8.375 6.87868 8.375 7.5C8.375 8.12132 8.87868 8.625 9.5 8.625ZM6.625 11.5C6.625 12.1213 6.12132 12.625 5.5 12.625C4.87868 12.625 4.375 12.1213 4.375 11.5C4.375 10.8787 4.87868 10.375 5.5 10.375C6.12132 10.375 6.625 10.8787 6.625 11.5ZM9.5 12.625C10.1213 12.625 10.625 12.1213 10.625 11.5C10.625 10.8787 10.1213 10.375 9.5 10.375C8.87868 10.375 8.375 10.8787 8.375 11.5C8.375 12.1213 8.87868 12.625 9.5 12.625Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  <span className="text-sm font-medium text-neutral-900 flex-1">
-                    {group.name}
-                  </span>
-                  <span className="text-xs text-neutral-400">
-                    ({group.ingredients.length})
-                  </span>
-                </div>
-              ))}
-            </div>
+                  <path
+                    d="M5.5 4.625C6.12132 4.625 6.625 4.12132 6.625 3.5C6.625 2.87868 6.12132 2.375 5.5 2.375C4.87868 2.375 4.375 2.87868 4.375 3.5C4.375 4.12132 4.87868 4.625 5.5 4.625ZM9.5 4.625C10.1213 4.625 10.625 4.12132 10.625 3.5C10.625 2.87868 10.1213 2.375 9.5 2.375C8.87868 2.375 8.375 2.87868 8.375 3.5C8.375 4.12132 8.87868 4.625 9.5 4.625ZM6.625 7.5C6.625 8.12132 6.12132 8.625 5.5 8.625C4.87868 8.625 4.375 8.12132 4.375 7.5C4.375 6.87868 4.87868 6.375 5.5 6.375C6.12132 6.375 6.625 6.87868 6.625 7.5ZM9.5 8.625C10.1213 8.625 10.625 8.12132 10.625 7.5C10.625 6.87868 10.1213 6.375 9.5 6.375C8.87868 6.375 8.375 6.87868 8.375 7.5C8.375 8.12132 8.87868 8.625 9.5 8.625ZM6.625 11.5C6.625 12.1213 6.12132 12.625 5.5 12.625C4.87868 12.625 4.375 12.1213 4.375 11.5C4.375 10.8787 4.87868 10.375 5.5 10.375C6.12132 10.375 6.625 10.8787 6.625 11.5ZM9.5 12.625C10.1213 12.625 10.625 12.1213 10.625 11.5C10.625 10.8787 10.1213 10.375 9.5 10.375C8.87868 10.375 8.375 10.8787 8.375 11.5C8.375 12.1213 8.87868 12.625 9.5 12.625Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                <span className="text-sm font-medium text-neutral-900 flex-1">
+                  {group.name}
+                </span>
+                <span className="text-xs text-neutral-400">
+                  ({group.ingredients.length})
+                </span>
+              </div>
+            ))}
+          </div>
 
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowRearrangeModal(false);
+                setReorderList([]);
+                setDraggedIndex(null);
+              }}
+              disabled={isSavingOrder}
+              className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!onReorderGroups || reorderList.length === 0) {
+                  setShowRearrangeModal(false);
+                  return;
+                }
+                setIsSavingOrder(true);
+                try {
+                  await onReorderGroups(reorderList.map((g) => g.id));
                   setShowRearrangeModal(false);
                   setReorderList([]);
-                  setDraggedIndex(null);
-                }}
-                disabled={isSavingOrder}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!onReorderGroups || reorderList.length === 0) {
-                    setShowRearrangeModal(false);
-                    return;
-                  }
-                  setIsSavingOrder(true);
-                  try {
-                    await onReorderGroups(reorderList.map((g) => g.id));
-                    setShowRearrangeModal(false);
-                    setReorderList([]);
-                  } finally {
-                    setIsSavingOrder(false);
-                  }
-                }}
-                disabled={isSavingOrder || reorderList.length === 0}
-                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
-              >
-                {isSavingOrder ? "Saving..." : "Save Order"}
-              </button>
-            </div>
+                } finally {
+                  setIsSavingOrder(false);
+                }
+              }}
+              disabled={isSavingOrder || reorderList.length === 0}
+              className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
+            >
+              {isSavingOrder ? "Saving..." : "Save Order"}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
     </section>
   );
