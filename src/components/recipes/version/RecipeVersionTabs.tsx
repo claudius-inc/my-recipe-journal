@@ -49,11 +49,21 @@ export function RecipeVersionTabs({
                       loading={isLoading}
                       variant={isActive ? "solid" : "outline"}
                       className="h-12"
+                      aria-current={isActive ? "true" : undefined}
                     >
                       <div className="flex items-center gap-2">
                         <div className="flex flex-col text-left">
-                          <span className="font-bold">Ver. {versionNumber}</span>
+                          <span className="flex items-center gap-1.5 font-bold">
+                            Ver. {versionNumber}
+                            {isActive && (
+                              <span
+                                className="inline-block h-1.5 w-1.5 rounded-full bg-green-400"
+                                aria-label="Active version"
+                              />
+                            )}
+                          </span>
                           <span className="text-xs font-normal">
+                            {isActive ? "Active · " : ""}
                             {formatDate(version.createdAt)}
                           </span>
                         </div>

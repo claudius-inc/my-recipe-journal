@@ -66,6 +66,10 @@ export function IterationIntentModal({
         <Dialog.Description>
           Based on: <span className="font-medium">{baseVersion.title || "Untitled"}</span>
         </Dialog.Description>
+        <p className="mt-1 text-sm text-gray-500">
+          This copies the current version&rsquo;s ingredients and method into a new
+          version you can tweak. Both stay in your history so you can compare them later.
+        </p>
 
         <div className="space-y-4 mt-4">
           {/* Intent Field */}

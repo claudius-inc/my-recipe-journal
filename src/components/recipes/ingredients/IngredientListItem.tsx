@@ -97,6 +97,7 @@ export function IngredientListItem({
 
   // Groups this ingredient can be moved to (everything except its own)
   const moveTargets = groups.filter((g) => g.id !== currentGroupId);
+  const currentGroupName = groups.find((g) => g.id === currentGroupId)?.name;
   const canMove = !!onMove && moveTargets.length > 0;
 
   // Swipe state
@@ -261,6 +262,9 @@ export function IngredientListItem({
   const handlePercentSave = async () => {
     const parsed = Number(inlinePercent);
     if (!Number.isFinite(parsed) || parsed <= 0 || flourTotal <= 0) {
+      if (flourTotal > 0) {
+        addToast("Enter a percentage greater than 0", "info", 3000);
+      }
       setIsEditingPercent(false);
       return;
     }
@@ -778,7 +782,14 @@ export function IngredientListItem({
           Move ingredient
         </h3>
         <p className="mt-1 text-sm text-neutral-600">
-          Move <strong>{ingredient.name}</strong> to another group.
+          Move <strong>{ingredient.name}</strong>
+          {currentGroupName ? (
+            <>
+              {" "}
+              from <strong>{currentGroupName}</strong>
+            </>
+          ) : null}{" "}
+          to another group.
         </p>
 
         <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">
