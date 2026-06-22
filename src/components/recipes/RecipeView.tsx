@@ -774,6 +774,19 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onDeleteIngredient={async (groupId, ingredientId) => {
             await deleteIngredient(selectedRecipe.id, selectedVersion.id, ingredientId);
           }}
+          onMoveIngredient={async (ingredientId, targetGroupId) => {
+            setSavingIngredient((prev) => ({ ...prev, [ingredientId]: true }));
+            try {
+              await updateIngredient(
+                selectedRecipe.id,
+                selectedVersion.id,
+                ingredientId,
+                { groupId: targetGroupId },
+              );
+            } finally {
+              setSavingIngredient((prev) => ({ ...prev, [ingredientId]: false }));
+            }
+          }}
           savingIngredient={savingIngredient}
           suggestions={ingredientSuggestions}
           isLoadingSuggestions={isLoadingSuggestions}

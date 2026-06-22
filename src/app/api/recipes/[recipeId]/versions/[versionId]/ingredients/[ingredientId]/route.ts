@@ -41,6 +41,7 @@ export async function PATCH(
     role?: IngredientRole;
     notes?: string | null;
     sortOrder?: number;
+    groupId?: string | null;
   };
 
   const updateData: Parameters<typeof updateIngredientDetails>[2] = {};
@@ -86,6 +87,19 @@ export async function PATCH(
 
   if (payload.sortOrder !== undefined) {
     updateData.sortOrder = payload.sortOrder;
+  }
+
+  if (payload.groupId !== undefined) {
+    // null = move out of any group; otherwise the target group must belong
+    // to this version.
+    if (payload.groupId !== null) {
+      const targetGroupExists =
+        version.ingredientGroups?.some((group) => group.id === payload.groupId) ?? false;
+      if (!targetGroupExists) {
+        return NextResponse.json({ error: "Target group not found" }, { status: 400 });
+      }
+    }
+    updateData.groupId = payload.groupId;
   }
 
   const updatedRecipe = await updateIngredientDetails(recipeId, ingredientId, updateData);

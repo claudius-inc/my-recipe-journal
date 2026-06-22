@@ -34,6 +34,10 @@ interface IngredientListItemProps {
   flourTotal?: number;
   isSaving?: boolean;
   suggestions?: string[];
+  // Group move support
+  groups?: Array<{ id: string; name: string; count: number }>;
+  currentGroupId?: string;
+  onMove?: (id: string, targetGroupId: string) => Promise<void>;
 }
 
 export function IngredientListItem({
@@ -48,6 +52,9 @@ export function IngredientListItem({
   flourTotal = 0,
   isSaving = false,
   suggestions = [],
+  groups = [],
+  currentGroupId,
+  onMove,
 }: IngredientListItemProps) {
   const [editState, setEditState] = useState({
     name: ingredient.name,
@@ -69,7 +76,9 @@ export function IngredientListItem({
   const [isEditingQuantity, setIsEditingQuantity] = useState(false);
   const [isEditingPercent, setIsEditingPercent] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [inlineQuantity, setInlineQuantity] = useState(ingredient.quantity?.toString() ?? "");
+  const [inlineQuantity, setInlineQuantity] = useState(
+    ingredient.quantity?.toString() ?? "",
+  );
   const [inlineUnit, setInlineUnit] = useState(ingredient.unit);
   const [inlinePercent, setInlinePercent] = useState("");
   const [inlineName, setInlineName] = useState(ingredient.name);
@@ -79,6 +88,12 @@ export function IngredientListItem({
 
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+
+  // Groups this ingredient can be moved to (everything except its own)
+  const moveTargets = groups.filter((g) => g.id !== currentGroupId);
+  const canMove = !!onMove && moveTargets.length > 0;
 
   // Swipe state
   const [swipeX, setSwipeX] = useState(0);
@@ -110,7 +125,9 @@ export function IngredientListItem({
   useEffect(() => {
     if (isEditingPercent && percentInputRef.current) {
       const currentPercent =
-        flourTotal > 0 && ingredient.quantity != null ? ((ingredient.quantity / flourTotal) * 100).toFixed(1) : "0";
+        flourTotal > 0 && ingredient.quantity != null
+          ? ((ingredient.quantity / flourTotal) * 100).toFixed(1)
+          : "0";
       setInlinePercent(currentPercent);
       percentInputRef.current.focus();
       percentInputRef.current.select();
@@ -164,6 +181,17 @@ export function IngredientListItem({
       setShowDeleteConfirm(false);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleMove = async (targetGroupId: string) => {
+    if (!onMove) return;
+    setIsMoving(true);
+    try {
+      await onMove(ingredient.id, targetGroupId);
+      setShowMoveModal(false);
+    } finally {
+      setIsMoving(false);
     }
   };
 
@@ -572,6 +600,11 @@ export function IngredientListItem({
                 <DropdownMenu.Item onSelect={() => setShowEditModal(true)}>
                   Edit
                 </DropdownMenu.Item>
+                {canMove && (
+                  <DropdownMenu.Item onSelect={() => setShowMoveModal(true)}>
+                    Move to group…
+                  </DropdownMenu.Item>
+                )}
                 <DropdownMenu.Item
                   color="red"
                   onSelect={() => setShowDeleteConfirm(true)}
@@ -700,6 +733,46 @@ export function IngredientListItem({
                 className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move to Group Modal */}
+      {showMoveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-neutral-900">Move ingredient</h3>
+            <p className="mt-1 text-sm text-neutral-600">
+              Move <strong>{ingredient.name}</strong> to another group.
+            </p>
+
+            <div className="mt-4 max-h-72 space-y-2 overflow-y-auto">
+              {moveTargets.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  disabled={isMoving}
+                  onClick={() => handleMove(g.id)}
+                  className="flex w-full items-center justify-between gap-2 rounded-lg border border-neutral-200 px-4 py-3 text-left text-sm font-medium text-neutral-800 transition hover:border-neutral-300 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span className="truncate">{g.name}</span>
+                  <span className="flex-shrink-0 text-xs font-normal text-neutral-400">
+                    {g.count} {g.count === 1 ? "item" : "items"}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => setShowMoveModal(false)}
+                disabled={isMoving}
+                className="w-full rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isMoving ? "Moving…" : "Cancel"}
               </button>
             </div>
           </div>

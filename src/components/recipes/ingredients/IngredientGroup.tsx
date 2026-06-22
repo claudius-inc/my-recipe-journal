@@ -41,6 +41,9 @@ interface IngredientGroupProps {
     }>,
   ) => Promise<void>;
   onDeleteIngredient: (ingredientId: string) => Promise<void>;
+  // Move ingredient across groups
+  groups?: Array<{ id: string; name: string; count: number }>;
+  onMoveIngredient?: (ingredientId: string, targetGroupId: string) => Promise<void>;
   // UI state
   savingIngredient?: Record<string, boolean>;
   suggestions?: string[];
@@ -62,6 +65,8 @@ export function IngredientGroup({
   onAddIngredient,
   onUpdateIngredient,
   onDeleteIngredient,
+  groups = [],
+  onMoveIngredient,
   savingIngredient = {},
   suggestions = [],
   isLoadingSuggestions = false,
@@ -120,7 +125,8 @@ export function IngredientGroup({
   };
 
   // Calculate if all ingredients are checked
-  const allChecked = group.ingredients.length > 0 && 
+  const allChecked =
+    group.ingredients.length > 0 &&
     group.ingredients.every((ing) => checkedIngredients.has(ing.id));
 
   return (
@@ -142,7 +148,7 @@ export function IngredientGroup({
           checkedIngredients={checkedIngredients}
         />
       </div>
-      
+
       {!isCollapsed && (
         <div className="py-2 pb-4">
           {/* Ingredient List */}
@@ -161,6 +167,9 @@ export function IngredientGroup({
                 flourTotal={flourTotal}
                 isSaving={savingIngredient[ingredient.id]}
                 suggestions={suggestions}
+                groups={groups}
+                currentGroupId={group.id}
+                onMove={onMoveIngredient}
               />
             ))}
 

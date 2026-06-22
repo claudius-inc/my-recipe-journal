@@ -45,6 +45,7 @@ interface IngredientGroupListProps {
     }>,
   ) => Promise<void>;
   onDeleteIngredient: (groupId: string, ingredientId: string) => Promise<void>;
+  onMoveIngredient?: (ingredientId: string, targetGroupId: string) => Promise<void>;
   // UI state
   savingIngredient?: Record<string, boolean>;
   suggestions?: string[];
@@ -75,6 +76,7 @@ function IngredientGroupListInner({
   onAddIngredient,
   onUpdateIngredient,
   onDeleteIngredient,
+  onMoveIngredient,
   savingIngredient = {},
   suggestions = [],
   isLoadingSuggestions = false,
@@ -156,6 +158,13 @@ function IngredientGroupListInner({
     0,
   );
 
+  // Lightweight group list used as targets for moving ingredients across groups
+  const groupSummaries = groups.map((group) => ({
+    id: group.id,
+    name: group.name,
+    count: group.ingredients.length,
+  }));
+
   const isBakingCategory =
     recipeCategory.primary === "baking" &&
     ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"].includes(
@@ -169,7 +178,7 @@ function IngredientGroupListInner({
         <h3 className="text-sm font-medium text-neutral-900">
           Ingredients ({totalIngredients})
         </h3>
-        
+
         {/* Actions Menu (three-dot icon) */}
         <div className="relative">
           <button
@@ -185,10 +194,13 @@ function IngredientGroupListInner({
               />
             </svg>
           </button>
-          
+
           {showGroupMenu && (
             <>
-              <div className="fixed inset-0 z-20" onClick={() => setShowGroupMenu(false)} />
+              <div
+                className="fixed inset-0 z-20"
+                onClick={() => setShowGroupMenu(false)}
+              />
               <div className="absolute right-0 top-full z-30 mt-1 w-48 rounded-lg border border-neutral-200 bg-white shadow-lg py-1">
                 <button
                   type="button"
@@ -251,6 +263,8 @@ function IngredientGroupListInner({
             onDeleteIngredient={(ingredientId) =>
               onDeleteIngredient(group.id, ingredientId)
             }
+            groups={groupSummaries}
+            onMoveIngredient={onMoveIngredient}
             savingIngredient={savingIngredient}
             suggestions={suggestions}
             isLoadingSuggestions={isLoadingSuggestions}
@@ -262,72 +276,87 @@ function IngredientGroupListInner({
       </div>
 
       {/* Scaling Modal */}
-      {showScalingModal && onSelectScalingIngredient && onTargetQuantityChange && onPreviewScaling && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-neutral-900">Scale Ingredients</h3>
-            <p className="mt-1 text-sm text-neutral-500">
-              Scale all ingredients based on a target amount.
-            </p>
-            
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="mb-1 block text-sm text-neutral-600">Scale by ingredient</label>
-                <select
-                  value={selectedScalingIngredient}
-                  onChange={(e) => onSelectScalingIngredient(e.target.value)}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                >
-                  <option value="">Select ingredient...</option>
-                  {version.ingredients.map((ing) => (
-                    <option key={ing.id} value={ing.id}>
-                      {ing.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              {selectedScalingIngredient && (
+      {showScalingModal &&
+        onSelectScalingIngredient &&
+        onTargetQuantityChange &&
+        onPreviewScaling && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
+              <h3 className="text-lg font-semibold text-neutral-900">
+                Scale Ingredients
+              </h3>
+              <p className="mt-1 text-sm text-neutral-500">
+                Scale all ingredients based on a target amount.
+              </p>
+
+              <div className="mt-4 space-y-4">
                 <div>
                   <label className="mb-1 block text-sm text-neutral-600">
-                    Target amount ({version.ingredients.find(i => i.id === selectedScalingIngredient)?.unit})
+                    Scale by ingredient
                   </label>
-                  <input
-                    type="number"
-                    value={targetQuantity}
-                    onChange={(e) => onTargetQuantityChange(e.target.value)}
-                    placeholder={`Current: ${version.ingredients.find(i => i.id === selectedScalingIngredient)?.quantity?.toFixed(1) ?? ""}`}
+                  <select
+                    value={selectedScalingIngredient}
+                    onChange={(e) => onSelectScalingIngredient(e.target.value)}
                     className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
-                  />
+                  >
+                    <option value="">Select ingredient...</option>
+                    {version.ingredients.map((ing) => (
+                      <option key={ing.id} value={ing.id}>
+                        {ing.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )}
-            </div>
 
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowScalingModal(false);
-                }}
-                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onPreviewScaling();
-                  setShowScalingModal(false);
-                }}
-                disabled={!selectedScalingIngredient || !targetQuantity || isPreviewingScaling}
-                className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
-              >
-                {isPreviewingScaling ? "Scaling..." : "Scale"}
-              </button>
+                {selectedScalingIngredient && (
+                  <div>
+                    <label className="mb-1 block text-sm text-neutral-600">
+                      Target amount (
+                      {
+                        version.ingredients.find(
+                          (i) => i.id === selectedScalingIngredient,
+                        )?.unit
+                      }
+                      )
+                    </label>
+                    <input
+                      type="number"
+                      value={targetQuantity}
+                      onChange={(e) => onTargetQuantityChange(e.target.value)}
+                      placeholder={`Current: ${version.ingredients.find((i) => i.id === selectedScalingIngredient)?.quantity?.toFixed(1) ?? ""}`}
+                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowScalingModal(false);
+                  }}
+                  className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPreviewScaling();
+                    setShowScalingModal(false);
+                  }}
+                  disabled={
+                    !selectedScalingIngredient || !targetQuantity || isPreviewingScaling
+                  }
+                  className="flex-1 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50"
+                >
+                  {isPreviewingScaling ? "Scaling..." : "Scale"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Add Group Modal */}
       {isAddingGroup && (
@@ -444,13 +473,9 @@ function IngredientGroupListInner({
       {showRearrangeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-neutral-900">
-              Rearrange Groups
-            </h3>
-            <p className="mt-2 text-sm text-neutral-500">
-              Drag groups to reorder them.
-            </p>
-            
+            <h3 className="text-lg font-semibold text-neutral-900">Rearrange Groups</h3>
+            <p className="mt-2 text-sm text-neutral-500">Drag groups to reorder them.</p>
+
             <div className="mt-4 space-y-2">
               {(reorderList.length > 0 ? reorderList : groups).map((group, index) => (
                 <div
@@ -463,7 +488,7 @@ function IngredientGroupListInner({
                   onDragOver={(e) => {
                     e.preventDefault();
                     if (draggedIndex === null || draggedIndex === index) return;
-                    
+
                     const list = reorderList.length > 0 ? [...reorderList] : [...groups];
                     const draggedItem = list[draggedIndex];
                     list.splice(draggedIndex, 1);
@@ -473,16 +498,29 @@ function IngredientGroupListInner({
                   }}
                   onDragEnd={() => setDraggedIndex(null)}
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-grab active:cursor-grabbing transition-colors ${
-                    draggedIndex === index 
-                      ? "border-blue-400 bg-blue-50" 
+                    draggedIndex === index
+                      ? "border-blue-400 bg-blue-50"
                       : "border-neutral-200 bg-neutral-50 hover:bg-neutral-100"
                   }`}
                 >
-                  <svg width="12" height="12" viewBox="0 0 15 15" fill="none" className="text-neutral-400 flex-shrink-0">
-                    <path d="M5.5 4.625C6.12132 4.625 6.625 4.12132 6.625 3.5C6.625 2.87868 6.12132 2.375 5.5 2.375C4.87868 2.375 4.375 2.87868 4.375 3.5C4.375 4.12132 4.87868 4.625 5.5 4.625ZM9.5 4.625C10.1213 4.625 10.625 4.12132 10.625 3.5C10.625 2.87868 10.1213 2.375 9.5 2.375C8.87868 2.375 8.375 2.87868 8.375 3.5C8.375 4.12132 8.87868 4.625 9.5 4.625ZM6.625 7.5C6.625 8.12132 6.12132 8.625 5.5 8.625C4.87868 8.625 4.375 8.12132 4.375 7.5C4.375 6.87868 4.87868 6.375 5.5 6.375C6.12132 6.375 6.625 6.87868 6.625 7.5ZM9.5 8.625C10.1213 8.625 10.625 8.12132 10.625 7.5C10.625 6.87868 10.1213 6.375 9.5 6.375C8.87868 6.375 8.375 6.87868 8.375 7.5C8.375 8.12132 8.87868 8.625 9.5 8.625ZM6.625 11.5C6.625 12.1213 6.12132 12.625 5.5 12.625C4.87868 12.625 4.375 12.1213 4.375 11.5C4.375 10.8787 4.87868 10.375 5.5 10.375C6.12132 10.375 6.625 10.8787 6.625 11.5ZM9.5 12.625C10.1213 12.625 10.625 12.1213 10.625 11.5C10.625 10.8787 10.1213 10.375 9.5 10.375C8.87868 10.375 8.375 10.8787 8.375 11.5C8.375 12.1213 8.87868 12.625 9.5 12.625Z" fill="currentColor" />
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 15 15"
+                    fill="none"
+                    className="text-neutral-400 flex-shrink-0"
+                  >
+                    <path
+                      d="M5.5 4.625C6.12132 4.625 6.625 4.12132 6.625 3.5C6.625 2.87868 6.12132 2.375 5.5 2.375C4.87868 2.375 4.375 2.87868 4.375 3.5C4.375 4.12132 4.87868 4.625 5.5 4.625ZM9.5 4.625C10.1213 4.625 10.625 4.12132 10.625 3.5C10.625 2.87868 10.1213 2.375 9.5 2.375C8.87868 2.375 8.375 2.87868 8.375 3.5C8.375 4.12132 8.87868 4.625 9.5 4.625ZM6.625 7.5C6.625 8.12132 6.12132 8.625 5.5 8.625C4.87868 8.625 4.375 8.12132 4.375 7.5C4.375 6.87868 4.87868 6.375 5.5 6.375C6.12132 6.375 6.625 6.87868 6.625 7.5ZM9.5 8.625C10.1213 8.625 10.625 8.12132 10.625 7.5C10.625 6.87868 10.1213 6.375 9.5 6.375C8.87868 6.375 8.375 6.87868 8.375 7.5C8.375 8.12132 8.87868 8.625 9.5 8.625ZM6.625 11.5C6.625 12.1213 6.12132 12.625 5.5 12.625C4.87868 12.625 4.375 12.1213 4.375 11.5C4.375 10.8787 4.87868 10.375 5.5 10.375C6.12132 10.375 6.625 10.8787 6.625 11.5ZM9.5 12.625C10.1213 12.625 10.625 12.1213 10.625 11.5C10.625 10.8787 10.1213 10.375 9.5 10.375C8.87868 10.375 8.375 10.8787 8.375 11.5C8.375 12.1213 8.87868 12.625 9.5 12.625Z"
+                      fill="currentColor"
+                    />
                   </svg>
-                  <span className="text-sm font-medium text-neutral-900 flex-1">{group.name}</span>
-                  <span className="text-xs text-neutral-400">({group.ingredients.length})</span>
+                  <span className="text-sm font-medium text-neutral-900 flex-1">
+                    {group.name}
+                  </span>
+                  <span className="text-xs text-neutral-400">
+                    ({group.ingredients.length})
+                  </span>
                 </div>
               ))}
             </div>
@@ -509,7 +547,7 @@ function IngredientGroupListInner({
                   }
                   setIsSavingOrder(true);
                   try {
-                    await onReorderGroups(reorderList.map(g => g.id));
+                    await onReorderGroups(reorderList.map((g) => g.id));
                     setShowRearrangeModal(false);
                     setReorderList([]);
                   } finally {
