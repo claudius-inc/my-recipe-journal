@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
 import { Modal } from "@/components/ui/Modal";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
+import { useToast } from "@/context/ToastContext";
 import { InfoCircledIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
 import {
   IngredientRoleLabels,
@@ -91,6 +92,8 @@ export function IngredientListItem({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+
+  const { addToast } = useToast();
 
   // Groups this ingredient can be moved to (everything except its own)
   const moveTargets = groups.filter((g) => g.id !== currentGroupId);
@@ -187,10 +190,20 @@ export function IngredientListItem({
 
   const handleMove = async (targetGroupId: string) => {
     if (!onMove) return;
+    const sourceGroupId = currentGroupId;
     setIsMoving(true);
     try {
       await onMove(ingredient.id, targetGroupId);
       setShowMoveModal(false);
+      const targetName = groups.find((g) => g.id === targetGroupId)?.name ?? "group";
+      if (sourceGroupId) {
+        addToast(`Moved to ${targetName}`, "success", 6000, {
+          label: "Undo",
+          onClick: () => {
+            void onMove(ingredient.id, sourceGroupId);
+          },
+        });
+      }
     } finally {
       setIsMoving(false);
     }

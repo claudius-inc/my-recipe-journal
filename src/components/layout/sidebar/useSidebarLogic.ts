@@ -75,7 +75,6 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
 
     try {
       if (isArchived) {
-        addToast("Recipe unarchived", "success");
         try {
           await unarchiveRecipe(recipeId);
         } catch (error) {
@@ -84,6 +83,13 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
           throw error;
         }
 
+        addToast("Recipe restored", "success", 6000, {
+          label: "Undo",
+          onClick: () => {
+            void archiveRecipe(recipeId);
+          },
+        });
+
         setAnimatingOut(null);
         setShowArchived(false);
 
@@ -91,7 +97,6 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
         setJustMoved(recipeId);
         setTimeout(() => setJustMoved(null), 2000);
       } else {
-        addToast("Recipe archived", "success");
         try {
           await archiveRecipe(recipeId);
         } catch (error) {
@@ -99,6 +104,13 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
           addToast("Failed to archive recipe", "error");
           throw error;
         }
+
+        addToast("Recipe archived", "success", 6000, {
+          label: "Undo",
+          onClick: () => {
+            void unarchiveRecipe(recipeId);
+          },
+        });
 
         setAnimatingOut(null);
       }
