@@ -5,7 +5,10 @@ import { authClient } from "@/lib/auth-client";
 import { Box, Button, TextField, Text, Heading } from "@radix-ui/themes";
 import { CheckCircledIcon } from "@radix-ui/react-icons";
 import { Header } from "@/components/layout/Header";
+import { FormAlert } from "@/components/ui/FormAlert";
 import { useRouter } from "next/navigation";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   const handlePasskeySignIn = async () => {
+    if (isLoading) return;
     setError("");
     setIsLoading(true);
 
@@ -38,6 +42,7 @@ export default function LoginPage() {
 
   const handleMagicLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading || !EMAIL_PATTERN.test(email)) return;
     setError("");
     setIsLoading(true);
 
@@ -79,10 +84,10 @@ export default function LoginPage() {
         >
           {isEmailSent ? (
             <Box style={{ textAlign: "center" }}>
-              <Heading size="5" style={{ marginBottom: "1rem", color: "#4caf50" }}>
+              <Heading size="5" className="mb-4 text-green-600">
                 <CheckCircledIcon className="inline mr-2 h-6 w-6" /> Magic link sent!
               </Heading>
-              <Text as="div" style={{ color: "#666", fontSize: "14px" }}>
+              <Text as="div" className="text-sm text-neutral-500">
                 Check your email at <strong>{email}</strong> for a sign-in link.
               </Text>
               <Button
@@ -105,6 +110,7 @@ export default function LoginPage() {
                 <Box style={{ marginBottom: "1.5rem" }}>
                   <Text
                     as="label"
+                    htmlFor="email"
                     style={{
                       display: "block",
                       marginBottom: "0.5rem",
@@ -116,36 +122,37 @@ export default function LoginPage() {
                     type="email"
                     name="email"
                     id="email"
+                    autoFocus
                     autoComplete="email"
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
+                    aria-invalid={email.length > 0 && !EMAIL_PATTERN.test(email)}
                     className="h-12 p-3"
                   />
+                  {email.length > 0 && !EMAIL_PATTERN.test(email) && (
+                    <Text as="div" className="mt-1 text-xs text-red-600">
+                      Enter a valid email address.
+                    </Text>
+                  )}
                 </Box>
 
                 {error && (
-                  <Text
-                    as="div"
-                    style={{
-                      color: "#f44336",
-                      marginBottom: "1rem",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {error}
-                  </Text>
+                  <Box style={{ marginBottom: "1rem" }}>
+                    <FormAlert type="error">{error}</FormAlert>
+                  </Box>
                 )}
 
                 <Button
                   type="submit"
-                  disabled={isLoading || !email}
+                  loading={isLoading}
+                  disabled={isLoading || !EMAIL_PATTERN.test(email)}
                   style={{ width: "100%" }}
                   size="3"
                 >
-                  {isLoading ? "Sending..." : "Send Magic Link"}
+                  Send Magic Link
                 </Button>
               </form>
               <Button
@@ -167,25 +174,19 @@ export default function LoginPage() {
               </Heading>
 
               {error && (
-                <Text
-                  as="div"
-                  style={{
-                    color: "#f44336",
-                    marginBottom: "1rem",
-                    fontSize: "14px",
-                  }}
-                >
-                  {error}
-                </Text>
+                <Box style={{ marginBottom: "1rem" }}>
+                  <FormAlert type="error">{error}</FormAlert>
+                </Box>
               )}
 
               <Button
                 onClick={handlePasskeySignIn}
+                loading={isLoading}
                 disabled={isLoading}
                 style={{ width: "100%" }}
                 size="3"
               >
-                {isLoading ? "Authenticating..." : "Sign in with Passkey"}
+                Sign in with Passkey
               </Button>
 
               <Box

@@ -66,7 +66,7 @@ export function IterationIntentModal({
         <Dialog.Description>
           Based on: <span className="font-medium">{baseVersion.title || "Untitled"}</span>
         </Dialog.Description>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-neutral-500">
           This copies the current version&rsquo;s ingredients and method into a new
           version you can tweak. Both stay in your history so you can compare them later.
         </p>
@@ -74,7 +74,7 @@ export function IterationIntentModal({
         <div className="space-y-4 mt-4">
           {/* Intent Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
               What are you testing or changing?
             </label>
             <TextArea
@@ -86,13 +86,13 @@ export function IterationIntentModal({
               onFocus={() => setUseQuickStart(true)}
               placeholder="e.g., Testing higher hydration or trying a new flour brand"
               rows={2}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
             />
 
             {/* Quick intent suggestions */}
             {useQuickStart && intent.length === 0 && (
               <div className="mt-2 space-y-2">
-                <p className="text-xs text-gray-500">Quick options:</p>
+                <p className="text-xs text-neutral-500">Quick options:</p>
                 <div className="flex flex-wrap gap-1">
                   {COMMON_INTENTS.map((quickIntent) => (
                     <Button
@@ -111,7 +111,7 @@ export function IterationIntentModal({
 
           {/* Hypothesis Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
               Your hypothesis (optional)
             </label>
             <TextArea
@@ -119,7 +119,7 @@ export function IterationIntentModal({
               onChange={(e) => setHypothesis(e.target.value)}
               placeholder="e.g., I think increasing hydration to 75% will improve the open crumb"
               rows={2}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+              className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
             />
           </div>
 
