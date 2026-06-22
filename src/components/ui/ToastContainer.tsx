@@ -7,7 +7,7 @@ export function ToastContainer() {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-3 max-w-sm">
+    <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50 max-w-[min(24rem,calc(100vw-2rem))] space-y-3">
       {toasts.map((toast) => (
         <div
           key={toast.id}

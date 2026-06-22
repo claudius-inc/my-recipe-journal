@@ -30,8 +30,8 @@ export function Header({ onMenuClick }: HeaderProps) {
         {onMenuClick && (
           <IconButton
             variant="ghost"
-            size="2"
-            className="md:hidden"
+            size="3"
+            className="md:hidden min-h-[44px] min-w-[44px]"
             onClick={onMenuClick}
             aria-label="Open recipes menu"
           >

@@ -88,7 +88,9 @@ export function SpeedDialFAB({ onDuplicate, onArchive, isArchived }: SpeedDialFA
       <div
         ref={fabRef}
         className={`fixed z-50 flex flex-col-reverse items-end gap-3 transition-all duration-300 ${
-          isKeyboardVisible ? "top-4 right-4" : "bottom-6 right-6"
+          isKeyboardVisible
+            ? "top-4 right-[max(1rem,env(safe-area-inset-right))]"
+            : "bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))]"
         }`}
       >
         {/* Action Buttons */}

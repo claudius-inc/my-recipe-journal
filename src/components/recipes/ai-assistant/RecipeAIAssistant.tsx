@@ -295,7 +295,7 @@ export function RecipeAIAssistant({
       </div>
 
       {/* Input Area */}
-      <div className="border-t border-neutral-200 px-5 py-4">
+      <div className="border-t border-neutral-200 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex items-end gap-2">
           <TextArea
             ref={inputRef}
