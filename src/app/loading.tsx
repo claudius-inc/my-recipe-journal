@@ -4,7 +4,7 @@ import { SkeletonRecipeCard } from "@/components/ui/SkeletonRecipeCard";
 
 export default function RootLoading() {
   return (
-    <div className="flex h-screen bg-surface">
+    <div className="flex h-[100dvh] bg-surface">
       {/* Sidebar skeleton */}
       <aside className="hidden w-80 border-r border-neutral-200 bg-white p-4 md:block">
         <div className="mb-4 space-y-2">
