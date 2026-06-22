@@ -24,6 +24,8 @@ export async function PATCH(
     title?: string;
     notes?: string;
     nextSteps?: string;
+    portionWeight?: number | null;
+    portionLabel?: string | null;
     photoUrl?: string | null;
     tasteRating?: number | null;
     visualRating?: number | null;
@@ -44,6 +46,12 @@ export async function PATCH(
   }
   if (payload.nextSteps !== undefined) {
     updateData.nextSteps = payload.nextSteps;
+  }
+  if (payload.portionWeight !== undefined) {
+    updateData.portionWeight = payload.portionWeight;
+  }
+  if (payload.portionLabel !== undefined) {
+    updateData.portionLabel = payload.portionLabel;
   }
   if (payload.photoUrl !== undefined) {
     updateData.photoUrl = payload.photoUrl ?? null;

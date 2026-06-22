@@ -200,6 +200,10 @@ export const recipeVersions = sqliteTable(
     steps: text("steps", { mode: "json" }).$type<unknown[]>().default([]),
     notes: text("notes").default("").notNull(),
     nextSteps: text("next_steps").default("").notNull(),
+    // Yield: how the finished dough divides into units (e.g. 80g buns), so the
+    // app can show "makes ~N x Wg" and scale by a target yield.
+    portionWeight: real("portion_weight"),
+    portionLabel: text("portion_label"),
     // Legacy single photo fields
     photoUrl: text("photo_url"),
     r2Key: text("r2_key"),

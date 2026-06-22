@@ -66,6 +66,8 @@ function toRecipe(record: RecipeWithRelations): Recipe {
       steps: Array.isArray(v.steps) ? (v.steps as { order: number; text: string }[]) : [],
       notes: v.notes,
       nextSteps: v.nextSteps,
+      portionWeight: v.portionWeight ?? null,
+      portionLabel: v.portionLabel ?? null,
       photoUrl: v.photoUrl ?? undefined,
       r2Key: v.r2Key ?? undefined,
       photos: v.photos.map((p) => ({
@@ -310,6 +312,8 @@ export interface CreateVersionInput {
   steps?: Array<{ order: number; text: string }>;
   notes: string;
   nextSteps: string;
+  portionWeight?: number | null;
+  portionLabel?: string | null;
   ingredients?: VersionIngredientInput[];
   ingredientGroups?: Array<{
     name: string;
@@ -331,6 +335,8 @@ export async function createVersion(input: CreateVersionInput): Promise<Recipe> 
     steps: input.steps || [],
     notes: input.notes,
     nextSteps: input.nextSteps,
+    portionWeight: input.portionWeight ?? null,
+    portionLabel: input.portionLabel ?? null,
   });
 
   // Insert ungrouped ingredients if provided
@@ -468,6 +474,10 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
       : [],
     notes: input.notes ?? "",
     nextSteps: input.nextSteps ?? "",
+    // Per-unit portion weight is independent of batch scale (an 80g bun stays
+    // 80g; only the count changes), so it carries over unchanged.
+    portionWeight: baseVersion?.portionWeight ?? null,
+    portionLabel: baseVersion?.portionLabel ?? null,
     ingredients: newIngredients,
     ingredientGroups: newGroups,
     setActive: input.setActive,
@@ -483,6 +493,8 @@ export async function updateVersionDetails(
       | "title"
       | "notes"
       | "nextSteps"
+      | "portionWeight"
+      | "portionLabel"
       | "tasteRating"
       | "visualRating"
       | "textureRating"
@@ -502,6 +514,8 @@ export async function updateVersionDetails(
   if (data.title !== undefined) updates.title = data.title;
   if (data.notes !== undefined) updates.notes = data.notes;
   if (data.nextSteps !== undefined) updates.nextSteps = data.nextSteps;
+  if (data.portionWeight !== undefined) updates.portionWeight = data.portionWeight;
+  if (data.portionLabel !== undefined) updates.portionLabel = data.portionLabel;
   if (data.photoUrl !== undefined) updates.photoUrl = data.photoUrl;
   if (data.steps !== undefined) updates.steps = data.steps;
   if (data.tasteRating !== undefined) updates.tasteRating = data.tasteRating;
@@ -897,6 +911,8 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
     steps: Array.isArray(activeVersion.steps) ? activeVersion.steps : [],
     notes: input.copyNotes ? activeVersion.notes : "",
     nextSteps: input.copyNotes ? activeVersion.nextSteps : "",
+    portionWeight: input.copyIngredients ? activeVersion.portionWeight : null,
+    portionLabel: input.copyIngredients ? activeVersion.portionLabel : null,
     tasteRating: input.copyRatings ? activeVersion.tasteRating : null,
     visualRating: input.copyRatings ? activeVersion.visualRating : null,
     textureRating: input.copyRatings ? activeVersion.textureRating : null,

@@ -168,6 +168,10 @@ export interface RecipeVersion {
   steps?: RecipeSteps;
   notes: string;
   nextSteps: string;
+  // Yield: grams of dough per finished unit and an optional unit label
+  // (e.g. 80g "bun"). Drives the "makes ~N x Wg" readout and yield scaling.
+  portionWeight?: number | null;
+  portionLabel?: string | null;
   // Multi-photo support
   photos: VersionPhoto[];
   // Legacy single photo fields (kept for backward compatibility)

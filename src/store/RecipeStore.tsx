@@ -101,6 +101,8 @@ interface RecipeStoreValue {
       steps: Array<{ order: number; text: string }>;
       notes: string;
       nextSteps: string;
+      portionWeight: number | null;
+      portionLabel: string | null;
       photoUrl: string | null;
       r2Key: string | null;
       tasteRating: number | undefined;

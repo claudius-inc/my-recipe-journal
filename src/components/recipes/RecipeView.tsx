@@ -22,7 +22,7 @@ import {
   IterationIntentModal,
   VersionComparisonModal,
 } from "./modals";
-import { IngredientGroupList } from "./ingredients";
+import { IngredientGroupList, YieldSummary } from "./ingredients";
 import { RecipeSteps } from "./steps";
 import { PhotoUploadSection } from "./shared";
 import { RecipeVersionTabs, RecipeVersionNotes } from "./version";
@@ -741,6 +741,18 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           checkedIngredients={checkedIngredients}
           onToggleIngredientCheck={handleToggleIngredientCheck}
           onToggleAllIngredients={handleToggleAllIngredients}
+        />
+
+        <YieldSummary
+          ingredients={allIngredients}
+          portionWeight={selectedVersion.portionWeight}
+          portionLabel={selectedVersion.portionLabel}
+          onSave={async (portionWeight, portionLabel) => {
+            await updateVersion(selectedRecipe.id, selectedVersion.id, {
+              portionWeight,
+              portionLabel,
+            });
+          }}
         />
 
         <RecipeSteps
