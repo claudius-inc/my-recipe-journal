@@ -295,19 +295,27 @@ export async function setActiveVersion(
 
 // ============ VERSION MUTATIONS ============
 
+interface VersionIngredientInput {
+  name: string;
+  quantity: number | null;
+  unit: string;
+  role: IngredientRole;
+  notes?: string | null;
+  sortOrder?: number;
+}
+
 export interface CreateVersionInput {
   recipeId: string;
   title: string;
   steps?: Array<{ order: number; text: string }>;
   notes: string;
   nextSteps: string;
-  ingredients?: Array<{
+  ingredients?: VersionIngredientInput[];
+  ingredientGroups?: Array<{
     name: string;
-    quantity: number | null;
-    unit: string;
-    role: IngredientRole;
-    notes?: string | null;
-    sortOrder?: number;
+    enableBakersPercent: boolean;
+    orderIndex: number;
+    ingredients: VersionIngredientInput[];
   }>;
   setActive?: boolean;
 }
@@ -325,7 +333,7 @@ export async function createVersion(input: CreateVersionInput): Promise<Recipe> 
     nextSteps: input.nextSteps,
   });
 
-  // Insert ingredients if provided
+  // Insert ungrouped ingredients if provided
   if (input.ingredients?.length) {
     await db.insert(ingredients).values(
       input.ingredients.map((ing, index) => ({
@@ -339,6 +347,38 @@ export async function createVersion(input: CreateVersionInput): Promise<Recipe> 
         sortOrder: ing.sortOrder ?? index,
       })),
     );
+  }
+
+  // Insert ingredient groups and their ingredients if provided
+  if (input.ingredientGroups?.length) {
+    for (let groupIndex = 0; groupIndex < input.ingredientGroups.length; groupIndex++) {
+      const group = input.ingredientGroups[groupIndex];
+      const groupId = createId();
+
+      await db.insert(ingredientGroups).values({
+        id: groupId,
+        versionId,
+        name: group.name,
+        enableBakersPercent: group.enableBakersPercent,
+        orderIndex: group.orderIndex ?? groupIndex,
+      });
+
+      if (group.ingredients.length) {
+        await db.insert(ingredients).values(
+          group.ingredients.map((ing, index) => ({
+            id: createId(),
+            versionId,
+            groupId,
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            role: ing.role,
+            notes: ing.notes ?? null,
+            sortOrder: ing.sortOrder ?? index,
+          })),
+        );
+      }
+    }
   }
 
   // Set as active if requested
@@ -365,7 +405,12 @@ export interface CloneVersionInput {
 }
 
 export async function createVersionFromBase(input: CloneVersionInput): Promise<Recipe> {
-  let baseVersion: (DbVersion & { ingredients: DbIngredient[] }) | null = null;
+  let baseVersion:
+    | (DbVersion & {
+        ingredients: DbIngredient[];
+        ingredientGroups: Array<DbIngredientGroup & { ingredients: DbIngredient[] }>;
+      })
+    | null = null;
 
   if (input.baseVersionId) {
     const version = await db.query.recipeVersions.findFirst({
@@ -373,7 +418,13 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
         eq(recipeVersions.id, input.baseVersionId),
         eq(recipeVersions.recipeId, input.recipeId),
       ),
-      with: { ingredients: true },
+      with: {
+        ingredients: true,
+        ingredientGroups: {
+          with: { ingredients: true },
+          orderBy: [asc(ingredientGroups.orderIndex)],
+        },
+      },
     });
 
     if (!version) throw new Error("Base version not found");
@@ -387,21 +438,38 @@ export async function createVersionFromBase(input: CloneVersionInput): Promise<R
       ? `${baseVersion.title}${factor !== 1 ? ` x${factor}` : " copy"}`
       : "New version";
 
-  const newIngredients = (baseVersion?.ingredients ?? []).map((ing, index) => ({
+  const mapIngredient = (ing: DbIngredient, index: number) => ({
     name: ing.name,
     quantity: ing.quantity != null ? ing.quantity * factor : null,
     unit: ing.unit,
     role: ing.role as IngredientRole,
     notes: ing.notes ?? null,
     sortOrder: ing.sortOrder ?? index,
+  });
+
+  // Only ungrouped ingredients belong in the flat list; grouped ones are
+  // carried over via ingredientGroups below to preserve their structure.
+  const newIngredients = (baseVersion?.ingredients ?? [])
+    .filter((ing) => !ing.groupId)
+    .map(mapIngredient);
+
+  const newGroups = (baseVersion?.ingredientGroups ?? []).map((group, groupIndex) => ({
+    name: group.name,
+    enableBakersPercent: group.enableBakersPercent,
+    orderIndex: group.orderIndex ?? groupIndex,
+    ingredients: group.ingredients.map(mapIngredient),
   }));
 
   return createVersion({
     recipeId: input.recipeId,
     title: newTitle,
+    steps: Array.isArray(baseVersion?.steps)
+      ? (baseVersion.steps as Array<{ order: number; text: string }>)
+      : [],
     notes: input.notes ?? "",
     nextSteps: input.nextSteps ?? "",
     ingredients: newIngredients,
+    ingredientGroups: newGroups,
     setActive: input.setActive,
   });
 }
@@ -821,11 +889,12 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
     activeVersionId: newVersionId,
   });
 
-  // Create version
+  // Create version (always carry over the method/steps)
   await db.insert(recipeVersions).values({
     id: newVersionId,
     recipeId: newRecipeId,
     title: "Ver. 1",
+    steps: Array.isArray(activeVersion.steps) ? activeVersion.steps : [],
     notes: input.copyNotes ? activeVersion.notes : "",
     nextSteps: input.copyNotes ? activeVersion.nextSteps : "",
     tasteRating: input.copyRatings ? activeVersion.tasteRating : null,
@@ -836,20 +905,53 @@ export async function duplicateRecipe(input: DuplicateRecipeInput): Promise<Reci
     textureNotes: input.copyRatings ? activeVersion.textureNotes : null,
   });
 
-  // Copy ingredients if requested
-  if (input.copyIngredients && activeVersion.ingredients.length) {
-    await db.insert(ingredients).values(
-      activeVersion.ingredients.map((ing) => ({
-        id: createId(),
+  // Copy ingredients if requested, preserving group structure
+  if (input.copyIngredients) {
+    // Ungrouped ingredients
+    const ungrouped = activeVersion.ingredients.filter((ing) => !ing.groupId);
+    if (ungrouped.length) {
+      await db.insert(ingredients).values(
+        ungrouped.map((ing) => ({
+          id: createId(),
+          versionId: newVersionId,
+          name: ing.name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          role: ing.role,
+          notes: ing.notes,
+          sortOrder: ing.sortOrder,
+        })),
+      );
+    }
+
+    // Grouped ingredients — recreate each group then its ingredients
+    for (const group of activeVersion.ingredientGroups) {
+      const newGroupId = createId();
+
+      await db.insert(ingredientGroups).values({
+        id: newGroupId,
         versionId: newVersionId,
-        name: ing.name,
-        quantity: ing.quantity,
-        unit: ing.unit,
-        role: ing.role,
-        notes: ing.notes,
-        sortOrder: ing.sortOrder,
-      })),
-    );
+        name: group.name,
+        enableBakersPercent: group.enableBakersPercent,
+        orderIndex: group.orderIndex,
+      });
+
+      if (group.ingredients.length) {
+        await db.insert(ingredients).values(
+          group.ingredients.map((ing) => ({
+            id: createId(),
+            versionId: newVersionId,
+            groupId: newGroupId,
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            role: ing.role,
+            notes: ing.notes,
+            sortOrder: ing.sortOrder,
+          })),
+        );
+      }
+    }
   }
 
   const recipe = await getRecipe(newRecipeId);
