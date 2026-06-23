@@ -77,34 +77,39 @@ export function YieldSummary({
     <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm">
       {!isEditing ? (
         <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 text-neutral-700">
+          <div className="min-w-0 flex-1">
             {hasPortion ? (
               <>
-                Makes <span className="font-semibold">≈ {count}</span>{" "}
-                {pluralize(label, count)}{" "}
-                <span className="text-neutral-500">
-                  ({formatGrams(portionWeight)} each)
-                </span>
+                <p className="text-neutral-800">
+                  Makes <span className="font-semibold">≈ {count}</span>{" "}
+                  {pluralize(label, count)}{" "}
+                  <span className="text-neutral-500">
+                    ({formatGrams(portionWeight)} each)
+                  </span>
+                </p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  {formatGrams(totalWeight)} of dough
+                </p>
               </>
             ) : (
-              <span className="text-neutral-500">
-                Set a portion size to see how many this batch makes
-              </span>
+              <>
+                <p className="font-medium text-neutral-800">
+                  {formatGrams(totalWeight)} of dough
+                </p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  Set a portion size to see how many this makes
+                </p>
+              </>
             )}
-          </p>
-          <div className="flex flex-shrink-0 items-center gap-3">
-            <span className="whitespace-nowrap font-medium text-neutral-700">
-              {formatGrams(totalWeight)} dough
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsEditing(true)}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800"
-            >
-              <Pencil1Icon className="h-3.5 w-3.5" />
-              {hasPortion ? "Edit" : "Set portion"}
-            </button>
           </div>
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="inline-flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800"
+          >
+            <Pencil1Icon className="h-3.5 w-3.5" />
+            {hasPortion ? "Edit" : "Set portion"}
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
