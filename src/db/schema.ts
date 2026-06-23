@@ -304,6 +304,30 @@ export const ingredients = sqliteTable(
   }),
 );
 
+// User-scoped, reusable portion presets (e.g. "Small bun" = 80g) used by the
+// yield-scaling tool across every recipe.
+export const yieldPresets = sqliteTable(
+  "yield_presets",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    unitWeight: real("unit_weight").notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    userIdIdx: index("yield_presets_user_id_idx").on(table.userId),
+  }),
+);
+
 // ============ RELATIONS ============
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -311,6 +335,11 @@ export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
   passkeys: many(passkeys),
+  yieldPresets: many(yieldPresets),
+}));
+
+export const yieldPresetsRelations = relations(yieldPresets, ({ one }) => ({
+  user: one(users, { fields: [yieldPresets.userId], references: [users.id] }),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({

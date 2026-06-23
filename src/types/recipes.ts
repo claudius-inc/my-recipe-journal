@@ -199,6 +199,15 @@ export interface Recipe {
   pinnedAt: string | null;
 }
 
+// Reusable, user-scoped portion preset (e.g. "Small bun" = 80g) for the
+// yield-scaling tool.
+export interface YieldPreset {
+  id: string;
+  label: string;
+  unitWeight: number;
+  sortOrder: number;
+}
+
 export interface DuplicateRecipeData {
   name: string;
   category: RecipeCategory;

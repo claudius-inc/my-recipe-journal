@@ -269,6 +269,8 @@ function IngredientGroupListInner({
         recipeId={recipeId}
         versionId={version.id}
         ingredients={allIngredients}
+        portionWeight={version.portionWeight}
+        portionLabel={version.portionLabel}
       />
 
       {/* Add Group Modal */}

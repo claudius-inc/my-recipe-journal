@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ArrowRightIcon } from "@radix-ui/react-icons";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowRightIcon, Cross2Icon } from "@radix-ui/react-icons";
 import type { Ingredient } from "@/types/recipes";
 import { Modal } from "@/components/ui/Modal";
 import { useRecipeStore } from "@/store/RecipeStore";
 import { useToast } from "@/context/ToastContext";
+import { useYieldPresets, SUGGESTED_PRESETS } from "@/hooks/useYieldPresets";
 import { cn } from "@/lib/utils";
 import { formatGrams } from "@/lib/formatting";
 import {
@@ -23,11 +24,14 @@ interface ScaleRecipeModalProps {
   versionId: string;
   /** Every ingredient across all groups. */
   ingredients: Ingredient[];
+  portionWeight?: number | null;
+  portionLabel?: string | null;
 }
 
 const MODES: Array<{ key: ScaleMode; label: string }> = [
   { key: "ingredient", label: "By ingredient" },
   { key: "weight", label: "By total weight" },
+  { key: "yield", label: "By yield" },
 ];
 
 function formatFactor(factor: number): string {
@@ -40,9 +44,12 @@ export function ScaleRecipeModal({
   recipeId,
   versionId,
   ingredients,
+  portionWeight,
+  portionLabel,
 }: ScaleRecipeModalProps) {
-  const { batchUpdateIngredients } = useRecipeStore();
+  const { batchUpdateIngredients, updateVersion } = useRecipeStore();
   const { addToast } = useToast();
+  const { presets, createPreset, deletePreset } = useYieldPresets();
 
   const [mode, setMode] = useState<ScaleMode>("ingredient");
   const [anchorId, setAnchorId] = useState("");
@@ -50,11 +57,30 @@ export function ScaleRecipeModal({
   const [targetWeight, setTargetWeight] = useState("");
   const [isApplying, setIsApplying] = useState(false);
 
+  // Yield mode
+  const [yieldCount, setYieldCount] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [customWeight, setCustomWeight] = useState("");
+  const [customLabel, setCustomLabel] = useState("");
+  const [setAsPortion, setSetAsPortion] = useState(true);
+  const [isSavingPreset, setIsSavingPreset] = useState(false);
+
   const currentWeight = useMemo(() => getTotalDoughWeight(ingredients), [ingredients]);
   const nonMassCount = useMemo(() => countNonMassIngredients(ingredients), [ingredients]);
   const canScaleByWeight = currentWeight > 0;
 
   const anchor = ingredients.find((ing) => ing.id === anchorId);
+
+  // Effective per-unit weight + label come from either a selected preset or the
+  // custom inputs.
+  const selectedPreset = presets.find((p) => p.id === selectedPresetId) ?? null;
+  const customWeightNum = customWeight === "" ? null : Number(customWeight);
+  const effectiveUnitWeight = selectedPreset
+    ? selectedPreset.unitWeight
+    : customWeightNum != null && Number.isFinite(customWeightNum) && customWeightNum > 0
+      ? customWeightNum
+      : null;
+  const effectiveLabel = (selectedPreset ? selectedPreset.label : customLabel).trim();
 
   const factor = useMemo(
     () =>
@@ -64,8 +90,18 @@ export function ScaleRecipeModal({
         anchorId,
         targetAmount: targetAmount === "" ? undefined : Number(targetAmount),
         targetWeight: targetWeight === "" ? undefined : Number(targetWeight),
+        yieldCount: yieldCount === "" ? undefined : Number(yieldCount),
+        unitWeight: effectiveUnitWeight ?? undefined,
       }),
-    [mode, ingredients, anchorId, targetAmount, targetWeight],
+    [
+      mode,
+      ingredients,
+      anchorId,
+      targetAmount,
+      targetWeight,
+      yieldCount,
+      effectiveUnitWeight,
+    ],
   );
 
   const preview = useMemo(
@@ -80,12 +116,64 @@ export function ScaleRecipeModal({
     setAnchorId("");
     setTargetAmount("");
     setTargetWeight("");
+    setYieldCount("");
+    setSelectedPresetId("");
+    setCustomWeight("");
+    setCustomLabel("");
+    setSetAsPortion(true);
   };
+
+  // Seed the custom size from the recipe's existing portion once, the first
+  // time the yield tab is opened — afterwards the field is the user's to clear.
+  const seededYieldRef = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      seededYieldRef.current = false;
+      return;
+    }
+    if (mode === "yield" && !seededYieldRef.current) {
+      seededYieldRef.current = true;
+      if (portionWeight != null && portionWeight > 0) {
+        setCustomWeight(String(portionWeight));
+        setCustomLabel(portionLabel ?? "");
+      }
+    }
+  }, [open, mode, portionWeight, portionLabel]);
 
   const handleClose = () => {
     if (isApplying) return;
     reset();
     onClose();
+  };
+
+  const handleSaveCustomPreset = async () => {
+    if (effectiveUnitWeight == null || !effectiveLabel) return;
+    setIsSavingPreset(true);
+    try {
+      const created = await createPreset.mutateAsync({
+        label: effectiveLabel,
+        unitWeight: effectiveUnitWeight,
+      });
+      setSelectedPresetId(created.id);
+      setCustomWeight("");
+      setCustomLabel("");
+    } catch {
+      addToast("Couldn't save preset", "error");
+    } finally {
+      setIsSavingPreset(false);
+    }
+  };
+
+  const handleAddSuggested = async (suggestion: {
+    label: string;
+    unitWeight: number;
+  }) => {
+    try {
+      const created = await createPreset.mutateAsync(suggestion);
+      setSelectedPresetId(created.id);
+    } catch {
+      addToast("Couldn't add preset", "error");
+    }
   };
 
   const handleApply = async () => {
@@ -96,6 +184,12 @@ export function ScaleRecipeModal({
     setIsApplying(true);
     try {
       await batchUpdateIngredients(recipeId, versionId, updates);
+      if (mode === "yield" && setAsPortion && effectiveUnitWeight != null) {
+        await updateVersion(recipeId, versionId, {
+          portionWeight: effectiveUnitWeight,
+          portionLabel: effectiveLabel || null,
+        });
+      }
       const count = updates.length;
       reset();
       onClose();
@@ -147,7 +241,8 @@ export function ScaleRecipeModal({
         {/* Mode tabs */}
         <div className="mt-4 inline-flex rounded-lg bg-neutral-100 p-1">
           {MODES.map((m) => {
-            const disabled = m.key === "weight" && !canScaleByWeight;
+            const disabled =
+              (m.key === "weight" || m.key === "yield") && !canScaleByWeight;
             const active = mode === m.key;
             return (
               <button
@@ -226,6 +321,144 @@ export function ScaleRecipeModal({
             <p className="mt-1 text-xs text-neutral-500">
               Useful for dividing a batch into known portions.
             </p>
+          </div>
+        )}
+
+        {mode === "yield" && (
+          <div className="space-y-3">
+            <div className="flex items-end gap-2">
+              <div>
+                <label className="mb-1 block text-sm text-neutral-600">Make</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={yieldCount}
+                  onChange={(e) => setYieldCount(e.target.value)}
+                  placeholder="12"
+                  className="w-24 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                />
+              </div>
+              <span className="pb-2 text-sm text-neutral-500">
+                {effectiveLabel ? `× ${effectiveLabel}` : "units of the size below"}
+              </span>
+            </div>
+
+            {/* Preset chips */}
+            <div>
+              <label className="mb-1 block text-sm text-neutral-600">Portion size</label>
+              {presets.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {presets.map((preset) => {
+                    const active = preset.id === selectedPresetId;
+                    return (
+                      <span
+                        key={preset.id}
+                        className={cn(
+                          "group inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition",
+                          active
+                            ? "border-neutral-800 bg-neutral-900 text-white"
+                            : "border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50",
+                        )}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedPresetId(active ? "" : preset.id);
+                            setCustomWeight("");
+                            setCustomLabel("");
+                          }}
+                        >
+                          {preset.label} · {Math.round(preset.unitWeight)}g
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete ${preset.label} preset`}
+                          onClick={() => {
+                            if (active) setSelectedPresetId("");
+                            deletePreset.mutate(preset.id);
+                          }}
+                          className={cn(
+                            "rounded-full p-0.5 transition",
+                            active
+                              ? "hover:bg-white/20"
+                              : "text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700",
+                          )}
+                        >
+                          <Cross2Icon className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="text-xs text-neutral-500">Suggested:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SUGGESTED_PRESETS.map((s) => (
+                      <button
+                        key={s.label}
+                        type="button"
+                        onClick={() => handleAddSuggested(s)}
+                        className="rounded-full border border-dashed border-neutral-300 px-3 py-1 text-xs text-neutral-600 transition hover:border-neutral-400 hover:bg-neutral-50"
+                      >
+                        + {s.label} · {s.unitWeight}g
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Custom size */}
+            <div className="flex flex-wrap items-end gap-2 border-t border-neutral-100 pt-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-neutral-500">Custom (g each)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={customWeight}
+                  onChange={(e) => {
+                    setCustomWeight(e.target.value);
+                    setSelectedPresetId("");
+                  }}
+                  placeholder="e.g. 95"
+                  className="w-24 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-neutral-500">Name</label>
+                <input
+                  type="text"
+                  value={customLabel}
+                  onChange={(e) => {
+                    setCustomLabel(e.target.value);
+                    setSelectedPresetId("");
+                  }}
+                  placeholder="cube, bun..."
+                  className="w-32 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                />
+              </div>
+              {!selectedPreset && effectiveUnitWeight != null && effectiveLabel && (
+                <button
+                  type="button"
+                  onClick={handleSaveCustomPreset}
+                  disabled={isSavingPreset}
+                  className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
+                >
+                  {isSavingPreset ? "Saving..." : "Save as preset"}
+                </button>
+              )}
+            </div>
+
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={setAsPortion}
+                onChange={(e) => setSetAsPortion(e.target.checked)}
+                className="h-4 w-4 rounded border-neutral-300"
+              />
+              Remember this as the recipe&rsquo;s portion size
+            </label>
           </div>
         )}
 
