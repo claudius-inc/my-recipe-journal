@@ -29,9 +29,9 @@ interface ScaleRecipeModalProps {
 }
 
 const MODES: Array<{ key: ScaleMode; label: string }> = [
-  { key: "ingredient", label: "By ingredient" },
-  { key: "weight", label: "By total weight" },
-  { key: "yield", label: "By yield" },
+  { key: "ingredient", label: "Ingredient" },
+  { key: "weight", label: "Total weight" },
+  { key: "yield", label: "Yield" },
 ];
 
 function formatFactor(factor: number): string {
@@ -217,7 +217,7 @@ export function ScaleRecipeModal({
       onClose={handleClose}
       closeOnBackdrop={!isApplying}
       labelledBy="scale-recipe-title"
-      className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl bg-white shadow-lg"
+      className="flex max-h-[85dvh] w-full max-w-lg flex-col rounded-xl bg-white shadow-lg"
     >
       {/* Header */}
       <div className="border-b border-neutral-200 px-6 pb-4 pt-6">
@@ -239,7 +239,7 @@ export function ScaleRecipeModal({
         </p>
 
         {/* Mode tabs */}
-        <div className="mt-4 inline-flex rounded-lg bg-neutral-100 p-1">
+        <div className="mt-4 flex w-full rounded-lg bg-neutral-100 p-1">
           {MODES.map((m) => {
             const disabled =
               (m.key === "weight" || m.key === "yield") && !canScaleByWeight;
@@ -252,7 +252,7 @@ export function ScaleRecipeModal({
                 onClick={() => setMode(m.key)}
                 title={disabled ? "No weight-based ingredients to total" : undefined}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "flex-1 rounded-md px-2 py-1.5 text-center text-xs font-medium transition-colors sm:text-sm",
                   active
                     ? "bg-white text-neutral-900 shadow-sm"
                     : "text-neutral-500 hover:text-neutral-800",
@@ -326,7 +326,7 @@ export function ScaleRecipeModal({
 
         {mode === "yield" && (
           <div className="space-y-3">
-            <div className="flex items-end gap-2">
+            <div className="flex flex-wrap items-end gap-2">
               <div>
                 <label className="mb-1 block text-sm text-neutral-600">Make</label>
                 <input
@@ -378,13 +378,13 @@ export function ScaleRecipeModal({
                             deletePreset.mutate(preset.id);
                           }}
                           className={cn(
-                            "rounded-full p-0.5 transition",
+                            "-mr-1 rounded-full p-1.5 transition",
                             active
                               ? "hover:bg-white/20"
                               : "text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700",
                           )}
                         >
-                          <Cross2Icon className="h-3 w-3" />
+                          <Cross2Icon className="h-3.5 w-3.5" />
                         </button>
                       </span>
                     );

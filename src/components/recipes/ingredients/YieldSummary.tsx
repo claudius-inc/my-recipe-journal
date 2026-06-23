@@ -99,7 +99,7 @@ export function YieldSummary({
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-800"
             >
               <Pencil1Icon className="h-3.5 w-3.5" />
               {hasPortion ? "Edit" : "Set portion"}
