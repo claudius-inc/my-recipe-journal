@@ -816,7 +816,7 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
       );
 
       // Invalidate cache in background without awaiting to avoid blocking/interrupting user input
-      // The optimistic UI in IngredientList handles immediate feedback
+      // The optimistic UI in the ingredient list handles immediate feedback
       queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
     },
