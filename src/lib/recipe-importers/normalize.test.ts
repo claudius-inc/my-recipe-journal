@@ -5,6 +5,7 @@ import {
   normalizeIngredient,
   normalizeCategory,
   normalizeExtractedRecipe,
+  parseIngredientText,
 } from "./normalize";
 
 describe("normalizeUnit", () => {
@@ -72,6 +73,46 @@ describe("normalizeCategory", () => {
       secondary: "other",
     });
     expect(normalizeCategory(42)).toEqual({ primary: "other", secondary: "other" });
+  });
+});
+
+describe("parseIngredientText", () => {
+  it("parses quantity + unit + name", () => {
+    expect(parseIngredientText("200 g bread flour")).toEqual({
+      name: "bread flour",
+      quantity: 200,
+      unit: "g",
+    });
+  });
+  it("handles 'of' and unit aliases", () => {
+    expect(parseIngredientText("2 cups of sugar")).toEqual({
+      name: "sugar",
+      quantity: 2,
+      unit: "cup",
+    });
+  });
+  it("handles mixed numbers and unicode fractions", () => {
+    expect(parseIngredientText("1 1/2 tsp salt").quantity).toBeCloseTo(1.5);
+    expect(parseIngredientText("1½ cups water").quantity).toBeCloseTo(1.5);
+    expect(parseIngredientText("¾ cup milk").quantity).toBeCloseTo(0.75);
+  });
+  it("takes the lower bound of a range", () => {
+    expect(parseIngredientText("1-2 tbsp oil").quantity).toBe(1);
+    expect(parseIngredientText("1 to 2 cloves garlic").quantity).toBe(1);
+  });
+  it("handles 'to taste'", () => {
+    expect(parseIngredientText("salt to taste")).toEqual({
+      name: "salt",
+      quantity: null,
+      unit: "to taste",
+    });
+  });
+  it("handles count items with no unit", () => {
+    expect(parseIngredientText("3 eggs")).toEqual({
+      name: "eggs",
+      quantity: 3,
+      unit: "",
+    });
   });
 });
 

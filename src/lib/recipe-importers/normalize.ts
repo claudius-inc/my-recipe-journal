@@ -136,6 +136,101 @@ export function normalizeIngredient(raw: RawIngredient): NormalizedIngredient | 
   return { name, quantity, unit, role: normalizeRole(name, raw.role), notes };
 }
 
+const UNICODE_FRACTIONS: Record<string, number> = {
+  "½": 0.5,
+  "⅓": 1 / 3,
+  "⅔": 2 / 3,
+  "¼": 0.25,
+  "¾": 0.75,
+  "⅕": 0.2,
+  "⅖": 0.4,
+  "⅗": 0.6,
+  "⅘": 0.8,
+  "⅙": 1 / 6,
+  "⅚": 5 / 6,
+  "⅛": 0.125,
+  "⅜": 0.375,
+  "⅝": 0.625,
+  "⅞": 0.875,
+};
+
+// Parse a leading amount: integers, decimals, "1 1/2", "3/4", "1½", ranges
+// ("1-2", "1 to 2" → take the lower bound). Returns the value and remainder.
+function parseLeadingQuantity(input: string): { quantity: number | null; rest: string } {
+  const s = input.trimStart();
+  let m = s.match(/^(\d+)?\s*([½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞])/);
+  if (m) {
+    const whole = m[1] ? parseInt(m[1], 10) : 0;
+    return {
+      quantity: whole + UNICODE_FRACTIONS[m[2]],
+      rest: s.slice(m[0].length).trim(),
+    };
+  }
+  m = s.match(/^(\d+)\s+(\d+)\/(\d+)/);
+  if (m) {
+    return {
+      quantity: parseInt(m[1], 10) + parseInt(m[2], 10) / parseInt(m[3], 10),
+      rest: s.slice(m[0].length).trim(),
+    };
+  }
+  m = s.match(/^(\d+)\/(\d+)/);
+  if (m) {
+    return {
+      quantity: parseInt(m[1], 10) / parseInt(m[2], 10),
+      rest: s.slice(m[0].length).trim(),
+    };
+  }
+  m = s.match(/^(\d+(?:\.\d+)?)\s*(?:[-–—]|to)\s*(\d+(?:\.\d+)?)/);
+  if (m) {
+    return { quantity: parseFloat(m[1]), rest: s.slice(m[0].length).trim() };
+  }
+  m = s.match(/^(\d+(?:\.\d+)?)/);
+  if (m) {
+    return { quantity: parseFloat(m[1]), rest: s.slice(m[0].length).trim() };
+  }
+  return { quantity: null, rest: s };
+}
+
+/**
+ * Parse a free-text ingredient line ("200 g bread flour", "1½ cups sugar",
+ * "salt to taste") into quantity / unit / name. Units and roles are still
+ * passed through normalizeIngredient afterwards for final canonicalisation.
+ */
+export function parseIngredientText(line: string): {
+  name: string;
+  quantity: number | null;
+  unit: string;
+} {
+  const raw = line.trim().replace(/\s+/g, " ");
+  if (!raw) return { name: "", quantity: null, unit: "" };
+
+  const toTaste = /\b(to taste|as needed)\b/i.test(raw);
+  const { quantity, rest } = parseLeadingQuantity(raw);
+
+  const words = rest.split(" ");
+  const two = words.slice(0, 2).join(" ").toLowerCase();
+  const one = (words[0] ?? "").toLowerCase().replace(/\.$/, "");
+
+  let unit = "";
+  let name = rest;
+  if (UNIT_ALIASES[two]) {
+    unit = UNIT_ALIASES[two];
+    name = words.slice(2).join(" ");
+  } else if (UNIT_ALIASES[one]) {
+    unit = UNIT_ALIASES[one];
+    name = words.slice(1).join(" ");
+  }
+
+  name = name.replace(/^of\s+/i, "").trim();
+
+  if (toTaste) {
+    const cleaned = name.replace(/,?\s*(to taste|as needed)\b/i, "").trim();
+    return { name: cleaned || name, quantity: null, unit: unit || "to taste" };
+  }
+
+  return { name, quantity, unit };
+}
+
 // Legacy flat category enum → hierarchical category.
 const LEGACY_CATEGORY_MAP: Record<string, RecipeCategory> = {
   bread: { primary: "baking", secondary: "bread" },
