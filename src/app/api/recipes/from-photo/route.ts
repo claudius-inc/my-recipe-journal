@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractRecipeFromPhotoWithRetry } from "@/lib/gemini";
 import { normalizeExtractedRecipe } from "@/lib/recipe-importers/normalize";
+import {
+  optimizeImageBuffer,
+  imageToDataUri,
+  isImageOptimizationAvailable,
+} from "@/lib/imageOptimizer";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -42,7 +47,19 @@ export async function POST(request: NextRequest) {
       await extractRecipeFromPhotoWithRetry(base64, file.type),
     );
 
-    return NextResponse.json(extractedData, { status: 200 });
+    // Attach the uploaded photo so the imported recipe keeps its image.
+    // Optimize to WebP when sharp is available; otherwise use the original.
+    let imageUrl = `data:${file.type};base64,${base64}`;
+    if (isImageOptimizationAvailable()) {
+      try {
+        const optimized = await optimizeImageBuffer(buffer);
+        imageUrl = imageToDataUri(optimized.buffer, optimized.format);
+      } catch (imageError) {
+        console.warn("Failed to optimize uploaded photo:", imageError);
+      }
+    }
+
+    return NextResponse.json({ ...extractedData, imageUrl }, { status: 200 });
   } catch (error) {
     console.error("Recipe extraction error:", error);
 
