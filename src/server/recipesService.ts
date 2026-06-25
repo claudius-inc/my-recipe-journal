@@ -55,6 +55,8 @@ function toRecipe(record: RecipeWithRelations): Recipe {
     category,
     description: record.description ?? undefined,
     tags: record.tags || undefined,
+    sourceUrl: record.sourceUrl ?? null,
+    sourceName: record.sourceName ?? null,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     archivedAt: toISOString(record.archivedAt),
@@ -68,6 +70,14 @@ function toRecipe(record: RecipeWithRelations): Recipe {
       nextSteps: v.nextSteps,
       portionWeight: v.portionWeight ?? null,
       portionLabel: v.portionLabel ?? null,
+      servings: v.servings ?? null,
+      prepTime: v.prepTime ?? null,
+      cookTime: v.cookTime ?? null,
+      totalTime: v.totalTime ?? null,
+      restTime: v.restTime ?? null,
+      ovenTempC: v.ovenTempC ?? null,
+      difficulty: v.difficulty ?? null,
+      metadata: v.metadata ?? null,
       photoUrl: v.photoUrl ?? undefined,
       r2Key: v.r2Key ?? undefined,
       photos: v.photos.map((p) => ({
@@ -223,6 +233,8 @@ export interface CreateRecipeInput {
   category: RecipeCategory;
   description?: string | null;
   tags?: string[];
+  sourceUrl?: string | null;
+  sourceName?: string | null;
 }
 
 export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
@@ -239,6 +251,8 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
     secondaryCategory: input.category.secondary as SecondaryCategoryType,
     description: input.description?.trim() || null,
     tags: input.tags?.length ? input.tags : null,
+    sourceUrl: input.sourceUrl ?? null,
+    sourceName: input.sourceName ?? null,
     activeVersionId: versionId,
   });
 
@@ -258,11 +272,19 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
 
 export async function updateRecipeDetails(
   recipeId: string,
-  data: Partial<Pick<Recipe, "name" | "description" | "category" | "tags">>,
+  data: Partial<
+    Pick<
+      Recipe,
+      "name" | "description" | "category" | "tags" | "sourceUrl" | "sourceName"
+    >
+  >,
 ): Promise<Recipe | null> {
   const updates: Partial<typeof recipes.$inferInsert> = {
     updatedAt: new Date(),
   };
+
+  if (data.sourceUrl !== undefined) updates.sourceUrl = data.sourceUrl;
+  if (data.sourceName !== undefined) updates.sourceName = data.sourceName;
 
   if (data.name !== undefined) {
     const trimmed = data.name.trim();
@@ -306,7 +328,19 @@ interface VersionIngredientInput {
   sortOrder?: number;
 }
 
-export interface CreateVersionInput {
+// Optional descriptive fields a version can carry (mostly populated on import).
+export interface VersionMeta {
+  servings?: number | null;
+  prepTime?: string | null;
+  cookTime?: string | null;
+  totalTime?: string | null;
+  restTime?: string | null;
+  ovenTempC?: number | null;
+  difficulty?: RecipeVersion["difficulty"];
+  metadata?: Record<string, string | number> | null;
+}
+
+export interface CreateVersionInput extends VersionMeta {
   recipeId: string;
   title: string;
   steps?: Array<{ order: number; text: string }>;
@@ -337,6 +371,14 @@ export async function createVersion(input: CreateVersionInput): Promise<Recipe> 
     nextSteps: input.nextSteps,
     portionWeight: input.portionWeight ?? null,
     portionLabel: input.portionLabel ?? null,
+    servings: input.servings ?? null,
+    prepTime: input.prepTime ?? null,
+    cookTime: input.cookTime ?? null,
+    totalTime: input.totalTime ?? null,
+    restTime: input.restTime ?? null,
+    ovenTempC: input.ovenTempC ?? null,
+    difficulty: input.difficulty ?? null,
+    metadata: input.metadata ?? null,
   });
 
   // Insert ungrouped ingredients if provided
@@ -495,6 +537,14 @@ export async function updateVersionDetails(
       | "nextSteps"
       | "portionWeight"
       | "portionLabel"
+      | "servings"
+      | "prepTime"
+      | "cookTime"
+      | "totalTime"
+      | "restTime"
+      | "ovenTempC"
+      | "difficulty"
+      | "metadata"
       | "tasteRating"
       | "visualRating"
       | "textureRating"
@@ -516,6 +566,14 @@ export async function updateVersionDetails(
   if (data.nextSteps !== undefined) updates.nextSteps = data.nextSteps;
   if (data.portionWeight !== undefined) updates.portionWeight = data.portionWeight;
   if (data.portionLabel !== undefined) updates.portionLabel = data.portionLabel;
+  if (data.servings !== undefined) updates.servings = data.servings;
+  if (data.prepTime !== undefined) updates.prepTime = data.prepTime;
+  if (data.cookTime !== undefined) updates.cookTime = data.cookTime;
+  if (data.totalTime !== undefined) updates.totalTime = data.totalTime;
+  if (data.restTime !== undefined) updates.restTime = data.restTime;
+  if (data.ovenTempC !== undefined) updates.ovenTempC = data.ovenTempC;
+  if (data.difficulty !== undefined) updates.difficulty = data.difficulty;
+  if (data.metadata !== undefined) updates.metadata = data.metadata;
   if (data.photoUrl !== undefined) updates.photoUrl = data.photoUrl;
   if (data.steps !== undefined) updates.steps = data.steps;
   if (data.tasteRating !== undefined) updates.tasteRating = data.tasteRating;
