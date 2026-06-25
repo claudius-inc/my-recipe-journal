@@ -81,6 +81,10 @@ export function AuthButton() {
 
         <DropdownMenu.Separator />
 
+        <DropdownMenu.Item onSelect={() => router.push("/settings")}>
+          Settings
+        </DropdownMenu.Item>
+
         <DropdownMenu.Item
           onSelect={async (e) => {
             e.preventDefault();
