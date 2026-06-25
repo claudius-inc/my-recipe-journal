@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getImporter, hasSpecificAdapter } from "@/lib/recipe-importers/importerFactory";
+import { normalizeExtractedRecipe } from "@/lib/recipe-importers/normalize";
 import {
   downloadAndOptimizeImage,
   imageToDataUri,
@@ -97,8 +98,8 @@ export async function POST(request: NextRequest) {
       `Using importer: ${importer.name}${usingAdapter ? " (dedicated adapter)" : " (AI fallback)"}`,
     );
 
-    // Extract recipe data
-    const extractedData = await importer.extract(url);
+    // Extract recipe data, then sanitise roles/units/category centrally.
+    const extractedData = normalizeExtractedRecipe(await importer.extract(url));
 
     console.log(`Successfully extracted recipe: ${extractedData.name}`);
 

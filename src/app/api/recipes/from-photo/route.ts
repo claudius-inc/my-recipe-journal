@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractRecipeFromPhotoWithRetry } from "@/lib/gemini";
+import { normalizeExtractedRecipe } from "@/lib/recipe-importers/normalize";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -36,8 +37,10 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     const base64 = buffer.toString("base64");
 
-    // Extract recipe data using Gemini
-    const extractedData = await extractRecipeFromPhotoWithRetry(base64, file.type);
+    // Extract recipe data using Gemini, then sanitise centrally.
+    const extractedData = normalizeExtractedRecipe(
+      await extractRecipeFromPhotoWithRetry(base64, file.type),
+    );
 
     return NextResponse.json(extractedData, { status: 200 });
   } catch (error) {
