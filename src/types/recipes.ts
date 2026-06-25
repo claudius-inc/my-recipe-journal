@@ -141,6 +141,10 @@ export interface IngredientGroup {
 
 export type RecipeDifficulty = "easy" | "medium" | "hard";
 
+// Measurement system a user prefers imported/displayed recipes in.
+// "original" leaves quantities exactly as authored/extracted.
+export type UnitSystem = "metric" | "imperial" | "original";
+
 export interface RecipeStep {
   order: number;
   text: string;
