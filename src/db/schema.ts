@@ -10,11 +10,20 @@ import { relations } from "drizzle-orm";
 
 // ============ USERS & AUTH ============
 
+// Which measurement system imported/displayed recipes are normalised to.
+// "original" leaves quantities exactly as authored/extracted.
+export type UnitSystem = "metric" | "imperial" | "original";
+
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name"),
   emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
+  // Preferred measurement system for imports/display (see UnitSystem).
+  preferredUnitSystem: text("preferred_unit_system")
+    .$type<UnitSystem>()
+    .default("original")
+    .notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -155,6 +164,7 @@ export type IngredientRole =
   | "sweetener"
   | "fat"
   | "other";
+export type RecipeDifficulty = "easy" | "medium" | "hard";
 
 export const recipes = sqliteTable(
   "recipes",
@@ -169,6 +179,9 @@ export const recipes = sqliteTable(
     secondaryCategory: text("secondary_category").$type<SecondaryCategory>(),
     description: text("description"),
     tags: text("tags", { mode: "json" }).$type<string[]>(),
+    // Provenance for imported recipes (URL/photo/text). Null for manual entry.
+    sourceUrl: text("source_url"),
+    sourceName: text("source_name"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -200,6 +213,20 @@ export const recipeVersions = sqliteTable(
     steps: text("steps", { mode: "json" }).$type<unknown[]>().default([]),
     notes: text("notes").default("").notNull(),
     nextSteps: text("next_steps").default("").notNull(),
+    // How many servings/units the recipe yields (distinct from portionWeight).
+    servings: integer("servings"),
+    // Freeform time strings as authored/extracted (e.g. "20 min", "1 hr 30 min").
+    prepTime: text("prep_time"),
+    cookTime: text("cook_time"),
+    totalTime: text("total_time"),
+    restTime: text("rest_time"),
+    // Oven temperature stored canonically in Celsius so it can be displayed in
+    // either system; null when not applicable.
+    ovenTempC: real("oven_temp_c"),
+    difficulty: text("difficulty").$type<RecipeDifficulty>(),
+    // Category-specific extras (hydration, proofing, brewTime, sweetnessLevel...)
+    // captured during import; free-form key/value bag.
+    metadata: text("metadata", { mode: "json" }).$type<Record<string, string | number>>(),
     // Yield: how the finished dough divides into units (e.g. 80g buns), so the
     // app can show "makes ~N x Wg" and scale by a target yield.
     portionWeight: real("portion_weight"),
