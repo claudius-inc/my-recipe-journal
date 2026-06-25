@@ -270,6 +270,122 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
   return recipe;
 }
 
+// Full single-shot import: recipe + initial version + groups + ingredients +
+// steps + photo, all server-side. Replaces the old client-side N+1 sequence so
+// an import is one round-trip and can't leave a half-created recipe behind.
+export interface ImportRecipeInput extends VersionMeta {
+  userId: string;
+  name: string;
+  category: RecipeCategory;
+  description?: string | null;
+  tags?: string[];
+  sourceUrl?: string | null;
+  sourceName?: string | null;
+  steps?: Array<{ order: number; text: string }>;
+  photoUrl?: string | null;
+  ingredients?: VersionIngredientInput[];
+  ingredientGroups?: Array<{
+    name: string;
+    enableBakersPercent?: boolean;
+    ingredients: VersionIngredientInput[];
+  }>;
+}
+
+export async function importRecipe(input: ImportRecipeInput): Promise<Recipe> {
+  const recipeId = createId();
+  const versionId = createId();
+
+  await db.insert(recipes).values({
+    id: recipeId,
+    userId: input.userId,
+    name: input.name.trim(),
+    category: "other" as RecipeCategoryType,
+    primaryCategory: input.category.primary as PrimaryCategoryType,
+    secondaryCategory: input.category.secondary as SecondaryCategoryType,
+    description: input.description?.trim() || null,
+    tags: input.tags?.length ? input.tags : null,
+    sourceUrl: input.sourceUrl ?? null,
+    sourceName: input.sourceName ?? null,
+    activeVersionId: versionId,
+  });
+
+  await db.insert(recipeVersions).values({
+    id: versionId,
+    recipeId,
+    title: "Ver. 1",
+    steps: input.steps ?? [],
+    notes: "",
+    nextSteps: "",
+    servings: input.servings ?? null,
+    prepTime: input.prepTime ?? null,
+    cookTime: input.cookTime ?? null,
+    totalTime: input.totalTime ?? null,
+    restTime: input.restTime ?? null,
+    ovenTempC: input.ovenTempC ?? null,
+    difficulty: input.difficulty ?? null,
+    metadata: input.metadata ?? null,
+    photoUrl: input.photoUrl ?? null,
+  });
+
+  if (input.ingredientGroups?.length) {
+    for (let gi = 0; gi < input.ingredientGroups.length; gi++) {
+      const group = input.ingredientGroups[gi];
+      const groupId = createId();
+      await db.insert(ingredientGroups).values({
+        id: groupId,
+        versionId,
+        name: group.name,
+        enableBakersPercent: group.enableBakersPercent ?? false,
+        orderIndex: gi,
+      });
+      if (group.ingredients.length) {
+        await db.insert(ingredients).values(
+          group.ingredients.map((ing, idx) => ({
+            id: createId(),
+            versionId,
+            groupId,
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            role: ing.role,
+            notes: ing.notes ?? null,
+            sortOrder: ing.sortOrder ?? idx,
+          })),
+        );
+      }
+    }
+  } else if (input.ingredients?.length) {
+    await db.insert(ingredients).values(
+      input.ingredients.map((ing, idx) => ({
+        id: createId(),
+        versionId,
+        name: ing.name,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        role: ing.role,
+        notes: ing.notes ?? null,
+        sortOrder: ing.sortOrder ?? idx,
+      })),
+    );
+  }
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found after import");
+  return recipe;
+}
+
+// Lightweight lookup for "you already imported this URL" warnings.
+export async function findRecipeBySourceUrl(
+  userId: string,
+  sourceUrl: string,
+): Promise<{ id: string; name: string } | null> {
+  const existing = await db.query.recipes.findFirst({
+    where: and(eq(recipes.userId, userId), eq(recipes.sourceUrl, sourceUrl)),
+    columns: { id: true, name: true },
+  });
+  return existing ?? null;
+}
+
 export async function updateRecipeDetails(
   recipeId: string,
   data: Partial<
