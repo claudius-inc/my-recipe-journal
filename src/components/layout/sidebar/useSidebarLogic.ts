@@ -256,22 +256,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
     setCreationError(null);
     setIsSaving(true);
     try {
-      const extractedData = (window as any).__extractedRecipeData;
-
-      if (extractedData) {
-        await createRecipeWithData({
-          name: draftName.trim(),
-          category: draftCategory,
-          description: extractedData.description,
-          ingredients: extractedData.ingredients,
-          steps: extractedData.steps,
-          instructions: extractedData.instructions,
-        });
-
-        delete (window as any).__extractedRecipeData;
-      } else {
-        await createRecipe({ name: draftName.trim(), category: draftCategory });
-      }
+      await createRecipe({ name: draftName.trim(), category: draftCategory });
 
       setDraftName("");
       setDraftCategory({ primary: "baking", secondary: "bread" });

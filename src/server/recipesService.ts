@@ -369,6 +369,17 @@ export async function importRecipe(input: ImportRecipeInput): Promise<Recipe> {
     );
   }
 
+  // Also register the imported image as a version photo so it shows up in the
+  // Snapshots gallery (the legacy photoUrl above only feeds the sidebar thumb).
+  if (input.photoUrl) {
+    await db.insert(versionPhotos).values({
+      id: createId(),
+      versionId,
+      photoUrl: input.photoUrl,
+      order: 0,
+    });
+  }
+
   const recipe = await getRecipe(recipeId);
   if (!recipe) throw new Error("Recipe not found after import");
   return recipe;
