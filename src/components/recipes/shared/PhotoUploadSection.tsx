@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import type { RecipeVersion, VersionPhoto } from "@/types/recipes";
-import { IconButton } from "@radix-ui/themes";
+import { IconButton, Select } from "@radix-ui/themes";
 import {
   Cross2Icon,
   PlusIcon,
@@ -15,16 +15,29 @@ import { UploadProgress } from "@/components/ui/UploadProgress";
 import { PhotoCropModal } from "@/components/ui/PhotoCropModal";
 import imageCompression from "browser-image-compression";
 
+// A photo plus which version it belongs to, for the cross-version gallery.
+export interface TaggedPhoto extends VersionPhoto {
+  versionId: string;
+  versionLabel: string;
+}
+
 export interface PhotoSectionProps {
   version: RecipeVersion;
-  onUpload: (file: File) => Promise<void>;
-  onRemove: (photo: VersionPhoto) => Promise<void>;
+  onUpload: (file: File, targetVersionId: string) => Promise<void>;
+  onRemove: (photo: VersionPhoto, versionId: string) => Promise<void>;
   onReorder: (photoIds: string[]) => Promise<void>;
   onUpdateCaption?: (photoId: string, caption: string | null) => Promise<void>;
   isUploading: boolean;
   uploadProgress?: number;
   uploadError?: string;
   isRemoving?: boolean;
+  // Cross-version support
+  currentVersionId: string;
+  currentVersionLabel: string;
+  /** All versions, for the upload-target selector. */
+  versionOptions?: Array<{ id: string; label: string }>;
+  /** Photos belonging to OTHER versions (shown read-only, tagged). */
+  otherPhotos?: TaggedPhoto[];
 }
 
 const MAX_PHOTOS = 10;
@@ -46,7 +59,16 @@ export function PhotoUploadSection({
   uploadProgress = 0,
   uploadError,
   isRemoving = false,
+  currentVersionId,
+  currentVersionLabel,
+  versionOptions,
+  otherPhotos = [],
 }: PhotoSectionProps) {
+  // Which version a newly uploaded photo attaches to (defaults to current).
+  const [uploadTargetVersionId, setUploadTargetVersionId] = useState(currentVersionId);
+  useEffect(() => {
+    setUploadTargetVersionId(currentVersionId);
+  }, [currentVersionId]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [scale, setScale] = useState(1);
@@ -62,7 +84,7 @@ export function PhotoUploadSection({
   const [removingPhotoId, setRemovingPhotoId] = useState<string | null>(null);
 
   // Delete confirmation state
-  const [deleteConfirmPhoto, setDeleteConfirmPhoto] = useState<VersionPhoto | null>(null);
+  const [deleteConfirmPhoto, setDeleteConfirmPhoto] = useState<TaggedPhoto | null>(null);
 
   // Touch drag state for mobile reordering
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
@@ -97,6 +119,20 @@ export function PhotoUploadSection({
     [localPhotos, version.photos],
   );
   const canAddMore = photos.length < MAX_PHOTOS;
+
+  // Current-version photos tagged, then other versions' photos. The lightbox
+  // gallery iterates this combined list so any version's photos are viewable.
+  const galleryPhotos = useMemo<TaggedPhoto[]>(
+    () => [
+      ...photos.map((p) => ({
+        ...p,
+        versionId: currentVersionId,
+        versionLabel: currentVersionLabel,
+      })),
+      ...otherPhotos,
+    ],
+    [photos, otherPhotos, currentVersionId, currentVersionLabel],
+  );
 
   // Sync local photos when version.photos changes
   if (localPhotos !== null && version.photos) {
@@ -135,14 +171,14 @@ export function PhotoUploadSection({
           new File([croppedBlob], pendingFileName, { type: croppedBlob.type }),
           COMPRESSION_OPTIONS,
         );
-        await onUpload(compressedFile);
+        await onUpload(compressedFile, uploadTargetVersionId);
       } catch {
         // Fallback: upload without compression
         const file = new File([croppedBlob], pendingFileName, { type: croppedBlob.type });
-        await onUpload(file);
+        await onUpload(file, uploadTargetVersionId);
       }
     },
-    [cropImageUrl, pendingFileName, onUpload],
+    [cropImageUrl, pendingFileName, onUpload, uploadTargetVersionId],
   );
 
   const handleCropCancel = useCallback(() => {
@@ -220,18 +256,18 @@ export function PhotoUploadSection({
   }, []);
 
   const goToPrev = useCallback(() => {
-    setActivePhotoIndex((prev) => (prev > 0 ? prev - 1 : photos.length - 1));
+    setActivePhotoIndex((prev) => (prev > 0 ? prev - 1 : galleryPhotos.length - 1));
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setEditingCaptionId(null);
-  }, [photos.length]);
+  }, [galleryPhotos.length]);
 
   const goToNext = useCallback(() => {
-    setActivePhotoIndex((prev) => (prev < photos.length - 1 ? prev + 1 : 0));
+    setActivePhotoIndex((prev) => (prev < galleryPhotos.length - 1 ? prev + 1 : 0));
     setScale(1);
     setPosition({ x: 0, y: 0 });
     setEditingCaptionId(null);
-  }, [photos.length]);
+  }, [galleryPhotos.length]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
@@ -386,49 +422,54 @@ export function PhotoUploadSection({
     setIsDragging(false);
   }, []);
 
-  // Remove photo with optimistic UI
+  // Remove photo (routes to the owning version). Current-version photos use
+  // optimistic local state; other versions rely on the parent's refresh.
   const handleRemovePhoto = useCallback(
-    async (photo: VersionPhoto) => {
+    async (photo: TaggedPhoto) => {
       setRemovingPhotoId(photo.id);
       setDeleteConfirmPhoto(null);
 
-      // Optimistically remove from local state
-      const currentPhotos = localPhotos ?? version.photos ?? [];
-      const updatedPhotos = currentPhotos.filter((p) => p.id !== photo.id);
-      setLocalPhotos(updatedPhotos);
-
-      // Adjust active index if needed
-      const photoIndex = currentPhotos.findIndex((p) => p.id === photo.id);
-      if (activePhotoIndex >= updatedPhotos.length) {
-        setActivePhotoIndex(Math.max(0, updatedPhotos.length - 1));
-      } else if (photoIndex < activePhotoIndex) {
-        setActivePhotoIndex(activePhotoIndex - 1);
+      const isCurrent = photo.versionId === currentVersionId;
+      if (isCurrent) {
+        const currentPhotos = localPhotos ?? version.photos ?? [];
+        setLocalPhotos(currentPhotos.filter((p) => p.id !== photo.id));
       }
 
-      // Close gallery if no photos left
-      if (updatedPhotos.length === 0) {
+      const combinedLen =
+        (localPhotos ?? version.photos ?? []).length + otherPhotos.length;
+      if (activePhotoIndex >= combinedLen - 1) {
+        setActivePhotoIndex(Math.max(0, combinedLen - 2));
+      }
+      if (combinedLen <= 1) {
         handleCloseGallery();
       }
 
       try {
-        await onRemove(photo);
+        await onRemove(photo, photo.versionId);
       } catch {
-        // Revert optimistic update on error
-        setLocalPhotos(null);
+        if (isCurrent) setLocalPhotos(null);
       } finally {
         setRemovingPhotoId(null);
       }
     },
-    [localPhotos, version.photos, activePhotoIndex, onRemove, handleCloseGallery],
+    [
+      localPhotos,
+      version.photos,
+      otherPhotos.length,
+      activePhotoIndex,
+      currentVersionId,
+      onRemove,
+      handleCloseGallery,
+    ],
   );
 
-  // Show confirmation for current photo
+  // Show confirmation for the photo currently open in the gallery.
   const handleRemoveCurrentPhoto = useCallback(() => {
-    const currentPhoto = photos[activePhotoIndex];
-    if (currentPhoto) {
-      setDeleteConfirmPhoto(currentPhoto);
+    const photo = galleryPhotos[activePhotoIndex];
+    if (photo) {
+      setDeleteConfirmPhoto(photo);
     }
-  }, [photos, activePhotoIndex]);
+  }, [galleryPhotos, activePhotoIndex]);
 
   // === CAPTION EDITING ===
 
@@ -557,11 +598,11 @@ export function PhotoUploadSection({
     }
   }, [touchDragId, photos, onReorder]);
 
-  const currentPhoto = photos[activePhotoIndex];
+  const currentPhoto = galleryPhotos[activePhotoIndex];
 
   // === EMPTY STATE ===
-
-  if (photos.length === 0 && !isUploading) {
+  // Only when there are no photos anywhere (current + other versions).
+  if (photos.length === 0 && otherPhotos.length === 0 && !isUploading) {
     return (
       <>
         <section
@@ -795,6 +836,57 @@ export function PhotoUploadSection({
             </p>
           )}
         </div>
+
+        {/* Upload target version selector (multi-version recipes) */}
+        {versionOptions && versionOptions.length > 1 && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-[11px] text-neutral-500">Add new photos to</span>
+            <Select.Root
+              value={uploadTargetVersionId}
+              onValueChange={setUploadTargetVersionId}
+              size="1"
+            >
+              <Select.Trigger variant="soft" />
+              <Select.Content>
+                {versionOptions.map((v) => (
+                  <Select.Item key={v.id} value={v.id}>
+                    {v.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
+          </div>
+        )}
+
+        {/* Photos from other versions (read-only, tagged) */}
+        {otherPhotos.length > 0 && (
+          <div className="mt-4 border-t border-neutral-100 pt-3">
+            <p className="mb-2 text-xs font-medium text-neutral-600">
+              From other versions
+            </p>
+            <div className="flex items-center gap-2 overflow-x-auto py-1">
+              {otherPhotos.map((photo, i) => (
+                <button
+                  key={photo.id}
+                  type="button"
+                  onClick={() => handleOpenGallery(photos.length + i)}
+                  className="relative flex-shrink-0 w-16 aspect-square overflow-hidden rounded-lg border-2 border-neutral-200 transition-colors hover:border-blue-400"
+                  aria-label={`View photo from ${photo.versionLabel}`}
+                >
+                  <img
+                    src={photo.photoUrl}
+                    alt={photo.caption || photo.versionLabel}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-center text-[9px] leading-tight text-white">
+                    {photo.versionLabel}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Crop Modal */}
@@ -863,12 +955,19 @@ export function PhotoUploadSection({
             </button>
           </div>
 
-          {/* Photo counter */}
-          {photos.length > 1 && (
-            <div className="absolute top-4 left-4 z-20 px-3 py-1 rounded-full bg-black/50 text-white text-sm">
-              {activePhotoIndex + 1} / {photos.length}
-            </div>
-          )}
+          {/* Photo counter + version tag */}
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
+            {galleryPhotos.length > 1 && (
+              <div className="px-3 py-1 rounded-full bg-black/50 text-white text-sm">
+                {activePhotoIndex + 1} / {galleryPhotos.length}
+              </div>
+            )}
+            {currentPhoto?.versionLabel && (
+              <div className="px-3 py-1 rounded-full bg-white/15 text-white text-xs font-medium">
+                {currentPhoto.versionLabel}
+              </div>
+            )}
+          </div>
 
           {/* Main image container */}
           <div
@@ -933,9 +1032,9 @@ export function PhotoUploadSection({
           </div>
 
           {/* Dot indicators */}
-          {photos.length > 1 && (
+          {galleryPhotos.length > 1 && (
             <div className="relative z-20 flex gap-2 pb-4">
-              {photos.map((photo, index) => (
+              {galleryPhotos.map((photo, index) => (
                 <button
                   key={photo.id}
                   onClick={() => {

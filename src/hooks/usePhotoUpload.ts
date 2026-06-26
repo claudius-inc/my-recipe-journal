@@ -18,7 +18,10 @@ export function usePhotoUpload({ recipeId, versionId }: UsePhotoUploadOptions) {
   const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
 
   const addPhoto = useCallback(
-    async (file: File) => {
+    // targetVersionId lets a photo be attached to a version other than the one
+    // currently being viewed (defaults to the current version).
+    async (file: File, targetVersionId?: string) => {
+      const photoVersionId = targetVersionId ?? versionId;
       // Validate file type
       if (!file.type.startsWith("image/")) {
         setPhotoUploadError("Please select a valid image file");
@@ -44,7 +47,7 @@ export function usePhotoUpload({ recipeId, versionId }: UsePhotoUploadOptions) {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("recipeId", recipeId);
-        formData.append("versionId", versionId);
+        formData.append("versionId", photoVersionId);
 
         const uploadResponse = await fetch("/api/photos/upload", {
           method: "POST",
@@ -81,7 +84,7 @@ export function usePhotoUpload({ recipeId, versionId }: UsePhotoUploadOptions) {
 
         // Save photo to database via API
         const response = await fetch(
-          `/api/recipes/${recipeId}/versions/${versionId}/photos`,
+          `/api/recipes/${recipeId}/versions/${photoVersionId}/photos`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -112,12 +115,14 @@ export function usePhotoUpload({ recipeId, versionId }: UsePhotoUploadOptions) {
   );
 
   const removePhoto = useCallback(
-    async (photo: VersionPhoto) => {
+    // photoVersionId routes the delete to the version that owns the photo,
+    // which may differ from the current version in the cross-version gallery.
+    async (photo: VersionPhoto, photoVersionId?: string) => {
       setIsRemovingPhoto(true);
       try {
         // Delete from database first
         const response = await fetch(
-          `/api/recipes/${recipeId}/versions/${versionId}/photos`,
+          `/api/recipes/${recipeId}/versions/${photoVersionId ?? versionId}/photos`,
           {
             method: "DELETE",
             headers: { "Content-Type": "application/json" },
