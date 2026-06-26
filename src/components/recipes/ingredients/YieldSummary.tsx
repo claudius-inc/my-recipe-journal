@@ -124,9 +124,10 @@ export function YieldSummary({
                 inputMode="decimal"
                 autoFocus
                 value={weightInput}
+                disabled={isSaving}
                 onChange={(e) => setWeightInput(e.target.value)}
                 placeholder="e.g. 80"
-                className="w-28 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                className="w-28 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -134,9 +135,10 @@ export function YieldSummary({
               <input
                 type="text"
                 value={labelInput}
+                disabled={isSaving}
                 onChange={(e) => setLabelInput(e.target.value)}
                 placeholder="bun, loaf, roll..."
-                className="w-36 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                className="w-36 rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
               />
             </div>
           </div>

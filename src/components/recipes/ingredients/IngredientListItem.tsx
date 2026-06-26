@@ -92,6 +92,8 @@ export function IngredientListItem({
   const [inlinePercent, setInlinePercent] = useState("");
   const [inlineName, setInlineName] = useState(ingredient.name);
   const quantityInputRef = useRef<HTMLInputElement>(null);
+  const unitInputRef = useRef<HTMLInputElement>(null);
+  const inlineQtyContainerRef = useRef<HTMLDivElement>(null);
   const percentInputRef = useRef<HTMLInputElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -127,10 +129,17 @@ export function IngredientListItem({
       role: ingredient.role,
       notes: ingredient.notes ?? "",
     });
-    setInlineQuantity(ingredient.quantity?.toString() ?? "");
-    setInlineUnit(ingredient.unit);
-    setInlineName(ingredient.name);
-  }, [ingredient]);
+    // Don't clobber an in-progress inline edit: a quantity save resolves a beat
+    // later and refreshes the `ingredient` prop, which would otherwise overwrite
+    // the unit (or name) the user is still typing.
+    if (!isEditingQuantity) {
+      setInlineQuantity(ingredient.quantity?.toString() ?? "");
+      setInlineUnit(ingredient.unit);
+    }
+    if (!isEditingName) {
+      setInlineName(ingredient.name);
+    }
+  }, [ingredient, isEditingQuantity, isEditingName]);
 
   // Focus input when inline editing starts
   useEffect(() => {
@@ -252,6 +261,29 @@ export function IngredientListItem({
     setInlineQuantity(ingredient.quantity?.toString() ?? "");
     setInlineUnit(ingredient.unit);
     setIsEditingQuantity(false);
+  };
+
+  // Only commit when focus actually leaves the amount+unit editor. Moving
+  // between the two inputs (or pressing Enter to advance) keeps it open so the
+  // amount's save can't fire — and re-render — while the unit is being edited.
+  const handleInlineBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (inlineQtyContainerRef.current?.contains(e.relatedTarget as Node | null)) {
+      return;
+    }
+    handleInlineSave();
+  };
+
+  // Enter on the amount advances to the unit field instead of saving + closing,
+  // so "type amount → Enter → edit unit" flows without a save in between.
+  const handleQuantityKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      unitInputRef.current?.focus();
+      unitInputRef.current?.select();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleInlineCancel();
+    }
   };
 
   const handleInlineKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -457,11 +489,12 @@ export function IngredientListItem({
                 ref={nameInputRef}
                 type="text"
                 value={inlineName}
+                disabled={isSaving}
                 onChange={(e) => setInlineName(e.target.value)}
                 onBlur={handleNameSave}
                 onKeyDown={handleNameKeyDown}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full rounded border border-neutral-300 px-2 py-1 text-sm font-medium focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+                className="w-full rounded border border-neutral-300 px-2 py-1 text-sm font-medium focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300 disabled:opacity-50"
               />
             ) : (
               <div className="flex items-center gap-2">
@@ -547,6 +580,7 @@ export function IngredientListItem({
           {/* Amount + Unit - INLINE EDITABLE */}
           {isEditingQuantity ? (
             <div
+              ref={inlineQtyContainerRef}
               className="flex items-center gap-1 md:col-span-3"
               onClick={(e) => e.stopPropagation()}
             >
@@ -555,18 +589,21 @@ export function IngredientListItem({
                 type="number"
                 inputMode="decimal"
                 value={inlineQuantity}
+                disabled={isSaving}
                 onChange={(e) => setInlineQuantity(e.target.value)}
-                onBlur={handleInlineSave}
-                onKeyDown={handleInlineKeyDown}
-                className="w-14 rounded border border-neutral-300 px-2 py-1 text-sm text-center focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+                onBlur={handleInlineBlur}
+                onKeyDown={handleQuantityKeyDown}
+                className="w-14 rounded border border-neutral-300 px-2 py-1 text-sm text-center focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300 disabled:opacity-50"
               />
               <input
+                ref={unitInputRef}
                 type="text"
                 value={inlineUnit}
+                disabled={isSaving}
                 onChange={(e) => setInlineUnit(e.target.value)}
-                onBlur={handleInlineSave}
+                onBlur={handleInlineBlur}
                 onKeyDown={handleInlineKeyDown}
-                className="w-10 rounded border border-neutral-300 px-1 py-1 text-sm text-center focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+                className="w-10 rounded border border-neutral-300 px-1 py-1 text-sm text-center focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300 disabled:opacity-50"
               />
               {isSaving && <SaveIndicator isSaving={true} />}
             </div>
@@ -598,10 +635,11 @@ export function IngredientListItem({
                   inputMode="decimal"
                   step="0.1"
                   value={inlinePercent}
+                  disabled={isSaving}
                   onChange={(e) => setInlinePercent(e.target.value)}
                   onBlur={handlePercentSave}
                   onKeyDown={handlePercentKeyDown}
-                  className="w-14 rounded border border-neutral-300 px-1 py-0.5 text-xs text-center font-mono focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300"
+                  className="w-14 rounded border border-neutral-300 px-1 py-0.5 text-xs text-center font-mono focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-300 disabled:opacity-50"
                 />
                 <span className="text-xs text-neutral-400">%</span>
               </div>
@@ -687,11 +725,12 @@ export function IngredientListItem({
               autoFocus
               list={`ingredient-suggestions-${ingredient.id}`}
               value={editState.name}
+              disabled={isSaving}
               onChange={(e) =>
                 setEditState((prev) => ({ ...prev, name: e.target.value }))
               }
               placeholder="Ingredient name"
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
             />
             {suggestions.length > 0 && (
               <datalist id={`ingredient-suggestions-${ingredient.id}`}>
@@ -709,22 +748,24 @@ export function IngredientListItem({
               <input
                 type="number"
                 value={editState.quantity}
+                disabled={isSaving}
                 onChange={(e) =>
                   setEditState((prev) => ({ ...prev, quantity: e.target.value }))
                 }
                 placeholder="Amount"
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-neutral-600">Unit</label>
               <input
                 value={editState.unit}
+                disabled={isSaving}
                 onChange={(e) =>
                   setEditState((prev) => ({ ...prev, unit: e.target.value }))
                 }
                 placeholder="Unit"
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
               />
             </div>
           </div>
@@ -737,9 +778,10 @@ export function IngredientListItem({
                 <button
                   key={role}
                   type="button"
+                  disabled={isSaving}
                   onClick={() => setEditState((prev) => ({ ...prev, role }))}
                   className={cn(
-                    "rounded-full px-2.5 py-1 text-xs font-medium transition-all",
+                    "rounded-full px-2.5 py-1 text-xs font-medium transition-all disabled:opacity-50",
                     editState.role === role
                       ? "bg-neutral-900 text-white"
                       : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200",
@@ -756,12 +798,13 @@ export function IngredientListItem({
             <label className="text-sm font-medium text-neutral-600">Notes</label>
             <textarea
               value={editState.notes}
+              disabled={isSaving}
               onChange={(e) =>
                 setEditState((prev) => ({ ...prev, notes: e.target.value }))
               }
               placeholder="Optional notes"
               rows={2}
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200"
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-400 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50"
             />
           </div>
         </div>

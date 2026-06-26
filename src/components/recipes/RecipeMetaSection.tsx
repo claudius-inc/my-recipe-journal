@@ -67,6 +67,10 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
   const [totalTime, setTotalTime] = useState("");
   const [restTime, setRestTime] = useState("");
   const [ovenTemp, setOvenTemp] = useState("");
+  // Difficulty is held locally too. updateVersion isn't optimistic (it PATCHes
+  // then invalidates → a delayed refetch), so binding the Select directly to the
+  // prop made it snap back to the old value until the refetch landed.
+  const [difficulty, setDifficulty] = useState<string>("none");
   const [savingKey, setSavingKey] = useState<string | null>(null);
 
   // Reseed when the active version changes or the unit preference flips.
@@ -77,6 +81,7 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
     setTotalTime(version.totalTime ?? "");
     setRestTime(version.restTime ?? "");
     setOvenTemp(ovenToDisplay(version.ovenTempC));
+    setDifficulty(version.difficulty ?? "none");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     version.id,
@@ -86,6 +91,7 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
     version.totalTime,
     version.restTime,
     version.ovenTempC,
+    version.difficulty,
     unitSystem,
   ]);
 
@@ -159,19 +165,23 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
             inputMode="numeric"
             value={servings}
             placeholder="—"
+            disabled={savingKey === "servings"}
             onChange={(e) => setServings(e.target.value)}
             onBlur={saveServings}
           />
         </Field>
 
-        <Field label="Difficulty">
+        <Field label="Difficulty" saving={savingKey === "difficulty"}>
           <Select.Root
-            value={version.difficulty ?? "none"}
-            onValueChange={(v) =>
+            value={difficulty}
+            disabled={savingKey === "difficulty"}
+            onValueChange={(v) => {
+              // Optimistic: reflect the choice immediately, then persist.
+              setDifficulty(v);
               save("difficulty", {
                 difficulty: v === "none" ? null : (v as RecipeDifficulty),
-              })
-            }
+              });
+            }}
           >
             <Select.Trigger />
             <Select.Content>
@@ -190,6 +200,7 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
             inputMode="numeric"
             value={ovenTemp}
             placeholder="—"
+            disabled={savingKey === "ovenTempC"}
             onChange={(e) => setOvenTemp(e.target.value)}
             onBlur={saveOvenTemp}
           />
@@ -199,6 +210,7 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
           <TextField.Root
             value={prepTime}
             placeholder="e.g. 20 min"
+            disabled={savingKey === "prepTime"}
             onChange={(e) => setPrepTime(e.target.value)}
             onBlur={() => saveText("prepTime", prepTime)}
           />
@@ -208,6 +220,7 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
           <TextField.Root
             value={cookTime}
             placeholder="e.g. 45 min"
+            disabled={savingKey === "cookTime"}
             onChange={(e) => setCookTime(e.target.value)}
             onBlur={() => saveText("cookTime", cookTime)}
           />
@@ -217,6 +230,7 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
           <TextField.Root
             value={totalTime}
             placeholder="e.g. 1 hr 20 min"
+            disabled={savingKey === "totalTime"}
             onChange={(e) => setTotalTime(e.target.value)}
             onBlur={() => saveText("totalTime", totalTime)}
           />
@@ -226,6 +240,7 @@ export function RecipeMetaSection({ recipe, version, onSave }: RecipeMetaSection
           <TextField.Root
             value={restTime}
             placeholder="e.g. 8 hr"
+            disabled={savingKey === "restTime"}
             onChange={(e) => setRestTime(e.target.value)}
             onBlur={() => saveText("restTime", restTime)}
           />
