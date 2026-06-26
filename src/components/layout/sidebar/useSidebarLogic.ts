@@ -52,6 +52,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showTextModal, setShowTextModal] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -300,6 +301,18 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
     }
   };
 
+  const handleImportFromText = async (data: CreateRecipeWithDataPayload) => {
+    try {
+      await createRecipeWithData(data);
+      addToast("Recipe imported successfully", "success");
+      setShowTextModal(false);
+      onClose();
+    } catch (error) {
+      console.error("Failed to import recipe from text:", error);
+      throw error;
+    }
+  };
+
   return {
     state: {
       query,
@@ -321,6 +334,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       isDuplicating,
       showImportModal,
       showPhotoModal,
+      showTextModal,
       loading,
       error,
       hasMore,
@@ -339,12 +353,14 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       setDuplicateModalRecipe,
       setShowImportModal,
       setShowPhotoModal,
+      setShowTextModal,
       handleToggleArchive,
       handleTogglePin,
       handleDeleteRecipe,
       handleConfirmDuplicate,
       handleImportFromUrl,
       handleImportFromPhoto,
+      handleImportFromText,
       persistRecipe,
       handlePhotoScan,
       loadMore,

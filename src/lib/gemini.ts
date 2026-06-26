@@ -42,9 +42,7 @@ export interface ExtractedRecipeData {
   imageUrl?: string;
 }
 
-const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Analyze this recipe image and extract structured data.
-
-Return ONLY valid JSON matching this exact schema:
+const SCHEMA_AND_RULES = `Return ONLY valid JSON matching this exact schema:
 {
   "name": "Recipe title",
   "category": {
@@ -97,6 +95,10 @@ Rules:
 7. ovenTempC must always be in Celsius (convert °F → °C: (F-32)*5/9)
 8. Return ONLY the JSON object, no markdown formatting or explanations
 9. If the recipe has distinct ingredient sections (e.g. Dough, Filling, Topping, Frosting, Crust), group ingredients under their section name. If there are no sections, use a single group named "Ingredients"`;
+
+const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Analyze this recipe image and extract structured data.\n\n${SCHEMA_AND_RULES}`;
+
+const TEXT_EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract structured data from the recipe text provided.\n\n${SCHEMA_AND_RULES}`;
 
 export async function extractRecipeFromPhoto(
   imageData: string,
@@ -184,6 +186,75 @@ export async function extractRecipeFromPhotoWithRetry(
     }
   }
 
+  throw lastError || new Error("Failed to extract recipe after retries");
+}
+
+export async function extractRecipeFromText(text: string): Promise<ExtractedRecipeData> {
+  if (!genAI) {
+    throw new Error(
+      "Gemini API not configured. Set GEMINI_API_KEY environment variable.",
+    );
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" },
+    });
+
+    const prompt = `${TEXT_EXTRACTION_PROMPT}\n\nRecipe text:\n${text.slice(0, 20000)}`;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const raw = response.text();
+
+    const cleaned = raw
+      .replace(/```json\s*/g, "")
+      .replace(/```\s*$/g, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned) as ExtractedRecipeData;
+
+    if (parsed.ingredientGroups && parsed.ingredientGroups.length > 0) {
+      parsed.ingredients = parsed.ingredientGroups.flatMap((g) => g.ingredients);
+    }
+
+    if (
+      !parsed.name ||
+      !parsed.category ||
+      !Array.isArray(parsed.ingredients) ||
+      parsed.ingredients.length === 0
+    ) {
+      throw new Error("Invalid response structure from Gemini");
+    }
+
+    if (parsed.instructions && !parsed.steps) {
+      parsed.steps = parseInstructionsToSteps(parsed.instructions);
+    }
+
+    return parsed;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to extract recipe: ${error.message}`);
+    }
+    throw new Error("Failed to extract recipe from text");
+  }
+}
+
+export async function extractRecipeFromTextWithRetry(
+  text: string,
+  maxRetries: number = 2,
+): Promise<ExtractedRecipeData> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await extractRecipeFromText(text);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown error");
+      if (attempt < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    }
+  }
   throw lastError || new Error("Failed to extract recipe after retries");
 }
 

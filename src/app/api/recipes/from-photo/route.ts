@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractRecipeFromPhotoWithRetry } from "@/lib/gemini";
 import { normalizeExtractedRecipe } from "@/lib/recipe-importers/normalize";
+import { requireAuth } from "@/lib/auth-utils";
+import { checkRateLimit, HOUR_MS } from "@/lib/rate-limit";
 import {
   optimizeImageBuffer,
   imageToDataUri,
@@ -10,8 +12,29 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+const RATE_LIMIT_MAX_REQUESTS = 20;
+
 export async function POST(request: NextRequest) {
   try {
+    const { userId, error: authError, status } = await requireAuth(request);
+    if (!userId) {
+      return NextResponse.json({ error: authError }, { status });
+    }
+
+    const { allowed, retryAfter } = checkRateLimit(
+      `import-photo:${userId}`,
+      RATE_LIMIT_MAX_REQUESTS,
+      HOUR_MS,
+    );
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          error: `Rate limit exceeded. Maximum ${RATE_LIMIT_MAX_REQUESTS} scans per hour.`,
+        },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("photo") as File | null;
 
