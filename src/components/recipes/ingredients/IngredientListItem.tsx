@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { Checkbox, DropdownMenu } from "@radix-ui/themes";
 import { cn } from "@/lib/utils";
 import type { Ingredient } from "@/types/recipes";
+import { useUnitSystem } from "@/hooks/useUnitSystem";
+import { convertIngredient, formatAmount } from "@/lib/units";
 import { Modal } from "@/components/ui/Modal";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 import { useToast } from "@/context/ToastContext";
@@ -99,6 +101,12 @@ export function IngredientListItem({
   const [isMoving, setIsMoving] = useState(false);
 
   const { addToast } = useToast();
+
+  // Display-only conversion to the user's preferred system. Editing and all
+  // scaling/baker's-% math stay on the stored canonical values below; for the
+  // default "original" preference this is a no-op.
+  const unitSystem = useUnitSystem();
+  const display = convertIngredient(ingredient, unitSystem);
 
   // Groups this ingredient can be moved to (everything except its own)
   const moveTargets = groups.filter((g) => g.id !== currentGroupId);
@@ -572,8 +580,8 @@ export function IngredientListItem({
               )}
               title="Tap to edit"
             >
-              {ingredient.quantity}
-              {ingredient.unit}
+              {formatAmount(display.quantity, display.unit)}
+              {display.unit}
             </button>
           )}
 

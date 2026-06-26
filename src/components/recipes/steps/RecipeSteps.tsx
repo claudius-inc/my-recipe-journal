@@ -13,6 +13,8 @@ import {
 import * as Collapsible from "@radix-ui/react-collapsible";
 import type { RecipeStep } from "@/types/recipes";
 import { parseInstructionsToSteps } from "@/lib/recipe-steps-helpers";
+import { convertTemperatureInText } from "@/lib/units";
+import { useUnitSystem } from "@/hooks/useUnitSystem";
 import { useToast } from "@/context/ToastContext";
 import { SaveStatus } from "../shared/SaveStatus";
 
@@ -39,6 +41,8 @@ export function RecipeSteps({
 }: RecipeStepsProps) {
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
   const [isEditing, setIsEditing] = useState(_isEditing);
+  // Display-only temperature conversion; stored step text is left untouched.
+  const unitSystem = useUnitSystem();
   const { addToast } = useToast();
   const firstInputRef = useRef<HTMLTextAreaElement>(null);
   const wasEmptyOnExpandRef = useRef(false);
@@ -313,7 +317,7 @@ export function RecipeSteps({
                     </Flex>
                   ) : (
                     <Text size="2" className="flex-1">
-                      {step.text}
+                      {convertTemperatureInText(step.text, unitSystem)}
                     </Text>
                   )}
                 </Flex>

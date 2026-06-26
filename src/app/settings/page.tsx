@@ -60,8 +60,10 @@ export default function SettingsPage() {
               Measurement system
             </Text>
             <Text as="div" size="2" color="gray">
-              Imported recipes are converted to this system in the preview. Choose
-              &ldquo;Original&rdquo; to keep source units unchanged.
+              Recipes are shown in this system across the app — ingredient amounts and
+              temperatures are converted for display, and it&rsquo;s the default for
+              imports. Choose &ldquo;Original&rdquo; to keep source units unchanged. Saved
+              data is never altered.
             </Text>
           </div>
 
