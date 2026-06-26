@@ -1,29 +1,46 @@
 # Recipe Import Feature
 
-This document describes the recipe import feature that allows users to import recipes from external websites.
+Import recipes from a URL, a photo, or pasted text. All three paths converge on
+a shared, editable preview and a single atomic save.
 
 ## Overview
 
-The recipe import feature uses an **adapter pattern** with site-specific scrapers for supported websites and a **Gemini AI fallback** for unsupported sites.
+Three entry points (New Recipe menu): **Import from URL**, **Scan from photo**,
+**Paste text**. Each extracts an `ExtractedRecipeData`, sanitises it through the
+shared normalizer, shows it in the editable `ImportPreviewEditor` (with a
+metric/imperial/original unit toggle), and saves it in one request.
 
 ## Architecture
 
 ```
-User Input (URL)
-    ↓
-ImporterFactory
-    ↓
-    ├─→ Site-specific adapter (if URL matches)
-    │   └─→ CottaJpImporter (for cotta.jp)
-    │
-    └─→ GeminiImporter (fallback for any URL)
-    ↓
-ExtractedRecipeData
-    ↓
-Preview & Edit Modal
-    ↓
-createRecipeWithData()
+URL ─→ getImporter() ─→ CottaJpImporter | GeminiImporter
+                              │  (Gemini: JSON-LD fast path → cleaned-HTML + LLM)
+Photo ─→ /from-photo ─→ extractRecipeFromPhoto (Gemini vision, JSON mode)
+Text  ─→ /from-text  ─→ extractRecipeFromText  (Gemini, JSON mode)
+                              ↓
+                normalizeExtractedRecipe()      ← roles/units/category/quantities
+                              ↓
+                ImportPreviewEditor (edit + unit conversion)
+                              ↓
+       POST /api/recipes/import → importRecipe()  ← one atomic write
 ```
+
+Key modules:
+
+- `src/lib/recipe-importers/normalize.ts` — validates roles/units/category,
+  parses ingredient text (fractions/ranges/"to taste"), guarantees a flat
+  ingredient mirror.
+- `src/lib/recipe-importers/jsonld.ts` — schema.org/Recipe extraction (`@graph`
+  aware) so most sites skip the LLM.
+- `src/lib/units.ts` — metric↔imperial conversion (density-aware volume→grams)
+  and temperature rewriting; driven by the user's `preferredUnitSystem`.
+- `src/server/recipesService.ts#importRecipe` — single-shot persist of recipe +
+  version + groups + ingredients + steps + photo + metadata; returns
+  `duplicateOf` when the same `sourceUrl` was imported before.
+
+Extracted fields now persisted: ingredients/groups, steps, image, `servings`,
+`prep/cook/total/restTime`, `ovenTempC`, `difficulty`, `metadata`, and
+`sourceUrl`/`sourceName`.
 
 ## Features
 
@@ -69,8 +86,9 @@ When a recipe image is found:
 
 ### 4. Rate Limiting
 
-- **Limit**: 10 imports per hour per user (IP-based)
-- **Window**: 1 hour rolling window
+- **Limit**: 20 imports per hour **per authenticated user** (URL, photo, text
+  share the helper in `src/lib/rate-limit.ts`, keyed per user)
+- **Auth**: all three extraction routes require a signed-in user
 - **Response**: HTTP 429 with `Retry-After` header
 
 ## API Endpoint
@@ -288,27 +306,15 @@ npm run typecheck
 
 ## Future Improvements
 
-1. **More Adapters**: Add support for popular recipe sites
-   - AllRecipes.com
-   - Food Network
-   - Serious Eats
-   - King Arthur Baking
+1. **More Adapters**: AllRecipes, Food Network, Serious Eats, King Arthur Baking
+2. **Distributed Rate Limiting**: Redis/Turso-backed instead of in-memory (only
+   correct for a single instance today)
+3. **Batch Import**: Import multiple recipes at once
+4. **Browser Extension**: one-click import
 
-2. **Better Rate Limiting**: Use Redis or database instead of in-memory
-
-3. **User Authentication**: Rate limit per authenticated user instead of IP
-
-4. **Recipe Editing**: Allow editing ingredients/instructions before save
-
-5. **Source Attribution**: Display source URL on recipe page
-
-6. **Batch Import**: Import multiple recipes at once
-
-7. **Browser Extension**: Chrome extension for one-click import
-
-8. **R2 Storage for Images**: Upload optimized images to Cloudflare R2 instead of base64 storage
-
-9. **Multiple Images**: Support importing multiple recipe photos (step-by-step images)
+Done recently: per-user auth'd rate limiting, inline editing before save,
+source attribution, metric/imperial conversion, paste-from-text, JSON-LD
+fast path.
 
 ## Troubleshooting
 
