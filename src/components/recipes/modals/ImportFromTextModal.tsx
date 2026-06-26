@@ -1,56 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Dialog, TextField } from "@radix-ui/themes";
+import { Button, Dialog, TextArea } from "@radix-ui/themes";
 import type { CreateRecipeWithDataPayload } from "@/store/RecipeStore";
 import { ImportPreviewEditor, type ExtractedForPreview } from "./ImportPreviewEditor";
 
-interface ImportFromUrlModalProps {
+interface ImportFromTextModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImport: (data: CreateRecipeWithDataPayload) => Promise<void>;
 }
 
-export function ImportFromUrlModal({
+export function ImportFromTextModal({
   isOpen,
   onClose,
   onImport,
-}: ImportFromUrlModalProps) {
-  const [url, setUrl] = useState("");
+}: ImportFromTextModalProps) {
+  const [text, setText] = useState("");
   const [isExtracting, setIsExtracting] = useState(false);
-  const [extractError, setExtractError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [extracted, setExtracted] = useState<ExtractedForPreview | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const reset = () => {
-    setUrl("");
+    setText("");
     setExtracted(null);
-    setExtractError(null);
+    setError(null);
   };
 
   const handleExtract = async () => {
-    if (!url.trim()) {
-      setExtractError("Please enter a URL");
+    if (text.trim().length < 20) {
+      setError("Please paste a full recipe (ingredients and steps).");
       return;
     }
     setIsExtracting(true);
-    setExtractError(null);
-    setExtracted(null);
+    setError(null);
     try {
-      const response = await fetch("/api/recipes/from-url", {
+      const response = await fetch("/api/recipes/from-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ text: text.trim() }),
       });
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to extract recipe");
+        const data = await response.json();
+        throw new Error(data.error || "Failed to extract recipe");
       }
       setExtracted((await response.json()) as ExtractedForPreview);
-    } catch (error) {
-      setExtractError(
-        error instanceof Error ? error.message : "Failed to extract recipe",
-      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to extract recipe");
     } finally {
       setIsExtracting(false);
     }
@@ -58,12 +55,12 @@ export function ImportFromUrlModal({
 
   const handleSave = async (payload: CreateRecipeWithDataPayload) => {
     setIsSaving(true);
-    setExtractError(null);
+    setError(null);
     try {
       await onImport(payload);
       reset();
-    } catch (error) {
-      setExtractError(error instanceof Error ? error.message : "Failed to save recipe");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save recipe");
     } finally {
       setIsSaving(false);
     }
@@ -77,43 +74,38 @@ export function ImportFromUrlModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleCancel()}>
       <Dialog.Content maxWidth="640px">
-        <Dialog.Title>Import Recipe from URL</Dialog.Title>
+        <Dialog.Title>Paste a Recipe</Dialog.Title>
         <Dialog.Description size="2" mb="4">
-          Paste a recipe URL to automatically extract ingredients and instructions.
+          Paste recipe text (from an email, blog, or note) and we&apos;ll structure it for
+          you.
         </Dialog.Description>
 
         {!extracted ? (
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-neutral-700">Recipe URL</label>
-              <TextField.Root
-                placeholder="https://www.example.com/recipe/..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                disabled={isExtracting}
-                className="mt-1"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !isExtracting) handleExtract();
-                }}
-              />
-              <p className="mt-1 text-xs text-neutral-500">
-                Most recipe sites are supported via structured data or AI extraction.
-              </p>
-            </div>
-
-            {extractError && (
+            <TextArea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={
+                "e.g.\nSourdough Loaf\n\n500g bread flour\n350g water\n10g salt\n\n1. Mix...\n2. Bake at 230C..."
+              }
+              rows={12}
+              disabled={isExtracting}
+            />
+            {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-                {extractError}
+                {error}
               </div>
             )}
-
             <div className="flex justify-end gap-2">
               <Dialog.Close>
                 <Button variant="soft" disabled={isExtracting}>
                   Cancel
                 </Button>
               </Dialog.Close>
-              <Button onClick={handleExtract} disabled={isExtracting || !url.trim()}>
+              <Button
+                onClick={handleExtract}
+                disabled={isExtracting || text.trim().length < 20}
+              >
                 {isExtracting ? "Extracting..." : "Extract Recipe"}
               </Button>
             </div>
@@ -122,7 +114,7 @@ export function ImportFromUrlModal({
           <ImportPreviewEditor
             extracted={extracted}
             saving={isSaving}
-            error={extractError}
+            error={error}
             onBack={() => setExtracted(null)}
             onSave={handleSave}
           />

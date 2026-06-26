@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getImporter, hasSpecificAdapter } from "@/lib/recipe-importers/importerFactory";
+import { normalizeExtractedRecipe } from "@/lib/recipe-importers/normalize";
+import { requireAuth } from "@/lib/auth-utils";
+import { checkRateLimit, HOUR_MS } from "@/lib/rate-limit";
 import {
   downloadAndOptimizeImage,
   imageToDataUri,
@@ -9,56 +12,32 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-// Simple in-memory rate limiting
-// In production, you'd want to use Redis or a database
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
-const RATE_LIMIT_MAX_REQUESTS = 10;
-
-function getRateLimitKey(request: NextRequest): string {
-  // In production, you'd use user ID from auth
-  // For now, use IP address as a simple rate limit key
-  const forwarded = request.headers.get("x-forwarded-for");
-  const ip = forwarded ? forwarded.split(",")[0] : "unknown";
-  return `import-url:${ip}`;
-}
-
-function checkRateLimit(key: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const record = rateLimitMap.get(key);
-
-  if (!record || now > record.resetTime) {
-    // Create new rate limit window
-    rateLimitMap.set(key, {
-      count: 1,
-      resetTime: now + RATE_LIMIT_WINDOW,
-    });
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1 };
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 };
-  }
-
-  record.count++;
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - record.count };
-}
+const RATE_LIMIT_MAX_REQUESTS = 20;
 
 export async function POST(request: NextRequest) {
   try {
-    // Check rate limit
-    const rateLimitKey = getRateLimitKey(request);
-    const { allowed, remaining } = checkRateLimit(rateLimitKey);
+    const { userId, error: authError, status } = await requireAuth(request);
+    if (!userId) {
+      return NextResponse.json({ error: authError }, { status });
+    }
+
+    // Per-user rate limit
+    const { allowed, remaining, retryAfter } = checkRateLimit(
+      `import-url:${userId}`,
+      RATE_LIMIT_MAX_REQUESTS,
+      HOUR_MS,
+    );
 
     if (!allowed) {
       return NextResponse.json(
-        { error: "Rate limit exceeded. Maximum 10 imports per hour." },
+        {
+          error: `Rate limit exceeded. Maximum ${RATE_LIMIT_MAX_REQUESTS} imports per hour.`,
+        },
         {
           status: 429,
           headers: {
             "X-RateLimit-Remaining": "0",
-            "Retry-After": "3600",
+            "Retry-After": String(retryAfter),
           },
         },
       );
@@ -97,8 +76,8 @@ export async function POST(request: NextRequest) {
       `Using importer: ${importer.name}${usingAdapter ? " (dedicated adapter)" : " (AI fallback)"}`,
     );
 
-    // Extract recipe data
-    const extractedData = await importer.extract(url);
+    // Extract recipe data, then sanitise roles/units/category centrally.
+    const extractedData = normalizeExtractedRecipe(await importer.extract(url));
 
     console.log(`Successfully extracted recipe: ${extractedData.name}`);
 

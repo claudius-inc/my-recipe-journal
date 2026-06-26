@@ -1,8 +1,10 @@
+import * as cheerio from "cheerio";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { RecipeImporter } from "../base/RecipeImporter";
 import type { ExtractedRecipeData } from "../base/types";
 import type { RecipeCategory, IngredientRole } from "@/types/recipes";
 import { parseInstructionsToSteps } from "@/lib/recipe-steps-helpers";
+import { extractRecipeFromJsonLd } from "../jsonld";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -38,22 +40,27 @@ Return ONLY valid JSON matching this exact schema:
   ],
   "instructions": "Combined process steps (optional)",
   "servings": numeric value (optional),
-  "imageUrl": "URL of the main recipe photo (optional)"
+  "prepTime": "e.g. 20 min (optional)",
+  "cookTime": "e.g. 45 min (optional)",
+  "totalTime": "e.g. 1 hour 20 min (optional)",
+  "restTime": "proof/chill/rest time (optional)",
+  "ovenTempC": numeric oven temperature in CELSIUS (convert from Fahrenheit if needed, optional),
+  "difficulty": "easy" | "medium" | "hard" (optional),
+  "metadata": { "hydration": "...", "proofing": "...", "brewTime": "...", "sweetnessLevel": numeric } (category-specific extras, optional)
 }
 
 Rules:
 1. Extract the recipe title from h1, title tag, or meta tags
 2. Identify ALL ingredients with their quantities
 3. Group ingredients logically (e.g. Dough, Filling, Frosting). If the recipe has no clear groups, use a single group named "Ingredients"
-4. Convert measurements to standard units (grams, ml, cups, etc.)
+4. Keep quantities in the units shown; do NOT convert between metric and imperial
 5. Assign appropriate ingredient roles based on their function
 6. Extract step-by-step instructions if available
 7. Infer the most appropriate category based on the recipe type
-8. Extract the main recipe photo URL from og:image, twitter:image meta tags, or the primary recipe image in the content
-9. Only extract ONE main photo URL - prefer meta tags (og:image, twitter:image) over content images
-10. Only include fields that have data - omit optional fields if not found
-11. Return ONLY the JSON object, no markdown formatting or explanations
-12. If the page doesn't contain a recipe, return an error in this format: {"error": "No recipe found on this page"}`;
+8. ovenTempC must always be in Celsius (convert °F → °C: (F-32)*5/9)
+9. Only include fields that have data - omit optional fields if not found
+10. Return ONLY the JSON object, no markdown formatting or explanations
+11. If the page doesn't contain a recipe, return an error in this format: {"error": "No recipe found on this page"}`;
 
 /**
  * Fallback importer using Gemini AI for any website
@@ -67,22 +74,56 @@ export class GeminiImporter extends RecipeImporter {
   }
 
   async extract(url: string): Promise<ExtractedRecipeData> {
+    this.validateUrl(url);
+
+    const html = await this.fetchHtml(url);
+
+    // Prefer structured schema.org/Recipe data when the page publishes it —
+    // far more reliable and cheaper than an LLM round-trip.
+    const jsonLd = extractRecipeFromJsonLd(html);
+    if (jsonLd && jsonLd.ingredients.length > 0) {
+      return {
+        name: jsonLd.name ?? "",
+        category: jsonLd.category,
+        description: jsonLd.description,
+        ingredients: jsonLd.ingredients,
+        ingredientGroups: [{ name: "Ingredients", ingredients: jsonLd.ingredients }],
+        steps: jsonLd.steps.length > 0 ? jsonLd.steps : undefined,
+        servings: jsonLd.servings,
+        prepTime: jsonLd.prepTime,
+        cookTime: jsonLd.cookTime,
+        totalTime: jsonLd.totalTime,
+        imageUrl: jsonLd.imageUrl ?? this.extractOgImage(html),
+        sourceUrl: url,
+      };
+    }
+
     if (!genAI) {
       throw new Error(
         "Gemini API not configured. Set GEMINI_API_KEY environment variable.",
       );
     }
 
-    // Validate URL
-    this.validateUrl(url);
+    return this.extractWithRetry(html, url);
+  }
 
-    // Fetch HTML
-    const html = await this.fetchHtml(url);
+  /** Reduce a full HTML page to its readable text for the LLM prompt. */
+  private htmlToText(html: string): string {
+    const $ = cheerio.load(html);
+    $("script, style, noscript, svg, nav, header, footer, iframe, form").remove();
+    const main = $("main").text() || $("article").text() || $("body").text();
+    const text = main.replace(/\s+/g, " ").trim();
+    return text.length > 24000 ? text.slice(0, 24000) : text;
+  }
 
-    // Extract recipe using Gemini with retry logic
-    const extractedData = await this.extractWithRetry(html, url);
-
-    return extractedData;
+  /** Pull the main photo from social meta tags. */
+  private extractOgImage(html: string): string | undefined {
+    const $ = cheerio.load(html);
+    return (
+      $('meta[property="og:image"]').attr("content") ||
+      $('meta[name="twitter:image"]').attr("content") ||
+      undefined
+    );
   }
 
   private async extractWithRetry(
@@ -113,18 +154,21 @@ export class GeminiImporter extends RecipeImporter {
     }
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        // Force raw JSON so we don't fight markdown fences.
+        generationConfig: { responseMimeType: "application/json" },
+      });
 
-      // Truncate HTML if too large (keep first 50000 chars to stay within limits)
-      const truncatedHtml = html.length > 50000 ? html.substring(0, 50000) : html;
-
-      const prompt = `${EXTRACTION_PROMPT}\n\nHTML Content:\n${truncatedHtml}`;
+      // Send cleaned readable text rather than raw markup: smaller, focused,
+      // and far less likely to truncate the recipe off the end of the page.
+      const content = this.htmlToText(html);
+      const prompt = `${EXTRACTION_PROMPT}\n\nRecipe page content:\n${content}`;
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
 
-      // Clean response - remove markdown code blocks if present
       const cleaned = text
         .replace(/```json\s*/g, "")
         .replace(/```\s*$/g, "")
@@ -155,6 +199,13 @@ export class GeminiImporter extends RecipeImporter {
             }>;
             instructions?: string;
             servings?: number;
+            prepTime?: string;
+            cookTime?: string;
+            totalTime?: string;
+            restTime?: string;
+            ovenTempC?: number;
+            difficulty?: "easy" | "medium" | "hard";
+            metadata?: Record<string, string | number>;
             imageUrl?: string;
           };
 
@@ -177,25 +228,17 @@ export class GeminiImporter extends RecipeImporter {
         parsed.ingredients = parsed.ingredientGroups!.flatMap((g) => g.ingredients);
       }
 
-      // Validate category structure
-      if (
-        !parsed.category.primary ||
-        !parsed.category.secondary ||
-        typeof parsed.category !== "object"
-      ) {
-        throw new Error("Invalid category structure in response");
-      }
-
       // Convert instructions to steps if present
       const steps = parsed.instructions
         ? parseInstructionsToSteps(parsed.instructions)
         : [];
 
-      // Add sourceUrl
       const result_data: ExtractedRecipeData = {
         ...parsed,
         ingredients: parsed.ingredients ?? [],
         steps: steps.length > 0 ? steps : undefined,
+        // Prefer meta-tag image (cleaned text drops the <head>).
+        imageUrl: this.extractOgImage(html) ?? parsed.imageUrl,
         sourceUrl: url,
       };
 

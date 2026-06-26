@@ -156,6 +156,14 @@ export async function downloadAndOptimizeImage(url: string): Promise<OptimizedIm
 }
 
 /**
+ * Optimize an already-in-memory image buffer (e.g. a user upload) without a
+ * network download. Returns the optimized buffer + metadata.
+ */
+export async function optimizeImageBuffer(buffer: Buffer): Promise<OptimizedImage> {
+  return optimizeImage(buffer);
+}
+
+/**
  * Convert an optimized image buffer to a base64 data URI
  */
 export function imageToDataUri(buffer: Buffer, format: string = "webp"): string {

@@ -23,6 +23,41 @@ import {
 } from "@/types/recipes";
 import { getLastViewedRecipe, setLastViewedRecipe } from "@/lib/recipe-storage";
 
+interface ImportIngredient {
+  name: string;
+  quantity: number | null;
+  unit: string;
+  role: IngredientRole;
+  notes?: string;
+}
+
+export interface CreateRecipeWithDataPayload {
+  name: string;
+  category: RecipeCategory;
+  description?: string;
+  tags?: string[];
+  ingredients?: ImportIngredient[];
+  ingredientGroups?: Array<{ name: string; ingredients: ImportIngredient[] }>;
+  steps?: Array<{ order: number; text: string }>;
+  instructions?: string;
+  imageUrl?: string;
+  // Provenance + descriptive metadata captured during import.
+  sourceUrl?: string;
+  servings?: number | null;
+  prepTime?: string | null;
+  cookTime?: string | null;
+  totalTime?: string | null;
+  restTime?: string | null;
+  ovenTempC?: number | null;
+  difficulty?: "easy" | "medium" | "hard" | null;
+  metadata?: Record<string, string | number> | null;
+}
+
+export interface CreateRecipeWithDataResult {
+  recipe: Recipe;
+  duplicateOf: { id: string; name: string } | null;
+}
+
 interface RecipeStoreValue {
   recipes: Recipe[];
   loading: boolean;
@@ -42,31 +77,9 @@ interface RecipeStoreValue {
     category: RecipeCategory;
     description?: string;
   }) => Promise<void>;
-  createRecipeWithData: (payload: {
-    name: string;
-    category: RecipeCategory;
-    description?: string;
-    ingredients?: Array<{
-      name: string;
-      quantity: number | null;
-      unit: string;
-      role: IngredientRole;
-      notes?: string;
-    }>;
-    ingredientGroups?: Array<{
-      name: string;
-      ingredients: Array<{
-        name: string;
-        quantity: number | null;
-        unit: string;
-        role: IngredientRole;
-        notes?: string;
-      }>;
-    }>;
-    steps?: Array<{ order: number; text: string }>;
-    instructions?: string;
-    imageUrl?: string;
-  }) => Promise<void>;
+  createRecipeWithData: (
+    payload: CreateRecipeWithDataPayload,
+  ) => Promise<CreateRecipeWithDataResult>;
   updateRecipe: (
     recipeId: string,
     payload: Partial<{
@@ -406,123 +419,45 @@ export function RecipeStoreProvider({ children }: { children: ReactNode }) {
   );
 
   const createRecipeWithData = useCallback<RecipeStoreValue["createRecipeWithData"]>(
-    async ({
-      name,
-      category,
-      description,
-      ingredients,
-      ingredientGroups,
-      steps,
-      instructions,
-      imageUrl,
-    }) => {
-      if (!name.trim()) {
+    async (payload) => {
+      if (!payload.name.trim()) {
         throw new Error("Recipe name is required");
       }
-      if (!isValidCategory(category)) {
+      if (!isValidCategory(payload.category)) {
         throw new Error("Invalid recipe category");
       }
 
-      const recipe = await requestJson<Recipe>("/api/recipes", {
+      // One atomic round-trip: the server creates the recipe, its first
+      // version, all groups/ingredients, steps, photo and metadata together.
+      // Uses a raw fetch because the response envelope also carries
+      // `duplicateOf`, which requestJson would discard.
+      const response = await fetch("/api/recipes/import", {
         method: "POST",
-        body: JSON.stringify({
-          name,
-          category,
-          description: description ?? null,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-
-      const versionId = recipe.activeVersionId ?? recipe.versions[0]?.id;
-      if (!versionId) {
-        throw new Error("Failed to create initial version");
+      const body = (await response.json().catch(() => ({}))) as {
+        data?: Recipe;
+        duplicateOf?: { id: string; name: string } | null;
+        error?: string;
+      };
+      if (!response.ok || !body.data) {
+        throw new Error(body.error ?? "Failed to import recipe");
       }
+      const recipe = body.data;
+      const duplicateOf = body.duplicateOf ?? null;
 
-      // Add ingredients — grouped if available, flat otherwise
-      if (ingredientGroups && ingredientGroups.length > 0) {
-        const enableBakersPercent =
-          category.primary === "baking" &&
-          ["bread", "sourdough", "cookies", "cakes", "pastries", "pies"].includes(
-            category.secondary,
-          );
+      const versionId = recipe.activeVersionId ?? recipe.versions[0]?.id ?? null;
 
-        for (const group of ingredientGroups) {
-          // Create the group
-          const updatedRecipe = await requestJson<Recipe>(
-            `/api/recipes/${recipe.id}/versions/${versionId}/groups`,
-            {
-              method: "POST",
-              body: JSON.stringify({
-                name: group.name,
-                enableBakersPercent,
-              }),
-            },
-          );
-
-          // Find the newly created group's ID
-          const version = updatedRecipe.versions.find((v) => v.id === versionId);
-          const createdGroup = version?.ingredientGroups
-            ?.slice()
-            .sort((a, b) => a.order - b.order)
-            .findLast((g) => g.name === group.name);
-          const groupId = createdGroup?.id;
-
-          // Add each ingredient to this group
-          for (const ingredient of group.ingredients) {
-            await requestJson(
-              `/api/recipes/${recipe.id}/versions/${versionId}/ingredients`,
-              {
-                method: "POST",
-                body: JSON.stringify({ ...ingredient, groupId }),
-              },
-            );
-          }
-        }
-      } else if (ingredients && ingredients.length > 0) {
-        for (const ingredient of ingredients) {
-          await requestJson(
-            `/api/recipes/${recipe.id}/versions/${versionId}/ingredients`,
-            {
-              method: "POST",
-              body: JSON.stringify(ingredient),
-            },
-          );
-        }
-      }
-
-      // Update version with steps and/or image if provided
-      const versionUpdates: {
-        steps?: Array<{ order: number; text: string }>;
-        photoUrl?: string;
-      } = {};
-
-      if (steps && steps.length > 0) {
-        versionUpdates.steps = steps;
-      }
-
-      if (imageUrl) {
-        versionUpdates.photoUrl = imageUrl;
-      }
-
-      if (Object.keys(versionUpdates).length > 0) {
-        await requestJson(`/api/recipes/${recipe.id}/versions/${versionId}`, {
-          method: "PATCH",
-          body: JSON.stringify(versionUpdates),
-        });
-      }
-
-      // Invalidate and refetch queries to ensure fresh data
       await queryClient.invalidateQueries({ queryKey: RECIPES_QUERY_KEY });
-      await queryClient.invalidateQueries({
-        queryKey: [INGREDIENT_SUGGESTIONS_KEY],
-      });
-
-      // Force refetch of recipes to ensure the new recipe appears immediately
+      await queryClient.invalidateQueries({ queryKey: [INGREDIENT_SUGGESTIONS_KEY] });
       await queryClient.refetchQueries({ queryKey: RECIPES_QUERY_KEY });
 
       setSelectedRecipeId(recipe.id);
-      setSelectedVersionId(versionId);
-      // Persist selection to localStorage
+      if (versionId) setSelectedVersionId(versionId);
       setLastViewedRecipe(recipe.id);
+
+      return { recipe, duplicateOf };
     },
     [queryClient],
   );

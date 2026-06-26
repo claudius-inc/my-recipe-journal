@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useDeferredValue } from "react";
-import { useRecipeStore } from "@/store/RecipeStore";
+import { useRecipeStore, type CreateRecipeWithDataPayload } from "@/store/RecipeStore";
 import { useToast } from "@/context/ToastContext";
 import {
   type Recipe,
@@ -52,6 +52,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showTextModal, setShowTextModal] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -201,44 +202,17 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
     }
   };
 
-  const handleImportFromUrl = async (data: {
-    name: string;
-    category: RecipeCategory;
-    description?: string;
-    ingredients: Array<{
-      name: string;
-      quantity: number;
-      unit: string;
-      role: import("@/types/recipes").IngredientRole;
-      notes?: string;
-    }>;
-    ingredientGroups?: Array<{
-      name: string;
-      ingredients: Array<{
-        name: string;
-        quantity: number;
-        unit: string;
-        role: import("@/types/recipes").IngredientRole;
-        notes?: string;
-      }>;
-    }>;
-    steps?: Array<{ order: number; text: string }>;
-    instructions?: string;
-    sourceUrl: string;
-    imageUrl?: string;
-  }) => {
+  const handleImportFromUrl = async (data: CreateRecipeWithDataPayload) => {
     try {
-      await createRecipeWithData({
-        name: data.name,
-        category: data.category,
-        description: data.description,
-        ingredients: data.ingredients,
-        ingredientGroups: data.ingredientGroups,
-        steps: data.steps,
-        instructions: data.instructions,
-        imageUrl: data.imageUrl,
-      });
-      addToast("Recipe imported successfully", "success");
+      const { duplicateOf } = await createRecipeWithData(data);
+      if (duplicateOf) {
+        addToast(
+          `Imported — note you already have "${duplicateOf.name}" from this source.`,
+          "info",
+        );
+      } else {
+        addToast("Recipe imported successfully", "success");
+      }
       setShowImportModal(false);
       onClose();
     } catch (error) {
@@ -315,51 +289,26 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
     onOpen();
   };
 
-  const handleImportFromPhoto = async (data: {
-    name: string;
-    category: RecipeCategory;
-    description?: string;
-    ingredients: Array<{
-      name: string;
-      quantity: number | null;
-      unit: string;
-      role: import("@/types/recipes").IngredientRole;
-      notes?: string;
-    }>;
-    ingredientGroups?: Array<{
-      name: string;
-      ingredients: Array<{
-        name: string;
-        quantity: number | null;
-        unit: string;
-        role: import("@/types/recipes").IngredientRole;
-        notes?: string;
-      }>;
-    }>;
-    steps?: Array<{ order: number; text: string }>;
-    instructions?: string;
-    servings?: number;
-    cookTime?: string;
-    metadata?: Record<string, string | number>;
-  }) => {
+  const handleImportFromPhoto = async (data: CreateRecipeWithDataPayload) => {
     try {
-      console.log("Importing recipe from photo with data:", data);
-      await createRecipeWithData({
-        name: data.name,
-        category: data.category,
-        description: data.description,
-        ingredients: data.ingredients,
-        ingredientGroups: data.ingredientGroups,
-        steps: data.steps,
-        instructions: data.instructions,
-      });
-
-      console.log("Recipe imported from photo successfully");
+      await createRecipeWithData(data);
       addToast("Recipe imported from photo successfully", "success");
       setShowPhotoModal(false);
       onClose();
     } catch (error) {
       console.error("Failed to import recipe from photo:", error);
+      throw error;
+    }
+  };
+
+  const handleImportFromText = async (data: CreateRecipeWithDataPayload) => {
+    try {
+      await createRecipeWithData(data);
+      addToast("Recipe imported successfully", "success");
+      setShowTextModal(false);
+      onClose();
+    } catch (error) {
+      console.error("Failed to import recipe from text:", error);
       throw error;
     }
   };
@@ -385,6 +334,7 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       isDuplicating,
       showImportModal,
       showPhotoModal,
+      showTextModal,
       loading,
       error,
       hasMore,
@@ -403,12 +353,14 @@ export function useSidebarLogic(onClose: () => void, onOpen: () => void) {
       setDuplicateModalRecipe,
       setShowImportModal,
       setShowPhotoModal,
+      setShowTextModal,
       handleToggleArchive,
       handleTogglePin,
       handleDeleteRecipe,
       handleConfirmDuplicate,
       handleImportFromUrl,
       handleImportFromPhoto,
+      handleImportFromText,
       persistRecipe,
       handlePhotoScan,
       loadMore,

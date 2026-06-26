@@ -139,6 +139,12 @@ export interface IngredientGroup {
   ingredients: Ingredient[];
 }
 
+export type RecipeDifficulty = "easy" | "medium" | "hard";
+
+// Measurement system a user prefers imported/displayed recipes in.
+// "original" leaves quantities exactly as authored/extracted.
+export type UnitSystem = "metric" | "imperial" | "original";
+
 export interface RecipeStep {
   order: number;
   text: string;
@@ -172,6 +178,18 @@ export interface RecipeVersion {
   // (e.g. 80g "bun"). Drives the "makes ~N x Wg" readout and yield scaling.
   portionWeight?: number | null;
   portionLabel?: string | null;
+  // How many servings/units the recipe makes (distinct from portionWeight).
+  servings?: number | null;
+  // Freeform time strings as authored/extracted (e.g. "20 min").
+  prepTime?: string | null;
+  cookTime?: string | null;
+  totalTime?: string | null;
+  restTime?: string | null;
+  // Oven temperature in canonical Celsius (display converts as needed).
+  ovenTempC?: number | null;
+  difficulty?: RecipeDifficulty | null;
+  // Category-specific extras captured on import (hydration, proofing, etc.).
+  metadata?: Record<string, string | number> | null;
   // Multi-photo support
   photos: VersionPhoto[];
   // Legacy single photo fields (kept for backward compatibility)
@@ -191,6 +209,9 @@ export interface Recipe {
   category: RecipeCategory; // Now hierarchical: { primary, secondary }
   description?: string;
   tags?: string[];
+  // Import provenance (null/undefined for manually created recipes).
+  sourceUrl?: string | null;
+  sourceName?: string | null;
   versions: RecipeVersion[];
   activeVersionId: string | null;
   createdAt: string;

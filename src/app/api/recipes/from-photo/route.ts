@@ -1,11 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractRecipeFromPhotoWithRetry } from "@/lib/gemini";
+import { normalizeExtractedRecipe } from "@/lib/recipe-importers/normalize";
+import { requireAuth } from "@/lib/auth-utils";
+import { checkRateLimit, HOUR_MS } from "@/lib/rate-limit";
+import {
+  optimizeImageBuffer,
+  imageToDataUri,
+  isImageOptimizationAvailable,
+} from "@/lib/imageOptimizer";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+const RATE_LIMIT_MAX_REQUESTS = 20;
+
 export async function POST(request: NextRequest) {
   try {
+    const { userId, error: authError, status } = await requireAuth(request);
+    if (!userId) {
+      return NextResponse.json({ error: authError }, { status });
+    }
+
+    const { allowed, retryAfter } = checkRateLimit(
+      `import-photo:${userId}`,
+      RATE_LIMIT_MAX_REQUESTS,
+      HOUR_MS,
+    );
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          error: `Rate limit exceeded. Maximum ${RATE_LIMIT_MAX_REQUESTS} scans per hour.`,
+        },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("photo") as File | null;
 
@@ -36,10 +65,24 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     const base64 = buffer.toString("base64");
 
-    // Extract recipe data using Gemini
-    const extractedData = await extractRecipeFromPhotoWithRetry(base64, file.type);
+    // Extract recipe data using Gemini, then sanitise centrally.
+    const extractedData = normalizeExtractedRecipe(
+      await extractRecipeFromPhotoWithRetry(base64, file.type),
+    );
 
-    return NextResponse.json(extractedData, { status: 200 });
+    // Attach the uploaded photo so the imported recipe keeps its image.
+    // Optimize to WebP when sharp is available; otherwise use the original.
+    let imageUrl = `data:${file.type};base64,${base64}`;
+    if (isImageOptimizationAvailable()) {
+      try {
+        const optimized = await optimizeImageBuffer(buffer);
+        imageUrl = imageToDataUri(optimized.buffer, optimized.format);
+      } catch (imageError) {
+        console.warn("Failed to optimize uploaded photo:", imageError);
+      }
+    }
+
+    return NextResponse.json({ ...extractedData, imageUrl }, { status: 200 });
   } catch (error) {
     console.error("Recipe extraction error:", error);
 

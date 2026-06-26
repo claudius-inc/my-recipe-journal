@@ -8,6 +8,7 @@ import {
   DuplicateRecipeModal,
   ImportFromUrlModal,
   ImportFromPhotoModal,
+  ImportFromTextModal,
 } from "@/components/recipes/modals";
 
 import { RecipeSearchHeader } from "./sidebar/RecipeSearchHeader";
@@ -65,6 +66,10 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
               onPhotoScan={actions.handlePhotoScan}
               onImportOpen={() => {
                 actions.setShowImportModal(true);
+                onOpen();
+              }}
+              onTextImportOpen={() => {
+                actions.setShowTextModal(true);
                 onOpen();
               }}
               showArchived={state.showArchived}
@@ -153,6 +158,14 @@ export function RecipeSidebar({ isOpen, onClose, onOpen }: RecipeSidebarProps) {
           isOpen={state.showPhotoModal}
           onClose={() => actions.setShowPhotoModal(false)}
           onImport={actions.handleImportFromPhoto}
+        />
+      )}
+
+      {state.showTextModal && (
+        <ImportFromTextModal
+          isOpen={state.showTextModal}
+          onClose={() => actions.setShowTextModal(false)}
+          onImport={actions.handleImportFromText}
         />
       )}
     </>

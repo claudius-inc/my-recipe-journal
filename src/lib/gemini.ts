@@ -31,18 +31,24 @@ export interface ExtractedRecipeData {
   ingredientGroups?: ExtractedIngredientGroup[];
   steps?: Array<{ order: number; text: string }>;
   instructions?: string;
-  cookTime?: string;
   servings?: number;
+  prepTime?: string;
+  cookTime?: string;
+  totalTime?: string;
+  restTime?: string;
+  ovenTempC?: number;
+  difficulty?: "easy" | "medium" | "hard";
   metadata?: Record<string, string | number>;
   imageUrl?: string;
 }
 
-const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Analyze this recipe image and extract structured data.
-
-Return ONLY valid JSON matching this exact schema:
+const SCHEMA_AND_RULES = `Return ONLY valid JSON matching this exact schema:
 {
   "name": "Recipe title",
-  "category": "bread" | "dessert" | "drink" | "main" | "sauce" | "other",
+  "category": {
+    "primary": "baking" | "cooking" | "beverages" | "other",
+    "secondary": "bread" | "sourdough" | "cookies" | "cakes" | "pastries" | "pies" | "main_dish" | "appetizer" | "side_dish" | "sauce" | "condiment" | "coffee" | "tea" | "cocktail" | "smoothie" | "fermented" | "other"
+  },
   "description": "Brief description (optional)",
   "ingredientGroups": [
     {
@@ -51,21 +57,28 @@ Return ONLY valid JSON matching this exact schema:
         {
           "name": "ingredient name",
           "quantity": numeric value or null (null for "to taste" items),
-          "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",  // when unit is "to taste", quantity should be null
-          "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other"
+          "unit": "g" | "ml" | "cup" | "tbsp" | "tsp" | "oz" | "lb" | "each" | "to taste",
+          "role": "flour" | "liquid" | "leavening" | "salt" | "sweetener" | "fat" | "other",
+          "notes": "any clarifications (optional)"
         }
       ]
     }
   ],
   "instructions": "Combined process steps (optional)",
-  "cookTime": "e.g. 45 min, 1 hour 20 min (optional)",
   "servings": numeric value (optional),
+  "prepTime": "e.g. 20 min (optional)",
+  "cookTime": "e.g. 45 min (optional)",
+  "totalTime": "e.g. 1 hour 20 min (optional)",
+  "restTime": "proof/chill/rest time, e.g. 8 hours (optional)",
+  "ovenTempC": numeric oven temperature in CELSIUS (convert from Fahrenheit if needed, optional),
+  "difficulty": "easy" | "medium" | "hard" (optional),
   "metadata": {
+    "hydration": "for bread recipes (optional)",
     "bulkFermentation": "for bread recipes (optional)",
     "proofing": "for bread recipes (optional)",
     "sweetnessLevel": numeric 1-10 for desserts (optional),
     "texture": "for desserts (optional)",
-    "brewTime": numeric seconds for drinks (optional)",
+    "brewTime": "for drinks (optional)",
     "servingTemp": "for drinks (optional)",
     "viscosity": "for sauces (optional)",
     "pairings": "for sauces (optional)"
@@ -73,14 +86,19 @@ Return ONLY valid JSON matching this exact schema:
 }
 
 Rules:
-1. Infer category from context (bread items → "bread", cakes/cookies → "dessert", etc.)
-2. Convert all measurements to standard units
+1. Infer the most appropriate hierarchical category (primary + secondary).
+2. Keep quantities in the units shown; do not convert between metric and imperial.
 3. Assign ingredient roles logically (flour types → "flour", water/milk → "liquid", etc.)
 4. Extract ALL visible ingredients
 5. If handwritten or unclear, make best guess
 6. For metadata, only include fields relevant to the category
-7. Return ONLY the JSON object, no markdown formatting or explanations
-8. If the recipe has distinct ingredient sections (e.g. Dough, Filling, Topping, Frosting, Crust), group ingredients under their section name. If there are no sections, use a single group named "Ingredients"`;
+7. ovenTempC must always be in Celsius (convert °F → °C: (F-32)*5/9)
+8. Return ONLY the JSON object, no markdown formatting or explanations
+9. If the recipe has distinct ingredient sections (e.g. Dough, Filling, Topping, Frosting, Crust), group ingredients under their section name. If there are no sections, use a single group named "Ingredients"`;
+
+const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Analyze this recipe image and extract structured data.\n\n${SCHEMA_AND_RULES}`;
+
+const TEXT_EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract structured data from the recipe text provided.\n\n${SCHEMA_AND_RULES}`;
 
 export async function extractRecipeFromPhoto(
   imageData: string,
@@ -93,7 +111,11 @@ export async function extractRecipeFromPhoto(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      // Force a raw JSON response so we don't have to strip markdown fences.
+      generationConfig: { responseMimeType: "application/json" },
+    });
 
     const result = await model.generateContent([
       {
@@ -108,7 +130,7 @@ export async function extractRecipeFromPhoto(
     const response = await result.response;
     const text = response.text();
 
-    // Clean response - remove markdown code blocks if present
+    // Defensive: strip code fences in case the model still wraps the JSON.
     const cleaned = text
       .replace(/```json\s*/g, "")
       .replace(/```\s*$/g, "")
@@ -121,7 +143,8 @@ export async function extractRecipeFromPhoto(
       parsed.ingredients = parsed.ingredientGroups.flatMap((g) => g.ingredients);
     }
 
-    // Validate required fields
+    // Validate required fields (category is sanitised downstream by the
+    // shared normalizer, so we only guard the essentials here).
     if (
       !parsed.name ||
       !parsed.category ||
@@ -129,27 +152,6 @@ export async function extractRecipeFromPhoto(
       parsed.ingredients.length === 0
     ) {
       throw new Error("Invalid response structure from Gemini");
-    }
-
-    // Ensure category is valid - map legacy string to hierarchical category
-    const validCategoryStrings = ["bread", "dessert", "drink", "main", "sauce", "other"];
-    const categoryMap: Record<string, RecipeCategory> = {
-      bread: { primary: "baking", secondary: "bread" },
-      dessert: { primary: "baking", secondary: "cookies" },
-      drink: { primary: "beverages", secondary: "coffee" },
-      main: { primary: "cooking", secondary: "main_dish" },
-      sauce: { primary: "cooking", secondary: "sauce" },
-      other: { primary: "other", secondary: "other" },
-    };
-
-    // If category is a string (legacy), convert to hierarchical
-    if (typeof parsed.category === "string") {
-      parsed.category = categoryMap[parsed.category] || {
-        primary: "other",
-        secondary: "other",
-      };
-    } else if (!parsed.category.primary || !parsed.category.secondary) {
-      parsed.category = { primary: "other", secondary: "other" };
     }
 
     // Convert instructions to steps if present
@@ -184,6 +186,75 @@ export async function extractRecipeFromPhotoWithRetry(
     }
   }
 
+  throw lastError || new Error("Failed to extract recipe after retries");
+}
+
+export async function extractRecipeFromText(text: string): Promise<ExtractedRecipeData> {
+  if (!genAI) {
+    throw new Error(
+      "Gemini API not configured. Set GEMINI_API_KEY environment variable.",
+    );
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: { responseMimeType: "application/json" },
+    });
+
+    const prompt = `${TEXT_EXTRACTION_PROMPT}\n\nRecipe text:\n${text.slice(0, 20000)}`;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const raw = response.text();
+
+    const cleaned = raw
+      .replace(/```json\s*/g, "")
+      .replace(/```\s*$/g, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned) as ExtractedRecipeData;
+
+    if (parsed.ingredientGroups && parsed.ingredientGroups.length > 0) {
+      parsed.ingredients = parsed.ingredientGroups.flatMap((g) => g.ingredients);
+    }
+
+    if (
+      !parsed.name ||
+      !parsed.category ||
+      !Array.isArray(parsed.ingredients) ||
+      parsed.ingredients.length === 0
+    ) {
+      throw new Error("Invalid response structure from Gemini");
+    }
+
+    if (parsed.instructions && !parsed.steps) {
+      parsed.steps = parseInstructionsToSteps(parsed.instructions);
+    }
+
+    return parsed;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to extract recipe: ${error.message}`);
+    }
+    throw new Error("Failed to extract recipe from text");
+  }
+}
+
+export async function extractRecipeFromTextWithRetry(
+  text: string,
+  maxRetries: number = 2,
+): Promise<ExtractedRecipeData> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await extractRecipeFromText(text);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown error");
+      if (attempt < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    }
+  }
   throw lastError || new Error("Failed to extract recipe after retries");
 }
 

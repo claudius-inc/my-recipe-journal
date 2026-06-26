@@ -21,6 +21,17 @@ export const auth = betterAuth({
       passkey: schema.passkeys,
     },
   }),
+  user: {
+    additionalFields: {
+      // Preferred measurement system for imports/display.
+      preferredUnitSystem: {
+        type: "string",
+        required: false,
+        defaultValue: "original",
+        input: true,
+      },
+    },
+  },
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: appUrl.origin,
   trustedOrigins: process.env.VERCEL_URL

@@ -1,11 +1,18 @@
 import { Button, DropdownMenu, IconButton, Tooltip } from "@radix-ui/themes";
-import { ArchiveIcon, CameraIcon, LinkBreak2Icon, PlusIcon } from "@radix-ui/react-icons";
+import {
+  ArchiveIcon,
+  CameraIcon,
+  LinkBreak2Icon,
+  PlusIcon,
+  ClipboardIcon,
+} from "@radix-ui/react-icons";
 
 interface SidebarToolbarProps {
   isScanning: boolean;
   onCreateOpen: () => void;
   onPhotoScan: () => void;
   onImportOpen: () => void;
+  onTextImportOpen: () => void;
   showArchived: boolean;
   onToggleArchived: (show: boolean) => void;
   scanError: string | null;
@@ -16,6 +23,7 @@ export function SidebarToolbar({
   onCreateOpen,
   onPhotoScan,
   onImportOpen,
+  onTextImportOpen,
   showArchived,
   onToggleArchived,
   scanError,
@@ -42,6 +50,10 @@ export function SidebarToolbar({
             <DropdownMenu.Item onClick={onImportOpen}>
               <LinkBreak2Icon className="w-4 h-4 inline mr-2" />
               Import from URL
+            </DropdownMenu.Item>
+            <DropdownMenu.Item onClick={onTextImportOpen}>
+              <ClipboardIcon className="w-4 h-4 inline mr-2" />
+              Paste text
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Root>

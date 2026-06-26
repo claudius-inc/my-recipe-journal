@@ -634,6 +634,21 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           uploadProgress={photoUploadProgress}
           uploadError={photoUploadError}
           isRemoving={isRemovingPhoto}
+          currentVersionId={selectedVersion.id}
+          currentVersionLabel={selectedVersion.title || "This version"}
+          versionOptions={selectedRecipe.versions.map((v) => ({
+            id: v.id,
+            label: v.title || "Untitled version",
+          }))}
+          otherPhotos={selectedRecipe.versions
+            .filter((v) => v.id !== selectedVersion.id)
+            .flatMap((v) =>
+              (v.photos ?? []).map((p) => ({
+                ...p,
+                versionId: v.id,
+                versionLabel: v.title || "Untitled version",
+              })),
+            )}
         />
 
         <IngredientGroupList

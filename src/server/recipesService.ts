@@ -55,6 +55,8 @@ function toRecipe(record: RecipeWithRelations): Recipe {
     category,
     description: record.description ?? undefined,
     tags: record.tags || undefined,
+    sourceUrl: record.sourceUrl ?? null,
+    sourceName: record.sourceName ?? null,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     archivedAt: toISOString(record.archivedAt),
@@ -68,6 +70,14 @@ function toRecipe(record: RecipeWithRelations): Recipe {
       nextSteps: v.nextSteps,
       portionWeight: v.portionWeight ?? null,
       portionLabel: v.portionLabel ?? null,
+      servings: v.servings ?? null,
+      prepTime: v.prepTime ?? null,
+      cookTime: v.cookTime ?? null,
+      totalTime: v.totalTime ?? null,
+      restTime: v.restTime ?? null,
+      ovenTempC: v.ovenTempC ?? null,
+      difficulty: v.difficulty ?? null,
+      metadata: v.metadata ?? null,
       photoUrl: v.photoUrl ?? undefined,
       r2Key: v.r2Key ?? undefined,
       photos: v.photos.map((p) => ({
@@ -223,6 +233,8 @@ export interface CreateRecipeInput {
   category: RecipeCategory;
   description?: string | null;
   tags?: string[];
+  sourceUrl?: string | null;
+  sourceName?: string | null;
 }
 
 export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
@@ -239,6 +251,8 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
     secondaryCategory: input.category.secondary as SecondaryCategoryType,
     description: input.description?.trim() || null,
     tags: input.tags?.length ? input.tags : null,
+    sourceUrl: input.sourceUrl ?? null,
+    sourceName: input.sourceName ?? null,
     activeVersionId: versionId,
   });
 
@@ -256,13 +270,137 @@ export async function createRecipe(input: CreateRecipeInput): Promise<Recipe> {
   return recipe;
 }
 
+// Full single-shot import: recipe + initial version + groups + ingredients +
+// steps + photo, all server-side. Replaces the old client-side N+1 sequence so
+// an import is one round-trip and can't leave a half-created recipe behind.
+export interface ImportRecipeInput extends VersionMeta {
+  userId: string;
+  name: string;
+  category: RecipeCategory;
+  description?: string | null;
+  tags?: string[];
+  sourceUrl?: string | null;
+  sourceName?: string | null;
+  steps?: Array<{ order: number; text: string }>;
+  photoUrl?: string | null;
+  ingredients?: VersionIngredientInput[];
+  ingredientGroups?: Array<{
+    name: string;
+    enableBakersPercent?: boolean;
+    ingredients: VersionIngredientInput[];
+  }>;
+}
+
+export async function importRecipe(input: ImportRecipeInput): Promise<Recipe> {
+  const recipeId = createId();
+  const versionId = createId();
+
+  await db.insert(recipes).values({
+    id: recipeId,
+    userId: input.userId,
+    name: input.name.trim(),
+    category: "other" as RecipeCategoryType,
+    primaryCategory: input.category.primary as PrimaryCategoryType,
+    secondaryCategory: input.category.secondary as SecondaryCategoryType,
+    description: input.description?.trim() || null,
+    tags: input.tags?.length ? input.tags : null,
+    sourceUrl: input.sourceUrl ?? null,
+    sourceName: input.sourceName ?? null,
+    activeVersionId: versionId,
+  });
+
+  await db.insert(recipeVersions).values({
+    id: versionId,
+    recipeId,
+    title: "Ver. 1",
+    steps: input.steps ?? [],
+    notes: "",
+    nextSteps: "",
+    servings: input.servings ?? null,
+    prepTime: input.prepTime ?? null,
+    cookTime: input.cookTime ?? null,
+    totalTime: input.totalTime ?? null,
+    restTime: input.restTime ?? null,
+    ovenTempC: input.ovenTempC ?? null,
+    difficulty: input.difficulty ?? null,
+    metadata: input.metadata ?? null,
+    photoUrl: input.photoUrl ?? null,
+  });
+
+  if (input.ingredientGroups?.length) {
+    for (let gi = 0; gi < input.ingredientGroups.length; gi++) {
+      const group = input.ingredientGroups[gi];
+      const groupId = createId();
+      await db.insert(ingredientGroups).values({
+        id: groupId,
+        versionId,
+        name: group.name,
+        enableBakersPercent: group.enableBakersPercent ?? false,
+        orderIndex: gi,
+      });
+      if (group.ingredients.length) {
+        await db.insert(ingredients).values(
+          group.ingredients.map((ing, idx) => ({
+            id: createId(),
+            versionId,
+            groupId,
+            name: ing.name,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            role: ing.role,
+            notes: ing.notes ?? null,
+            sortOrder: ing.sortOrder ?? idx,
+          })),
+        );
+      }
+    }
+  } else if (input.ingredients?.length) {
+    await db.insert(ingredients).values(
+      input.ingredients.map((ing, idx) => ({
+        id: createId(),
+        versionId,
+        name: ing.name,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        role: ing.role,
+        notes: ing.notes ?? null,
+        sortOrder: ing.sortOrder ?? idx,
+      })),
+    );
+  }
+
+  const recipe = await getRecipe(recipeId);
+  if (!recipe) throw new Error("Recipe not found after import");
+  return recipe;
+}
+
+// Lightweight lookup for "you already imported this URL" warnings.
+export async function findRecipeBySourceUrl(
+  userId: string,
+  sourceUrl: string,
+): Promise<{ id: string; name: string } | null> {
+  const existing = await db.query.recipes.findFirst({
+    where: and(eq(recipes.userId, userId), eq(recipes.sourceUrl, sourceUrl)),
+    columns: { id: true, name: true },
+  });
+  return existing ?? null;
+}
+
 export async function updateRecipeDetails(
   recipeId: string,
-  data: Partial<Pick<Recipe, "name" | "description" | "category" | "tags">>,
+  data: Partial<
+    Pick<
+      Recipe,
+      "name" | "description" | "category" | "tags" | "sourceUrl" | "sourceName"
+    >
+  >,
 ): Promise<Recipe | null> {
   const updates: Partial<typeof recipes.$inferInsert> = {
     updatedAt: new Date(),
   };
+
+  if (data.sourceUrl !== undefined) updates.sourceUrl = data.sourceUrl;
+  if (data.sourceName !== undefined) updates.sourceName = data.sourceName;
 
   if (data.name !== undefined) {
     const trimmed = data.name.trim();
@@ -306,7 +444,19 @@ interface VersionIngredientInput {
   sortOrder?: number;
 }
 
-export interface CreateVersionInput {
+// Optional descriptive fields a version can carry (mostly populated on import).
+export interface VersionMeta {
+  servings?: number | null;
+  prepTime?: string | null;
+  cookTime?: string | null;
+  totalTime?: string | null;
+  restTime?: string | null;
+  ovenTempC?: number | null;
+  difficulty?: RecipeVersion["difficulty"];
+  metadata?: Record<string, string | number> | null;
+}
+
+export interface CreateVersionInput extends VersionMeta {
   recipeId: string;
   title: string;
   steps?: Array<{ order: number; text: string }>;
@@ -337,6 +487,14 @@ export async function createVersion(input: CreateVersionInput): Promise<Recipe> 
     nextSteps: input.nextSteps,
     portionWeight: input.portionWeight ?? null,
     portionLabel: input.portionLabel ?? null,
+    servings: input.servings ?? null,
+    prepTime: input.prepTime ?? null,
+    cookTime: input.cookTime ?? null,
+    totalTime: input.totalTime ?? null,
+    restTime: input.restTime ?? null,
+    ovenTempC: input.ovenTempC ?? null,
+    difficulty: input.difficulty ?? null,
+    metadata: input.metadata ?? null,
   });
 
   // Insert ungrouped ingredients if provided
@@ -495,6 +653,14 @@ export async function updateVersionDetails(
       | "nextSteps"
       | "portionWeight"
       | "portionLabel"
+      | "servings"
+      | "prepTime"
+      | "cookTime"
+      | "totalTime"
+      | "restTime"
+      | "ovenTempC"
+      | "difficulty"
+      | "metadata"
       | "tasteRating"
       | "visualRating"
       | "textureRating"
@@ -516,6 +682,14 @@ export async function updateVersionDetails(
   if (data.nextSteps !== undefined) updates.nextSteps = data.nextSteps;
   if (data.portionWeight !== undefined) updates.portionWeight = data.portionWeight;
   if (data.portionLabel !== undefined) updates.portionLabel = data.portionLabel;
+  if (data.servings !== undefined) updates.servings = data.servings;
+  if (data.prepTime !== undefined) updates.prepTime = data.prepTime;
+  if (data.cookTime !== undefined) updates.cookTime = data.cookTime;
+  if (data.totalTime !== undefined) updates.totalTime = data.totalTime;
+  if (data.restTime !== undefined) updates.restTime = data.restTime;
+  if (data.ovenTempC !== undefined) updates.ovenTempC = data.ovenTempC;
+  if (data.difficulty !== undefined) updates.difficulty = data.difficulty;
+  if (data.metadata !== undefined) updates.metadata = data.metadata;
   if (data.photoUrl !== undefined) updates.photoUrl = data.photoUrl;
   if (data.steps !== undefined) updates.steps = data.steps;
   if (data.tasteRating !== undefined) updates.tasteRating = data.tasteRating;
