@@ -116,6 +116,14 @@ interface RecipeStoreValue {
       nextSteps: string;
       portionWeight: number | null;
       portionLabel: string | null;
+      servings: number | null;
+      prepTime: string | null;
+      cookTime: string | null;
+      totalTime: string | null;
+      restTime: string | null;
+      ovenTempC: number | null;
+      difficulty: "easy" | "medium" | "hard" | null;
+      metadata: Record<string, string | number> | null;
       photoUrl: string | null;
       r2Key: string | null;
       tasteRating: number | undefined;

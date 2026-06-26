@@ -26,6 +26,14 @@ export async function PATCH(
     nextSteps?: string;
     portionWeight?: number | null;
     portionLabel?: string | null;
+    servings?: number | null;
+    prepTime?: string | null;
+    cookTime?: string | null;
+    totalTime?: string | null;
+    restTime?: string | null;
+    ovenTempC?: number | null;
+    difficulty?: "easy" | "medium" | "hard" | null;
+    metadata?: Record<string, string | number> | null;
     photoUrl?: string | null;
     tasteRating?: number | null;
     visualRating?: number | null;
@@ -52,6 +60,30 @@ export async function PATCH(
   }
   if (payload.portionLabel !== undefined) {
     updateData.portionLabel = payload.portionLabel;
+  }
+  if (payload.servings !== undefined) {
+    updateData.servings = payload.servings;
+  }
+  if (payload.prepTime !== undefined) {
+    updateData.prepTime = payload.prepTime;
+  }
+  if (payload.cookTime !== undefined) {
+    updateData.cookTime = payload.cookTime;
+  }
+  if (payload.totalTime !== undefined) {
+    updateData.totalTime = payload.totalTime;
+  }
+  if (payload.restTime !== undefined) {
+    updateData.restTime = payload.restTime;
+  }
+  if (payload.ovenTempC !== undefined) {
+    updateData.ovenTempC = payload.ovenTempC;
+  }
+  if (payload.difficulty !== undefined) {
+    updateData.difficulty = payload.difficulty;
+  }
+  if (payload.metadata !== undefined) {
+    updateData.metadata = payload.metadata;
   }
   if (payload.photoUrl !== undefined) {
     updateData.photoUrl = payload.photoUrl ?? null;

@@ -27,6 +27,7 @@ import { RecipeSteps } from "./steps";
 import { PhotoUploadSection } from "./shared";
 import { RecipeVersionTabs, RecipeVersionNotes } from "./version";
 import { RecipeHeader } from "./RecipeHeader";
+import { RecipeMetaSection } from "./RecipeMetaSection";
 import { LoadingAnimation } from "@/components/ui/LoadingAnimation";
 import { SpeedDialFAB } from "./SpeedDialFAB";
 
@@ -622,6 +623,12 @@ export function RecipeView({ onOpenSidebar }: RecipeViewProps) {
           onDuplicate={handleDuplicateVersion}
           onDelete={(versionId) => deleteVersion(selectedRecipe.id, versionId)}
           onCompare={handleCompareVersion}
+        />
+
+        <RecipeMetaSection
+          recipe={selectedRecipe}
+          version={selectedVersion}
+          onSave={(patch) => updateVersion(selectedRecipe.id, selectedVersion.id, patch)}
         />
 
         <PhotoUploadSection
